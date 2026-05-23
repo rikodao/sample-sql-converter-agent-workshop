@@ -112,26 +112,34 @@ if [[ "$SOURCE_MODE" == "sample" && "$SKIP_SAMPLE_LOAD" == "false" ]]; then
 
     # SSM RunCommand でサンプル DDL 投入
     echo "Submitting SSM command to load sample_objects.sql..."
-    LOAD_CMD=$(cat <<SHELLEOF
-#!/bin/bash
-set -e
-export PATH="/opt/mssql-tools18/bin:\$PATH"
-aws s3 cp s3://${EXTRACTION_BUCKET}/tests/ddl/sample_objects.sql /tmp/sample_objects.sql --region ${REGION}
-SECRET=\$(aws secretsmanager get-secret-value --region ${REGION} --secret-id mssql-to-aurora/source-mssql-credentials --query SecretString --output text)
-USER=\$(echo "\$SECRET" | jq -r .username)
-PASS=\$(echo "\$SECRET" | jq -r .password)
-echo "Loading sample_objects.sql into Source MSSQL @ ${SOURCE_HOST}..."
-sqlcmd -S ${SOURCE_HOST},1433 -U "\$USER" -P "\$PASS" -C -N -i /tmp/sample_objects.sql -m 1
-echo "Sample load complete."
-SHELLEOF
-)
+    # JSON parameters をファイル経由で渡す（heredoc + jq の shebang問題を回避）
+    PARAMS_FILE=$(mktemp)
+    jq -n \
+      --arg bucket "$EXTRACTION_BUCKET" \
+      --arg region "$REGION" \
+      --arg host "$SOURCE_HOST" \
+      '{
+        commands: [
+          "set -e",
+          "export PATH=/opt/mssql-tools18/bin:$PATH",
+          ("aws s3 cp s3://" + $bucket + "/tests/ddl/sample_objects.sql /tmp/sample_objects.sql --region " + $region),
+          ("SECRET=$(aws secretsmanager get-secret-value --region " + $region + " --secret-id mssql-to-aurora/source-mssql-credentials --query SecretString --output text)"),
+          "USER=$(echo \"$SECRET\" | jq -r .username)",
+          "PASS=$(echo \"$SECRET\" | jq -r .password)",
+          ("echo \"Loading sample_objects.sql into Source MSSQL @ " + $host + "...\""),
+          ("sqlcmd -S " + $host + ",1433 -U \"$USER\" -P \"$PASS\" -C -N -i /tmp/sample_objects.sql -m 1"),
+          "echo Sample load complete."
+        ]
+      }' > "$PARAMS_FILE"
+
     LOAD_CMD_ID=$(aws ssm send-command \
         --instance-ids "$WORKBENCH_ID" \
         --document-name AWS-RunShellScript \
         --comment "Load MSSQL sample T-SQL" \
-        --parameters "commands=[$(echo "$LOAD_CMD" | jq -Rs .)]" \
+        --parameters "file://$PARAMS_FILE" \
         --cloud-watch-output-config 'CloudWatchOutputEnabled=true' \
         --query 'Command.CommandId' --output text)
+    rm -f "$PARAMS_FILE"
 
     echo "SSM Command ID: $LOAD_CMD_ID"
     for i in $(seq 1 60); do
@@ -162,32 +170,31 @@ tar -C "$PROJ_DIR" -czf "$AGENT_TGZ" agent/
 aws s3 cp "$AGENT_TGZ" "s3://${EXTRACTION_BUCKET}/agent/agent.tgz" --region "$REGION"
 rm -f "$AGENT_TGZ"
 
-SYNC_CMD=$(cat <<SHELLEOF
-#!/bin/bash
-set -e
-mkdir -p /home/ec2-user/mssql-to-aurora
-aws s3 cp s3://${EXTRACTION_BUCKET}/agent/agent.tgz /tmp/agent.tgz --region ${REGION}
-tar -xzf /tmp/agent.tgz -C /home/ec2-user/mssql-to-aurora/
-chown -R ec2-user:ec2-user /home/ec2-user/mssql-to-aurora
-cat > /home/ec2-user/mssql-to-aurora/agent/.env <<ENVEOF
-MSSQL_HOST=${SOURCE_HOST}
-MSSQL_SECRET_NAME=mssql-to-aurora/source-mssql-credentials
-BABELFISH_HOST=${BBF_HOST}
-BABELFISH_SECRET_NAME=mssql-to-aurora/target-babelfish-credentials
-BABELFISH_DB=babelfish_db
-AURORA_PG_SECRET_NAME=mssql-to-aurora/target-pg-credentials
-AURORA_PG_DBNAME=postgres
-AWS_REGION=${REGION}
-ENVEOF
-chown ec2-user:ec2-user /home/ec2-user/mssql-to-aurora/agent/.env
-echo "Agent synced to /home/ec2-user/mssql-to-aurora/agent/"
-SHELLEOF
-)
+SYNC_PARAMS_FILE=$(mktemp)
+jq -n \
+  --arg bucket "$EXTRACTION_BUCKET" \
+  --arg region "$REGION" \
+  --arg host "$SOURCE_HOST" \
+  --arg bbf "$BBF_HOST" \
+  '{
+    commands: [
+      "set -e",
+      "mkdir -p /home/ec2-user/mssql-to-aurora",
+      ("aws s3 cp s3://" + $bucket + "/agent/agent.tgz /tmp/agent.tgz --region " + $region),
+      "tar -xzf /tmp/agent.tgz -C /home/ec2-user/mssql-to-aurora/",
+      "chown -R ec2-user:ec2-user /home/ec2-user/mssql-to-aurora",
+      ("printf \"MSSQL_HOST=" + $host + "\\nMSSQL_SECRET_NAME=mssql-to-aurora/source-mssql-credentials\\nBABELFISH_HOST=" + $bbf + "\\nBABELFISH_SECRET_NAME=mssql-to-aurora/target-babelfish-credentials\\nBABELFISH_DB=babelfish_db\\nAURORA_PG_SECRET_NAME=mssql-to-aurora/target-pg-credentials\\nAURORA_PG_DBNAME=postgres\\nAWS_REGION=" + $region + "\\n\" > /home/ec2-user/mssql-to-aurora/agent/.env"),
+      "chown ec2-user:ec2-user /home/ec2-user/mssql-to-aurora/agent/.env",
+      "echo Agent synced to /home/ec2-user/mssql-to-aurora/agent/"
+    ]
+  }' > "$SYNC_PARAMS_FILE"
+
 SYNC_CMD_ID=$(aws ssm send-command \
     --instance-ids "$WORKBENCH_ID" \
     --document-name AWS-RunShellScript \
-    --parameters "commands=[$(echo "$SYNC_CMD" | jq -Rs .)]" \
+    --parameters "file://$SYNC_PARAMS_FILE" \
     --query 'Command.CommandId' --output text)
+rm -f "$SYNC_PARAMS_FILE"
 
 for i in $(seq 1 30); do
     STATUS=$(aws ssm list-commands --command-id "$SYNC_CMD_ID" --query 'Commands[0].Status' --output text 2>/dev/null || echo "Pending")
