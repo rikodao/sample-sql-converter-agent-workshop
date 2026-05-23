@@ -1,0 +1,218 @@
+================================================================================
+Test Execution Results for dbo.usp_calculate_employee_bonus
+Executed on: SQL Server RDS
+================================================================================
+
+================================================================================
+TEST CASE 1: Normal case - 4 years tenure
+================================================================================
+Description: Employee hired 2020-01-01, calculating bonus for fiscal year 2024
+Expected Calculation: 
+  - Base salary: $50,000
+  - Years of service: DATEDIFF(yy, '2020-01-01', '2024-12-31') = 4
+  - Bonus = 50000 * 0.10 * (1 + 4 * 0.05) = 5000 * 1.20 = $6,000
+
+Result:
+  test_case       : 1
+  description     : Normal: 4 years tenure
+  employee_id     : 9001
+  fiscal_year     : 2024
+  bonus_output    : 6000.0000
+  expected_bonus  : 6000.00
+  result          : PASS
+
+================================================================================
+TEST CASE 2: Normal case - Multiple salaries, use latest
+================================================================================
+Description: Employee with salary history, should use most recent salary
+Expected Calculation:
+  - Base salary: $75,000 (latest from 2021-01-01, not $60,000 from 2015)
+  - Years of service: DATEDIFF(yy, '2015-06-15', '2024-12-31') = 9
+  - Bonus = 75000 * 0.10 * (1 + 9 * 0.05) = 7500 * 1.45 = $10,875
+
+Result:
+  test_case       : 2
+  description     : Normal: Multiple salaries, use latest
+  employee_id     : 9002
+  fiscal_year     : 2024
+  bonus_output    : 10875.0000
+  expected_bonus  : 10875.00
+  result          : PASS
+
+================================================================================
+TEST CASE 3: Normal case - Long tenure (14 years)
+================================================================================
+Description: Employee with long service history
+Expected Calculation:
+  - Base salary: $100,000
+  - Years of service: DATEDIFF(yy, '2010-03-20', '2024-12-31') = 14
+  - Bonus = 100000 * 0.10 * (1 + 14 * 0.05) = 10000 * 1.70 = $17,000
+
+Result:
+  test_case       : 3
+  description     : Normal: Long tenure (14 years)
+  employee_id     : 9004
+  fiscal_year     : 2024
+  bonus_output    : 17000.0000
+  expected_bonus  : 17000.00
+  result          : PASS
+
+================================================================================
+TEST CASE 4: Boundary - New hire (1 year)
+================================================================================
+Description: Employee hired on Dec 31, 2023, calculating for 2024
+Expected Calculation:
+  - Base salary: $40,000
+  - Years of service: DATEDIFF(yy, '2023-12-31', '2024-12-31') = 1
+  - Bonus = 40000 * 0.10 * (1 + 1 * 0.05) = 4000 * 1.05 = $4,200
+
+Result:
+  test_case       : 4
+  description     : Boundary: New hire (1 year)
+  employee_id     : 9003
+  fiscal_year     : 2024
+  bonus_output    : 4200.0000
+  expected_bonus  : 4200.00
+  result          : PASS
+
+================================================================================
+TEST CASE 5: Boundary - Zero years tenure
+================================================================================
+Description: Employee hired in 2020, calculating for same year (2020)
+Expected Calculation:
+  - Base salary: $50,000
+  - Years of service: DATEDIFF(yy, '2020-01-01', '2020-12-31') = 0
+  - Bonus = 50000 * 0.10 * (1 + 0 * 0.05) = 5000 * 1.00 = $5,000
+
+Result:
+  test_case       : 5
+  description     : Boundary: Zero years tenure
+  employee_id     : 9001
+  fiscal_year     : 2020
+  bonus_output    : 5000.0000
+  expected_bonus  : 5000.00
+  result          : PASS
+
+================================================================================
+TEST CASE 6: Boundary - No salary record
+================================================================================
+Description: Employee exists but has no salary record
+Expected Behavior: Return bonus = 0 and exit early
+
+Result:
+  test_case       : 6
+  description     : Boundary: No salary record
+  employee_id     : 9005
+  fiscal_year     : 2024
+  bonus_output    : 0.0000
+  expected_bonus  : 0.00
+  result          : PASS
+
+================================================================================
+TEST CASE 7: Exception - Non-existent employee
+================================================================================
+Description: Employee ID does not exist in database
+Expected Behavior: Return bonus = 0 (no salary found)
+
+Result:
+  test_case       : 7
+  description     : Exception: Non-existent employee
+  employee_id     : 99999
+  fiscal_year     : 2024
+  bonus_output    : 0.0000
+  expected_bonus  : 0.00
+  result          : PASS
+
+================================================================================
+TEST CASE 8: Exception - NULL fiscal_year
+================================================================================
+Description: Passing NULL for required fiscal_year parameter
+Expected Behavior: SQL error due to NOT NULL constraint on bonuses.fiscal_year
+
+Result:
+  test_case       : 8
+  description     : Exception: NULL fiscal_year
+  error_message   : Cannot insert the value NULL into column 'fiscal_year', 
+                    table 'migration_demo.dbo.bonuses'; column does not allow 
+                    nulls. INSERT fails.
+  result          : PASS
+
+================================================================================
+TEST CASE 9: Side Effect - INSERT new bonus record
+================================================================================
+Description: Verify that procedure inserts new record when none exists
+Test Setup: Delete any existing bonus for employee 9001, fiscal year 2026
+Expected Behavior: bonuses table count increases from 0 to 1
+
+Result:
+  test_case       : 9
+  description     : Side Effect: INSERT new bonus
+  count_before    : 0
+  count_after     : 1
+  bonus_calculated: 6500.0000
+  result          : PASS
+
+Verification Query Result:
+  employee_id: 9001, fiscal_year: 2026, bonus_amount: 6500.0000
+
+================================================================================
+TEST CASE 10: Side Effect - UPDATE existing bonus record
+================================================================================
+Description: Verify that procedure updates existing record (UPSERT behavior)
+Test Setup: Insert bonus record with amount = $1,000 for employee 9002, year 2026
+Expected Behavior: Existing record updated with new calculated bonus
+
+Result:
+  test_case       : 10
+  description     : Side Effect: UPDATE existing bonus
+  amount_before   : 1000.00
+  amount_after    : 11625.0000
+  bonus_calculated: 11625.0000
+  result          : PASS
+
+Verification Query Result:
+  employee_id: 9002, fiscal_year: 2026, bonus_amount: 11625.0000
+
+================================================================================
+TEST CASE 11: Boundary - Future fiscal year
+================================================================================
+Description: Calculate bonus for future year (2030)
+Expected Calculation:
+  - Base salary: $50,000
+  - Years of service: DATEDIFF(yy, '2020-01-01', '2030-12-31') = 10
+  - Bonus = 50000 * 0.10 * (1 + 10 * 0.05) = 5000 * 1.50 = $7,500
+
+Result:
+  test_case       : 11
+  description     : Boundary: Future fiscal year
+  employee_id     : 9001
+  fiscal_year     : 2030
+  bonus_output    : 7500.0000
+  expected_bonus  : 7500.00
+  result          : PASS
+
+================================================================================
+SUMMARY
+================================================================================
+Total Test Cases: 11
+Passed: 11
+Failed: 0
+Success Rate: 100%
+
+Test Coverage:
+✓ Normal cases (3): Various tenure scenarios
+✓ Boundary cases (5): Zero tenure, new hire, no salary, future year, NULL input
+✓ Exception cases (2): Non-existent employee, NULL parameter
+✓ Side effects (2): INSERT and UPDATE behavior in bonuses table
+
+All tests completed successfully.
+
+================================================================================
+CLEANUP STATUS
+================================================================================
+✓ Test employees deleted (5 records)
+✓ Test salaries deleted (5 records)
+✓ Test bonuses deleted (10 records)
+✓ Database restored to pre-test state
+
+CLEANUP COMPLETED

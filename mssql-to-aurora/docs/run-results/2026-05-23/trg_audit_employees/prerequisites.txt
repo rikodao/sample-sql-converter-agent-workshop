@@ -1,0 +1,57 @@
+========================================
+前提条件チェック結果
+========================================
+対象オブジェクト: dbo.trg_audit_employees
+オブジェクトタイプ: SQL_TRIGGER
+作成日時: 2026-05-23T13:54:20.583000
+更新日時: 2026-05-23T13:54:20.583000
+
+親テーブル: dbo.employees
+トリガータイプ: AFTER TRIGGER (DML)
+トリガーイベント: INSERT, UPDATE, DELETE
+状態: 有効 (is_disabled = false)
+
+========================================
+依存オブジェクト
+========================================
+1. dbo.audit_log (USER_TABLE)
+   - トリガーが監査ログを記録する先のテーブル
+   - カラム: audit_id (bigint, PK), table_name (nvarchar(100)), 
+            operation (nvarchar(10)), primary_key (int), 
+            changed_at (datetime2), changed_by (nvarchar(100))
+
+2. dbo.employees (USER_TABLE) - 親テーブル
+   - カラム: employee_id (int, PK), department_id (int), 
+            first_name (nvarchar(50)), last_name (nvarchar(50)), 
+            hire_date (date), is_active (bit), 
+            email (nvarchar(200), nullable), created_at (datetime2)
+
+========================================
+トリガーの動作概要
+========================================
+- INSERT 操作時: audit_log に 'INSERT' レコードを追加
+- UPDATE 操作時: audit_log に 'UPDATE' レコードを追加
+- DELETE 操作時: audit_log に 'DELETE' レコードを追加
+- primary_key カラムに employee_id を記録
+- changed_at はデフォルト値 (GETDATE()) で自動設定
+- changed_by はデフォルト値 (SYSTEM_USER) で自動設定
+
+========================================
+検証ポイント
+========================================
+1. INSERT/UPDATE/DELETE の各操作で正しく audit_log にレコードが追加されるか
+2. 複数行の一括操作時に全行が記録されるか
+3. トランザクションロールバック時に audit_log も巻き戻されるか
+4. トリガー内でエラーが発生した場合の動作
+5. inserted/deleted 疑似テーブルの正しい参照
+
+========================================
+暗号化状態
+========================================
+暗号化なし - definition 取得成功
+
+========================================
+検証準備完了
+========================================
+全ての前提条件が満たされています。
+DDL取得とテストケース作成を続行します。

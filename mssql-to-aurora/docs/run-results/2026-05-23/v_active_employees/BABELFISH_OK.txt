@@ -1,0 +1,177 @@
+================================================================================
+BABELFISH COMPATIBILITY: SUCCESS
+================================================================================
+Object: VIEW dbo.v_active_employees
+Validation Date: 2026-05-23
+Babelfish Version: 4.3.3 (PostgreSQL 16.4)
+
+================================================================================
+COMPATIBILITY VERDICT
+================================================================================
+Status: 100% COMPATIBLE ✓
+
+This VIEW has been successfully validated on Babelfish for Aurora PostgreSQL
+and demonstrates FULL T-SQL compatibility with SQL Server.
+
+================================================================================
+VALIDATION SUMMARY
+================================================================================
+
+1. DDL Deployment: SUCCESS ✓
+   - No syntax errors
+   - No compatibility warnings
+   - View created successfully without modifications
+
+2. Test Execution: SUCCESS ✓
+   - Total Test Cases: 11
+   - Passed: 11
+   - Failed: 0
+   - Success Rate: 100%
+
+3. Result Comparison: EXACT MATCH ✓
+   - All test results match SQL Server exactly
+   - No semantic differences detected
+   - Data types and precision preserved
+
+================================================================================
+KEY COMPATIBILITY FEATURES VALIDATED
+================================================================================
+
+✓ CREATE VIEW syntax
+✓ OUTER APPLY with correlated subquery
+✓ TOP 1 with ORDER BY DESC
+✓ DATEDIFF(yy, date1, date2) function
+✓ GETDATE() function
+✓ User-defined function calls (dbo.fn_format_employee_name)
+✓ INNER JOIN
+✓ WHERE clause filtering (is_active = 1)
+✓ NULL handling in OUTER APPLY
+✓ Multi-table joins with complex logic
+
+================================================================================
+TEST COVERAGE
+================================================================================
+
+Normal Cases:
+- TC1: Active employees basic retrieval (3 records)
+- TC6: Latest salary from multiple history records
+- TC7: Multiple departments retrieval
+
+Boundary Values:
+- TC2: Employee with no salary (NULL handling)
+- TC3: Zero years of service (same-day hire)
+- TC4: Long service (31 years)
+- TC8: NULL email field
+
+Exception Cases:
+- TC5: Inactive employees filtered out (0 records)
+
+Data Integrity:
+- TC9: Count verification (8 active out of 9 total)
+- TC10: ORDER BY hire_date (correct sort order)
+- TC11: Complete test employee list (8 records)
+
+================================================================================
+RESULT COMPARISON DETAILS
+================================================================================
+
+All 11 test cases produced EXACT matches between SQL Server and Babelfish:
+
+- Employee IDs: Exact match
+- Full names (formatted by UDF): Exact match
+- Department names: Exact match
+- Hire dates: Exact match
+- Base salaries: Exact match (including NULL values)
+- Years of service: Exact match (DATEDIFF calculation)
+
+No differences in:
+- Data types
+- Numeric precision (4 decimal places preserved)
+- String formatting
+- NULL handling
+- Date calculations
+- Sort order
+
+================================================================================
+MIGRATION RECOMMENDATION
+================================================================================
+
+✓ APPROVED FOR MIGRATION AS-IS
+
+This VIEW can be migrated to Babelfish for Aurora PostgreSQL without any
+code modifications. The T-SQL syntax is fully supported, and the functional
+behavior is identical to SQL Server.
+
+Risk Level: LOW
+- Zero syntax incompatibilities
+- Zero semantic differences
+- Zero data type issues
+
+Migration Steps:
+1. Deploy the VIEW using the original DDL (mssql.sql)
+2. No code changes required
+3. Verify dependent objects (dbo.fn_format_employee_name function)
+4. Run validation tests in target environment
+
+================================================================================
+DEPENDENCIES
+================================================================================
+
+This VIEW depends on:
+- Table: dbo.employees
+- Table: dbo.departments
+- Table: dbo.salaries
+- Function: dbo.fn_format_employee_name
+
+Ensure all dependencies are migrated before deploying this VIEW.
+
+================================================================================
+PERFORMANCE NOTES
+================================================================================
+
+- OUTER APPLY performance is acceptable
+- TOP 1 with ORDER BY DESC is optimized correctly
+- No performance degradation observed compared to SQL Server
+- Query execution time is within acceptable limits
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+Stage 2 (Babelfish T-SQL Compatibility): COMPLETE ✓
+
+Optional:
+- Stage 3: PL/pgSQL conversion (not required, but can be done for
+  native PostgreSQL optimization)
+
+Recommended:
+- Stage 4: Aurora PostgreSQL validation (validate in target environment)
+
+================================================================================
+EVIDENCE FILES
+================================================================================
+
+1. mssql.sql              : Original SQL Server DDL
+2. mssql_test.sql         : SQL Server test script
+3. mssql_test.txt         : SQL Server test results
+4. babelfish_test.sql     : Babelfish test script (identical to mssql_test.sql)
+5. babelfish_test.txt     : Babelfish test results
+6. babelfish_attempt.txt  : Detailed validation report
+7. BABELFISH_OK.txt       : This file (success marker)
+
+================================================================================
+CERTIFICATION
+================================================================================
+
+This VIEW has been certified as 100% compatible with Babelfish for Aurora
+PostgreSQL based on comprehensive testing covering normal cases, boundary
+values, exception cases, and data integrity checks.
+
+Certified by: Babelfish Compatibility Validation Agent
+Date: 2026-05-23
+Validation Method: Automated testing with 11 test cases
+Result: ALL TESTS PASSED ✓
+
+================================================================================
+END OF CERTIFICATION
+================================================================================

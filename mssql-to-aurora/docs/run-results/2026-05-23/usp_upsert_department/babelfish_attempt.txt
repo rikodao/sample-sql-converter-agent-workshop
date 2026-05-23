@@ -1,0 +1,122 @@
+================================================================================
+Babelfish Compatibility Verification Report
+================================================================================
+Object: PROCEDURE dbo.usp_upsert_department
+Verification Date: Stage 2 - Babelfish T-SQL Compatibility Check
+================================================================================
+
+STEP 1: Babelfish Connection Check
+================================================================================
+Status: ✓ SUCCESS
+
+Connection Test:
+  Query: SELECT @@VERSION
+  
+Result:
+  Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+  Dec 12 2025 21:33:56
+  Copyright (c) Amazon Web Services
+  PostgreSQL 16.4 on x86_64-pc-linux-gnu (Babelfish 4.3.3)
+
+Conclusion: Babelfish connection established successfully.
+
+================================================================================
+STEP 2: DDL Deployment Attempt
+================================================================================
+Status: ✗ FAILED
+
+Source DDL:
+--------------------------------------------------------------------------------
+CREATE PROCEDURE dbo.usp_upsert_department
+    @name      NVARCHAR(100),
+    @parent_id INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    MERGE dbo.departments AS tgt
+    USING (SELECT @name AS name, @parent_id AS parent_id) AS src
+    ON tgt.name = src.name
+    WHEN MATCHED THEN
+        UPDATE SET parent_id = src.parent_id
+    WHEN NOT MATCHED THEN
+        INSERT (name, parent_id) VALUES (src.name, src.parent_id);
+END
+--------------------------------------------------------------------------------
+
+Execution Result:
+  Error Code: 42000
+  Error Number: 33557097
+  Error Message: 'MERGE' is not currently supported in Babelfish
+
+Root Cause Analysis:
+================================================================================
+Category: UNSUPPORTED_SYNTAX
+Feature: MERGE Statement
+
+The MERGE statement is a T-SQL feature that combines INSERT, UPDATE, and DELETE
+operations in a single atomic statement. This is commonly used for UPSERT 
+(UPDATE or INSERT) operations.
+
+Babelfish Limitation:
+  - Babelfish 4.3.3 does NOT support the MERGE statement
+  - This is a known limitation documented in Babelfish compatibility matrix
+  - Error code 33557097 specifically indicates "feature not supported"
+
+Impact:
+  - The stored procedure CANNOT be deployed to Babelfish as-is
+  - Syntax modification is required to achieve equivalent functionality
+  - Alternative approaches:
+    1. Use separate IF EXISTS / UPDATE / INSERT logic
+    2. Use INSERT ... ON CONFLICT (PostgreSQL native, via PL/pgSQL)
+    3. Use TRY-CATCH with UPDATE followed by conditional INSERT
+
+Migration Path:
+  - Stage 3 (PL/pgSQL conversion) will rewrite this using PostgreSQL-native
+    INSERT ... ON CONFLICT DO UPDATE syntax
+  - Stage 4 (T-SQL rewrite) will provide T-SQL compatible alternative using
+    IF EXISTS pattern
+
+================================================================================
+STEP 3: Test Execution
+================================================================================
+Status: SKIPPED
+
+Reason: DDL deployment failed, cannot proceed with test execution.
+
+================================================================================
+STEP 4: Result Comparison
+================================================================================
+Status: SKIPPED
+
+Reason: No test results available due to DDL deployment failure.
+
+================================================================================
+CONCLUSION
+================================================================================
+RESULT: SYNTAX_FAILED
+
+Babelfish Compatibility: ✗ NOT COMPATIBLE
+
+Summary:
+  - Connection: ✓ OK
+  - DDL Deployment: ✗ FAILED (MERGE not supported)
+  - Test Execution: - SKIPPED
+  - Result Match: - SKIPPED
+
+Known Babelfish Limitations Encountered:
+  1. MERGE statement (Error 33557097)
+
+Recommendation:
+  - Proceed to Stage 3 for PL/pgSQL conversion using INSERT ... ON CONFLICT
+  - Alternatively, proceed to Stage 4 for T-SQL rewrite using IF EXISTS pattern
+  - Both approaches can achieve equivalent UPSERT functionality
+
+Migration Complexity: MEDIUM
+  - Logic is straightforward (UPSERT by name)
+  - Multiple alternative implementations available
+  - No data loss or semantic change expected
+
+================================================================================
+End of Report
+================================================================================

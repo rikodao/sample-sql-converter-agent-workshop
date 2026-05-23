@@ -183,7 +183,7 @@ jq -n \
       ("aws s3 cp s3://" + $bucket + "/agent/agent.tgz /tmp/agent.tgz --region " + $region),
       "tar -xzf /tmp/agent.tgz -C /home/ec2-user/mssql-to-aurora/",
       "chown -R ec2-user:ec2-user /home/ec2-user/mssql-to-aurora",
-      ("printf \"MSSQL_HOST=" + $host + "\\nMSSQL_SECRET_NAME=mssql-to-aurora/source-mssql-credentials\\nBABELFISH_HOST=" + $bbf + "\\nBABELFISH_SECRET_NAME=mssql-to-aurora/target-babelfish-credentials\\nBABELFISH_DB=babelfish_db\\nAURORA_PG_SECRET_NAME=mssql-to-aurora/target-pg-credentials\\nAURORA_PG_DBNAME=postgres\\nAWS_REGION=" + $region + "\\n\" > /home/ec2-user/mssql-to-aurora/agent/.env"),
+      ("printf \"MSSQL_HOST=" + $host + "\\nMSSQL_SECRET_NAME=mssql-to-aurora/source-mssql-credentials\\nMSSQL_DATABASE=migration_demo\\nBABELFISH_HOST=" + $bbf + "\\nBABELFISH_SECRET_NAME=mssql-to-aurora/target-babelfish-credentials\\nBABELFISH_DB=babelfish_db\\nAURORA_PG_SECRET_NAME=mssql-to-aurora/target-pg-credentials\\nAURORA_PG_DBNAME=postgres\\nAWS_REGION=" + $region + "\\n\" > /home/ec2-user/mssql-to-aurora/agent/.env"),
       "chown ec2-user:ec2-user /home/ec2-user/mssql-to-aurora/agent/.env",
       "echo Agent synced to /home/ec2-user/mssql-to-aurora/agent/"
     ]

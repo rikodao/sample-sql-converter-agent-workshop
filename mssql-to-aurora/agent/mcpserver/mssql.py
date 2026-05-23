@@ -22,6 +22,7 @@ SECRET_NAME = os.environ.get(
 HOST = os.environ.get("MSSQL_HOST")  # Workbench EC2 起動時に環境変数で設定
 PORT = int(os.environ.get("MSSQL_PORT", "1433"))
 DRIVER = os.environ.get("MSSQL_DRIVER", "ODBC Driver 18 for SQL Server")
+DATABASE = os.environ.get("MSSQL_DATABASE", "migration_demo")
 
 
 def _get_credentials() -> dict[str, str]:
@@ -38,7 +39,7 @@ def _connect() -> pyodbc.Connection:
     conn_str = (
         f"DRIVER={{{DRIVER}}};"
         f"SERVER={HOST},{PORT};"
-        f"DATABASE=master;"
+        f"DATABASE={DATABASE};"
         f"UID={creds['username']};"
         f"PWD={creds['password']};"
         f"Encrypt=yes;TrustServerCertificate=yes;"

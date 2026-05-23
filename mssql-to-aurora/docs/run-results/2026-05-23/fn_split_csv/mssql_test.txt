@@ -1,0 +1,278 @@
+============================================================================
+テスト実行結果: dbo.fn_split_csv
+実行日時: Stage 1 - Source SQL Server
+============================================================================
+
+=== SETUP COMPLETE ===
+Status: OK
+
+============================================================================
+TEST CASE 1: Basic comma-separated string
+============================================================================
+Input: 'apple,banana,cherry' with separator ','
+Expected: 3 elements
+
+idx | value
+----|--------
+1   | apple
+2   | banana
+3   | cherry
+
+Result: PASS - 3 elements correctly split
+
+============================================================================
+TEST CASE 2: Semicolon separator
+============================================================================
+Input: 'red;green;blue;yellow' with separator ';'
+Expected: 4 elements
+
+idx | value
+----|--------
+1   | red
+2   | green
+3   | blue
+4   | yellow
+
+Result: PASS - 4 elements correctly split
+
+============================================================================
+TEST CASE 3: Pipe separator
+============================================================================
+Input: 'one|two|three' with separator '|'
+Expected: 3 elements
+
+idx | value
+----|-------
+1   | one
+2   | two
+3   | three
+
+Result: PASS - 3 elements correctly split
+
+============================================================================
+TEST CASE 4: Single element (no separator)
+============================================================================
+Input: 'single' with separator ','
+Expected: 1 element
+
+idx | value
+----|--------
+1   | single
+
+Result: PASS - Single element returned
+
+============================================================================
+TEST CASE 5: Empty string
+============================================================================
+Input: '' (empty string) with separator ','
+Expected: 0 rows
+
+result_count
+------------
+0
+
+Result: PASS - Empty result set returned
+
+============================================================================
+TEST CASE 6: NULL input
+============================================================================
+Input: NULL with separator ','
+Expected: 0 rows
+
+result_count
+------------
+0
+
+Result: PASS - Empty result set returned for NULL
+
+============================================================================
+TEST CASE 7: Empty elements (consecutive separators)
+============================================================================
+Input: 'a,,b,,,c' with separator ','
+Expected: 6 elements including empty strings
+
+idx | value | value_length
+----|-------|-------------
+1   | a     | 1
+2   |       | 0
+3   | b     | 1
+4   |       | 0
+5   |       | 0
+6   | c     | 1
+
+Result: PASS - Empty elements correctly preserved
+
+============================================================================
+TEST CASE 8: Leading separator
+============================================================================
+Input: ',first,second' with separator ','
+Expected: 3 elements, first is empty
+
+idx | value  | value_length
+----|--------|-------------
+1   |        | 0
+2   | first  | 5
+3   | second | 6
+
+Result: PASS - Leading empty element correctly handled
+
+============================================================================
+TEST CASE 9: Trailing separator
+============================================================================
+Input: 'first,second,' with separator ','
+Expected: 3 elements, last is empty
+
+idx | value  | value_length
+----|--------|-------------
+1   | first  | 5
+2   | second | 6
+3   |        | 0
+
+Result: PASS - Trailing empty element correctly handled
+
+============================================================================
+TEST CASE 10: Only separators
+============================================================================
+Input: ',,,' with separator ','
+Expected: 4 empty elements
+
+idx | value | value_length
+----|-------|-------------
+1   |       | 0
+2   |       | 0
+3   |       | 0
+4   |       | 0
+
+Result: PASS - All empty elements returned
+
+============================================================================
+TEST CASE 11: Long string with many elements
+============================================================================
+Input: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20' with separator ','
+Expected: 20 elements
+
+element_count | min_idx | max_idx
+--------------|---------|--------
+20            | 1       | 20
+
+Result: PASS - All 20 elements correctly counted
+
+============================================================================
+TEST CASE 12: Long individual elements
+============================================================================
+Input: 150 A's + 180 B's + 200 C's separated by ','
+Expected: 3 elements with correct lengths
+
+idx | value_length | value_preview
+----|--------------|--------------------
+1   | 150          | AAAAAAAAAAAAAAAAAAAA
+2   | 180          | BBBBBBBBBBBBBBBBBBBB
+3   | 200          | CCCCCCCCCCCCCCCCCCCC
+
+Result: PASS - Long elements correctly handled (up to 200 chars)
+
+============================================================================
+TEST CASE 13: Separator not in string
+============================================================================
+Input: 'no-separator-here' with separator ','
+Expected: 1 element (entire string)
+
+idx | value
+----|-------------------
+1   | no-separator-here
+
+Result: PASS - Entire string returned as single element
+
+============================================================================
+TEST CASE 14: Special characters in elements
+============================================================================
+Input: 'hello world,tab	here,newline\nhere' with separator ','
+Expected: 3 elements with special characters preserved
+
+idx | value
+----|-------------
+1   | hello world
+2   | tab	here
+3   | newline
+    | here
+
+Result: PASS - Special characters (tab, newline) preserved
+
+============================================================================
+TEST CASE 15: Space separator
+============================================================================
+Input: 'word1 word2 word3' with separator ' '
+Expected: 3 elements
+
+idx | value | value_length
+----|-------|-------------
+1   | word1 | 5
+2   | word2 | 5
+3   | word3 | 5
+
+Result: PASS - Space as separator works correctly
+
+============================================================================
+TEST CASE 16: Numeric strings
+============================================================================
+Input: '123,456.78,-999,0,abc' with separator ','
+Expected: 5 elements, first 4 numeric
+
+idx | value  | is_numeric
+----|--------|------------
+1   | 123    | numeric
+2   | 456.78 | numeric
+3   | -999   | numeric
+4   | 0      | numeric
+5   | abc    | non-numeric
+
+Result: PASS - Numeric strings correctly identified
+
+============================================================================
+TEST CASE 17: Unicode characters
+============================================================================
+Input: N'日本語,한국어,中文,English' with separator ','
+Expected: 4 elements with Unicode preserved
+
+idx | value
+----|--------
+1   | 日本語
+2   | 한국어
+3   | 中文
+4   | English
+
+Result: PASS - Unicode characters correctly handled
+
+============================================================================
+TEST CASE 18: Elements with quotes
+============================================================================
+Input: 'normal,"quoted value",''single quoted''' with separator ','
+Expected: 3 elements with quotes preserved
+
+idx | value
+----|------------------
+1   | normal
+2   | "quoted value"
+3   | 'single quoted'
+
+Result: PASS - Quotes preserved as literal characters
+
+============================================================================
+SUMMARY
+============================================================================
+Total Test Cases: 18
+Passed: 18
+Failed: 0
+
+Key Findings:
+- Function correctly handles NULL and empty string inputs (returns empty set)
+- Empty elements are preserved (consecutive separators create empty strings)
+- Leading and trailing separators create empty elements
+- Long strings (up to 200 chars per element) handled correctly
+- Special characters (tab, newline) preserved
+- Unicode characters supported
+- Any single character can be used as separator
+- Quotes are treated as literal characters (no CSV escaping logic)
+
+All tests completed successfully.
+============================================================================

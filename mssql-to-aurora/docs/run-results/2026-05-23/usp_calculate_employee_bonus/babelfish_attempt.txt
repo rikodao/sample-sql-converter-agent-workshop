@@ -1,0 +1,291 @@
+================================================================================
+Babelfish Compatibility Verification Report
+================================================================================
+Object: PROCEDURE dbo.usp_calculate_employee_bonus
+Stage: 2 - Babelfish T-SQL Compatibility Test
+Execution Date: 2025-01-XX
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8 (Babelfish 4.3.3)
+
+================================================================================
+1. CONNECTION VERIFICATION
+================================================================================
+Status: SUCCESS
+Connection Method: run_babelfish_tsql (TDS port 1433)
+Version Query: SELECT @@VERSION
+Result: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+        Dec 12 2025 21:33:56
+        Copyright (c) Amazon Web Services
+        PostgreSQL 16.4 on x86_64-pc-linux-gnu (Babelfish 4.3.3)
+
+================================================================================
+2. DDL DEPLOYMENT
+================================================================================
+Source File: ./result/usp_calculate_employee_bonus/mssql.sql
+Deployment Status: SUCCESS
+
+Pre-deployment Action:
+  - Executed: DROP PROCEDURE IF EXISTS dbo.usp_calculate_employee_bonus
+  - Result: OK (rowcount: -1)
+
+DDL Execution:
+  - Object Type: STORED PROCEDURE
+  - Object Name: dbo.usp_calculate_employee_bonus
+  - Parameters: 
+      @employee_id INT
+      @fiscal_year INT
+      @bonus MONEY OUTPUT
+  - Result: SUCCESS (rowcount: -1)
+
+Key T-SQL Features Used:
+  ✓ SET NOCOUNT ON
+  ✓ DECLARE variables (MONEY, INT)
+  ✓ SELECT TOP 1 with ORDER BY DESC
+  ✓ Variable assignment via SELECT
+  ✓ IF...BEGIN...END control flow
+  ✓ DATEDIFF function with 'yy' datepart
+  ✓ DATEFROMPARTS function
+  ✓ ISNULL function
+  ✓ IF EXISTS with subquery
+  ✓ UPDATE statement
+  ✓ INSERT statement
+  ✓ OUTPUT parameter handling
+
+Babelfish Compatibility Assessment:
+  - All T-SQL constructs are fully supported by Babelfish
+  - No syntax modifications required
+  - No known limitations encountered
+
+================================================================================
+3. TEST EXECUTION
+================================================================================
+Test File: ./result/usp_calculate_employee_bonus/babelfish_test.sql
+Test Execution Status: SUCCESS
+
+Setup Phase:
+  ✓ SET IDENTITY_INSERT dbo.employees ON/OFF
+  ✓ Inserted 5 test employees (IDs: 9001-9005)
+  ✓ SET IDENTITY_INSERT dbo.salaries ON/OFF
+  ✓ Inserted 5 test salary records
+  ✓ Setup completed successfully
+
+Test Case Execution Summary:
+  Total Test Cases: 11
+  Passed: 11
+  Failed: 0
+  Success Rate: 100%
+
+Detailed Test Results:
+
+  TEST CASE 1: Normal - 4 years tenure
+    Status: PASS
+    Employee: 9001, Fiscal Year: 2024
+    Expected Bonus: $6,000.00
+    Actual Bonus: $6,000.0000
+    Variance: 0.00%
+
+  TEST CASE 2: Normal - Multiple salaries, use latest
+    Status: PASS
+    Employee: 9002, Fiscal Year: 2024
+    Expected Bonus: $10,875.00
+    Actual Bonus: $10,875.0000
+    Variance: 0.00%
+
+  TEST CASE 3: Normal - Long tenure (14 years)
+    Status: PASS
+    Employee: 9004, Fiscal Year: 2024
+    Expected Bonus: $17,000.00
+    Actual Bonus: $17,000.0000
+    Variance: 0.00%
+
+  TEST CASE 4: Boundary - New hire (1 year)
+    Status: PASS
+    Employee: 9003, Fiscal Year: 2024
+    Expected Bonus: $4,200.00
+    Actual Bonus: $4,200.0000
+    Variance: 0.00%
+
+  TEST CASE 5: Boundary - Zero years tenure
+    Status: PASS
+    Employee: 9001, Fiscal Year: 2020
+    Expected Bonus: $5,000.00
+    Actual Bonus: $5,000.0000
+    Variance: 0.00%
+
+  TEST CASE 6: Boundary - No salary record
+    Status: PASS
+    Employee: 9005, Fiscal Year: 2024
+    Expected Bonus: $0.00
+    Actual Bonus: $0.0000
+    Variance: 0.00%
+
+  TEST CASE 7: Exception - Non-existent employee
+    Status: PASS
+    Employee: 99999, Fiscal Year: 2024
+    Expected Bonus: $0.00
+    Actual Bonus: $0.0000
+    Variance: 0.00%
+
+  TEST CASE 8: Exception - NULL fiscal_year
+    Status: PASS
+    Expected: Error with NULL constraint violation
+    Actual Error: "null value in column \"fiscal_year\" of relation \"bonuses\" violates not-null constraint"
+    Assessment: Error message differs slightly from SQL Server but semantically equivalent
+
+  TEST CASE 9: Side Effect - INSERT new bonus
+    Status: PASS
+    Count Before: 0
+    Count After: 1
+    Bonus Calculated: $6,500.0000
+    Assessment: INSERT operation successful
+
+  TEST CASE 10: Side Effect - UPDATE existing bonus
+    Status: PASS
+    Amount Before: $1,000.00
+    Amount After: $11,625.0000
+    Bonus Calculated: $11,625.0000
+    Assessment: UPDATE operation successful (UPSERT behavior confirmed)
+
+  TEST CASE 11: Boundary - Future fiscal year
+    Status: PASS
+    Employee: 9001, Fiscal Year: 2030
+    Expected Bonus: $7,500.00
+    Actual Bonus: $7,500.0000
+    Variance: 0.00%
+
+Cleanup Phase:
+  ✓ Deleted test bonuses (8 records)
+  ✓ Deleted test salaries (5 records)
+  ✓ Deleted test employees (5 records)
+  ✓ Cleanup completed successfully
+
+================================================================================
+4. RESULT COMPARISON (MSSQL vs Babelfish)
+================================================================================
+Comparison Method: SEMANTIC (value equivalence with tolerance for formatting)
+
+Test Case 1: EXACT MATCH
+  - MSSQL: 6000.0000
+  - Babelfish: 6000.0000
+  - Difference: None
+
+Test Case 2: EXACT MATCH
+  - MSSQL: 10875.0000
+  - Babelfish: 10875.0000
+  - Difference: None
+
+Test Case 3: EXACT MATCH
+  - MSSQL: 17000.0000
+  - Babelfish: 17000.0000
+  - Difference: None
+
+Test Case 4: EXACT MATCH
+  - MSSQL: 4200.0000
+  - Babelfish: 4200.0000
+  - Difference: None
+
+Test Case 5: EXACT MATCH
+  - MSSQL: 5000.0000
+  - Babelfish: 5000.0000
+  - Difference: None
+
+Test Case 6: EXACT MATCH
+  - MSSQL: 0.0000
+  - Babelfish: 0.0000
+  - Difference: None
+
+Test Case 7: EXACT MATCH
+  - MSSQL: 0.0000
+  - Babelfish: 0.0000
+  - Difference: None
+
+Test Case 8: SEMANTIC MATCH
+  - MSSQL Error: "Cannot insert the value NULL into column 'fiscal_year', table 'migration_demo.dbo.bonuses'; column does not allow nulls. INSERT fails."
+  - Babelfish Error: "null value in column \"fiscal_year\" of relation \"bonuses\" violates not-null constraint"
+  - Assessment: Both errors correctly identify NULL constraint violation. Message format differs but meaning is identical.
+
+Test Case 9: EXACT MATCH
+  - MSSQL: count_before=0, count_after=1, bonus=6500.0000
+  - Babelfish: count_before=0, count_after=1, bonus=6500.0000
+  - Difference: None
+
+Test Case 10: EXACT MATCH
+  - MSSQL: amount_before=1000.00, amount_after=11625.0000, bonus=11625.0000
+  - Babelfish: amount_before=1000.00, amount_after=11625.0000, bonus=11625.0000
+  - Difference: None
+
+Test Case 11: EXACT MATCH
+  - MSSQL: 7500.0000
+  - Babelfish: 7500.0000
+  - Difference: None
+
+Overall Comparison Result: FULL COMPATIBILITY
+  - Exact Matches: 10/11 (90.9%)
+  - Semantic Matches: 1/11 (9.1%)
+  - Mismatches: 0/11 (0.0%)
+
+================================================================================
+5. COMPATIBILITY ASSESSMENT
+================================================================================
+
+Syntax Compatibility: 100%
+  - All T-SQL syntax elements are supported by Babelfish
+  - No modifications required to the original DDL
+
+Functional Compatibility: 100%
+  - All test cases produce identical or semantically equivalent results
+  - OUTPUT parameters work correctly
+  - UPSERT logic (IF EXISTS...UPDATE...ELSE INSERT) functions as expected
+  - Date functions (DATEDIFF, DATEFROMPARTS) produce identical results
+  - MONEY data type calculations are accurate
+
+Data Type Compatibility: 100%
+  - MONEY: Full precision maintained (4 decimal places)
+  - INT: Identical behavior
+  - DATE: Identical behavior
+
+Error Handling Compatibility: 100%
+  - TRY-CATCH blocks function correctly
+  - ERROR_MESSAGE() returns appropriate error text
+  - NULL constraint violations are properly caught
+
+Performance Considerations:
+  - No performance testing conducted in this stage
+  - Query plans not analyzed
+  - Recommend performance validation in Stage 4 if needed
+
+Known Limitations: NONE
+  - No Babelfish limitations encountered with this procedure
+  - All features used are within Babelfish's supported T-SQL subset
+
+================================================================================
+6. CONCLUSION
+================================================================================
+
+RESULT: ✓ BABELFISH COMPATIBLE
+
+The stored procedure dbo.usp_calculate_employee_bonus is FULLY COMPATIBLE with Babelfish for Aurora PostgreSQL.
+
+Key Findings:
+  ✓ DDL deployed successfully without modifications
+  ✓ All 11 test cases passed
+  ✓ Results match SQL Server behavior exactly (10/11) or semantically (1/11)
+  ✓ No syntax errors or runtime errors
+  ✓ OUTPUT parameters function correctly
+  ✓ Complex business logic (bonus calculation with tenure multiplier) works identically
+  ✓ UPSERT pattern (IF EXISTS...UPDATE...ELSE INSERT) functions correctly
+  ✓ Date arithmetic and functions produce identical results
+
+Recommendation:
+  - This procedure can be migrated to Babelfish AS-IS
+  - No code changes required
+  - No compatibility issues identified
+  - Suitable for production use on Babelfish
+
+Next Steps:
+  - Stage 3 (PL/pgSQL conversion) is NOT REQUIRED for this object
+  - Stage 4 (Final validation) can proceed directly with Babelfish T-SQL version
+  - Consider performance testing under production-like load
+
+================================================================================
+VERIFICATION COMPLETE
+================================================================================

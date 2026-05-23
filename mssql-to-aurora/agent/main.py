@@ -50,12 +50,40 @@ def create_bedrock_model() -> BedrockModel:
 def create_mcp_client() -> MCPClient:
     config = load_mcp_config()
     server_config = config["mcpServers"]["mssql-to-aurora"]
+
+    # MCP サーバは子プロセスで起動されるため、現プロセスの DB 接続関連 env を伝播させる。
+    # mcp.json の env フィールドはそのまま使い、_必要な_ ホスト・シークレット名・リージョンを注入。
+    env = dict(server_config.get("env", {}))
+    for key in (
+        "MSSQL_HOST",
+        "MSSQL_SECRET_NAME",
+        "MSSQL_PORT",
+        "MSSQL_DRIVER",
+        "MSSQL_DATABASE",
+        "BABELFISH_HOST",
+        "BABELFISH_SECRET_NAME",
+        "BABELFISH_DB",
+        "BABELFISH_TDS_PORT",
+        "BABELFISH_PG_PORT",
+        "BABELFISH_TDS_DRIVER",
+        "AURORA_PG_SECRET_NAME",
+        "AURORA_PG_DBNAME",
+        "AWS_REGION",
+        "AWS_DEFAULT_REGION",
+    ):
+        if key in os.environ and key not in env:
+            env[key] = os.environ[key]
+    # AWS 認証情報も伝播（IAMロールベースなので不要なケースが多いが念のため）
+    for key in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_PROFILE"):
+        if key in os.environ and key not in env:
+            env[key] = os.environ[key]
+
     return MCPClient(
         lambda: stdio_client(
             StdioServerParameters(
                 command=server_config["command"],
                 args=server_config["args"],
-                env=server_config.get("env", {}),
+                env=env,
             )
         )
     )

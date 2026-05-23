@@ -1,0 +1,188 @@
+============================================================================
+Babelfish 互換性検証ログ: dbo.fn_split_csv
+検証日時: Stage 2
+============================================================================
+
+## 1. 接続確認
+Status: SUCCESS
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+PostgreSQL Version: 16.4 (Babelfish 4.3.3)
+
+## 2. DDL 投入試行
+Object Type: Table-Valued Function (Inline TVF with @result TABLE variable)
+Source: ./result/fn_split_csv/mssql.sql
+
+DDL Content:
+```sql
+CREATE FUNCTION dbo.fn_split_csv(@csv NVARCHAR(MAX), @sep CHAR(1))
+RETURNS @result TABLE (idx INT, value NVARCHAR(200))
+AS
+BEGIN
+    DECLARE @i INT = 1;
+    DECLARE @start INT = 1;
+    DECLARE @pos INT;
+
+    IF @csv IS NULL OR LEN(@csv) = 0
+        RETURN;
+
+    SET @pos = CHARINDEX(@sep, @csv, @start);
+    WHILE @pos > 0
+    BEGIN
+        INSERT INTO @result(idx, value) VALUES(@i, SUBSTRING(@csv, @start, @pos - @start));
+        SET @i = @i + 1;
+        SET @start = @pos + 1;
+        SET @pos = CHARINDEX(@sep, @csv, @start);
+    END
+    INSERT INTO @result(idx, value) VALUES(@i, SUBSTRING(@csv, @start, LEN(@csv) - @start + 1));
+    RETURN;
+END
+```
+
+Execution Result: SUCCESS
+Status: ok
+Rowcount: -1
+
+### DDL 投入成功の詳細
+- Multi-statement table-valued function (MSTVF) 構文が正常に受理された
+- @result TABLE 変数の宣言が正常に処理された
+- DECLARE 文の初期化構文 (DECLARE @i INT = 1) が正常に動作
+- CHARINDEX, SUBSTRING, LEN 関数が正常に認識された
+- WHILE ループ構文が正常に処理された
+- INSERT INTO @result 構文が正常に動作
+- RETURN 文が正常に処理された
+
+## 3. テスト実行
+Test Script: ./result/fn_split_csv/babelfish_test.sql
+Total Test Cases: 18
+
+### テストケース実行結果
+
+TEST CASE 1: Basic comma-separated string
+Status: SUCCESS
+Result: 3 rows returned (apple, banana, cherry)
+
+TEST CASE 2: Semicolon separator
+Status: SUCCESS
+Result: 4 rows returned (red, green, blue, yellow)
+
+TEST CASE 3: Pipe separator
+Status: SUCCESS
+Result: 3 rows returned (one, two, three)
+
+TEST CASE 4: Single element (no separator)
+Status: SUCCESS
+Result: 1 row returned (single)
+
+TEST CASE 5: Empty string
+Status: SUCCESS
+Result: 0 rows returned
+
+TEST CASE 6: NULL input
+Status: SUCCESS
+Result: 0 rows returned
+
+TEST CASE 7: Empty elements (consecutive separators)
+Status: SUCCESS
+Result: 6 rows returned with correct empty string handling
+
+TEST CASE 8: Leading separator
+Status: SUCCESS
+Result: 3 rows returned with leading empty element
+
+TEST CASE 9: Trailing separator
+Status: SUCCESS
+Result: 3 rows returned with trailing empty element
+
+TEST CASE 10: Only separators
+Status: SUCCESS
+Result: 4 rows returned (all empty strings)
+
+TEST CASE 11: Long string with many elements
+Status: SUCCESS
+Result: 20 elements correctly counted
+
+TEST CASE 12: Long individual elements
+Status: SUCCESS
+Result: 3 elements with lengths 150, 180, 200
+
+TEST CASE 13: Separator not in string
+Status: SUCCESS
+Result: 1 row returned (entire string)
+
+TEST CASE 14: Special characters in elements
+Status: SUCCESS
+Result: 3 rows with tab and newline preserved
+
+TEST CASE 15: Space separator
+Status: SUCCESS
+Result: 3 rows returned (word1, word2, word3)
+
+TEST CASE 16: Numeric strings
+Status: SUCCESS
+Result: 5 rows with ISNUMERIC correctly identifying numeric values
+
+TEST CASE 17: Unicode characters
+Status: SUCCESS
+Result: 4 rows with Unicode (日本語, 한국어, 中文, English) preserved
+
+TEST CASE 18: Elements with quotes
+Status: SUCCESS
+Result: 3 rows with quotes preserved as literals
+
+## 4. 結果比較
+Comparison Level: EXACT
+
+### 比較結果詳細
+
+All 18 test cases: EXACT MATCH
+- Row counts match exactly
+- Column values match exactly
+- Data types match exactly
+- NULL handling matches exactly
+- Empty string handling matches exactly
+- Unicode handling matches exactly
+- Special character handling matches exactly
+
+### 差異なし
+MSSQL と Babelfish の結果が完全に一致しました。
+
+## 5. 互換性評価
+
+### 対応状況: FULLY COMPATIBLE ✓
+
+### 対応している機能
+1. Multi-statement table-valued function (MSTVF) 構文
+2. @result TABLE 変数の宣言と使用
+3. DECLARE 文での初期化 (DECLARE @var TYPE = value)
+4. CHARINDEX 関数 (3パラメータ版)
+5. SUBSTRING 関数
+6. LEN 関数
+7. WHILE ループ
+8. INSERT INTO table variable
+9. RETURN 文 (値なし)
+10. NULL と空文字列の判定
+11. NVARCHAR(MAX) データ型
+12. CHAR(1) データ型
+13. ISNUMERIC 関数
+14. Unicode 文字列処理
+
+### 非対応機能
+なし
+
+### 既知の制限事項
+なし - この関数は Babelfish で完全に動作します
+
+## 6. 結論
+
+RESULT: FULLY_COMPATIBLE
+
+dbo.fn_split_csv は Babelfish for Aurora PostgreSQL で完全に互換性があります。
+- DDL は修正なしで投入可能
+- すべてのテストケースが MSSQL と同一の結果を返す
+- 構文エラーなし
+- ランタイムエラーなし
+- 結果の差異なし
+
+この関数は Stage 3 (PL/pgSQL 変換) をスキップして、そのまま Babelfish で使用可能です。
+
+============================================================================

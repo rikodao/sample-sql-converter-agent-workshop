@@ -1,0 +1,33 @@
+================================================================================
+前提条件チェック結果
+================================================================================
+対象オブジェクト: dbo.usp_upsert_department
+オブジェクトタイプ: SQL_STORED_PROCEDURE
+オブジェクトID: 1381579960
+確認日時: Stage 1 実行時
+
+[存在確認]
+✓ オブジェクトは Source RDS for SQL Server に存在します
+
+[依存オブジェクト]
+以下のオブジェクトに依存しています:
+1. dbo.departments (テーブル)
+   - department_id INT NOT NULL IDENTITY(1,1) PRIMARY KEY
+   - name NVARCHAR(100) NOT NULL
+   - parent_id INT NULL
+   - created_at DATETIME2(7) NOT NULL
+
+[DDL取得状況]
+✓ sys.sql_modules から定義を正常に取得しました
+✓ 暗号化されていません (definition IS NOT NULL)
+
+[注意事項]
+- このプロシージャは MERGE 文を使用しています
+- name カラムでマッチングを行い、存在する場合は parent_id を更新、存在しない場合は新規挿入します
+- parent_id はデフォルト値 NULL を持つオプションパラメータです
+- created_at カラムはデフォルト制約で自動設定されると想定されます
+
+[テスト前提]
+- dbo.departments テーブルが存在し、アクセス可能であること
+- テスト実行前に一時的なテストデータを挿入し、テスト後にクリーンアップします
+- トランザクション内でテストを実行し、ロールバックで元の状態に戻します
