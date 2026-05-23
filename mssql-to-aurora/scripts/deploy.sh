@@ -110,8 +110,8 @@ if [[ "$SOURCE_MODE" == "sample" && "$SKIP_SAMPLE_LOAD" == "false" ]]; then
         sleep 10
     done
 
-    # SSM RunCommand でサンプル DDL 投入
-    echo "Submitting SSM command to load sample_objects.sql..."
+    # SSM RunCommand でサンプル DDL 投入 (basic + advanced)
+    echo "Submitting SSM command to load sample_objects.sql + sample_objects_advanced.sql..."
     # JSON parameters をファイル経由で渡す（heredoc + jq の shebang問題を回避）
     PARAMS_FILE=$(mktemp)
     jq -n \
@@ -123,11 +123,13 @@ if [[ "$SOURCE_MODE" == "sample" && "$SKIP_SAMPLE_LOAD" == "false" ]]; then
           "set -e",
           "export PATH=/opt/mssql-tools18/bin:$PATH",
           ("aws s3 cp s3://" + $bucket + "/tests/ddl/sample_objects.sql /tmp/sample_objects.sql --region " + $region),
+          ("aws s3 cp s3://" + $bucket + "/tests/ddl/sample_objects_advanced.sql /tmp/sample_objects_advanced.sql --region " + $region + " 2>/dev/null || echo \"advanced sample not present, skipping\""),
           ("SECRET=$(aws secretsmanager get-secret-value --region " + $region + " --secret-id mssql-to-aurora/source-mssql-credentials --query SecretString --output text)"),
           "USER=$(echo \"$SECRET\" | jq -r .username)",
           "PASS=$(echo \"$SECRET\" | jq -r .password)",
-          ("echo \"Loading sample_objects.sql into Source MSSQL @ " + $host + "...\""),
+          ("echo \"[1/2] Loading sample_objects.sql into Source MSSQL @ " + $host + "...\""),
           ("sqlcmd -S " + $host + ",1433 -U \"$USER\" -P \"$PASS\" -C -N -i /tmp/sample_objects.sql -m 1"),
+          ("if [ -f /tmp/sample_objects_advanced.sql ]; then echo \"[2/2] Loading sample_objects_advanced.sql...\"; sqlcmd -S " + $host + ",1433 -U \"$USER\" -P \"$PASS\" -C -N -i /tmp/sample_objects_advanced.sql -m 1; fi"),
           "echo Sample load complete."
         ]
       }' > "$PARAMS_FILE"

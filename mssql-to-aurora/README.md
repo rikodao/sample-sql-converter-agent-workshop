@@ -82,8 +82,11 @@ uv sync
 set -a; source .env; set +a
 uv run main.py --multi-agent --prompt "PROCEDURE dbo.usp_calculate_employee_bonus"
 
-# 7. 一括変換
-./run.sh --multi-agent
+# 7. 一括変換 (シーケンシャル / 並列)
+./run.sh --multi-agent                          # シーケンシャル
+./run.sh --multi-agent -j 3                     # 3並列
+./run.sh --multi-agent -j 2 --avoid-throttling  # スロットリング対策付き
+./run.sh -f object_list_full.ini --multi-agent -j 3  # 高度サンプル含めた全21オブジェクト
 
 # 8. 結果集計
 ls result/
