@@ -51,6 +51,8 @@ cdk.out/
 .cdk.staging/
 cdk-outputs.json
 !cdk/lib
+!mssql-to-aurora/cdk/lib
+!mssql-to-aurora/cdk/lib/**
 
 # その他
 *.log
