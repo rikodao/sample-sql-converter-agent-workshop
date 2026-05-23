@@ -1,0 +1,47 @@
+<output_specification>
+## OK.txt のフォーマット
+```
+=== Conversion Result: OK ===
+Object: <type> <schema>.<name>
+Target Engine: PostgreSQL native (PL/pgSQL)
+Stages Completed: 1, 2 (failed), 3, 4
+Test Cases: <pass>/<total> matched
+Match Levels: EXACT=<n>, SEMANTIC=<n>, STRUCTURAL=<n>
+Notes:
+- <変換時の注意事項や手動レビューが必要な箇所があれば記載>
+```
+
+## NG.txt のフォーマット
+```
+=== Conversion Result: NG ===
+Object: <type> <schema>.<name>
+Failed At: Stage <n>
+NG Reason: <category>
+
+--- Failed Test Case ---
+Name: <test_case_name>
+Expected (MSSQL):
+  <出力>
+Actual (PG):
+  <出力>
+Diff:
+  <差分要約>
+
+--- Hypothesis ---
+<原因推測>
+
+--- Recommended Action ---
+<次のアクション>
+```
+
+## BABELFISH_OK.txt のフォーマット
+```
+=== Babelfish Compatible: OK ===
+Object: <type> <schema>.<name>
+Target Engine: Babelfish for Aurora PostgreSQL (TDS:1433)
+Test Cases: <pass>/<total> matched
+Match Levels: EXACT=<n>, SEMANTIC=<n>
+Notes:
+- <移行先選定における判断材料となる注意事項>
+```
+</output_specification>

@@ -1,0 +1,73 @@
+<conversion_rules>
+## T-SQL → PL/pgSQL 変換ルール (詳細は docs/04-conversion-strategy.md 参照)
+
+### 構造
+| T-SQL | PL/pgSQL |
+|---|---|
+| CREATE PROCEDURE x AS BEGIN ... END | CREATE OR REPLACE PROCEDURE x() LANGUAGE plpgsql AS $$ BEGIN ... END $$ |
+| CREATE FUNCTION x(...) RETURNS T AS BEGIN ... END | CREATE OR REPLACE FUNCTION x(...) RETURNS T LANGUAGE plpgsql AS $$ BEGIN ... END $$ |
+| DECLARE @v INT = 0 | DECLARE v INT := 0; (DECLAREブロックに集約) |
+| SET @v = ... | v := ...; |
+| IF @v = 1 BEGIN ... END | IF v = 1 THEN ... END IF; |
+| WHILE @v < 10 BEGIN ... END | WHILE v < 10 LOOP ... END LOOP; |
+| TRY ... CATCH | BEGIN ... EXCEPTION WHEN OTHERS THEN ... END; |
+| PRINT 'msg' | RAISE NOTICE 'msg'; |
+| RAISERROR('msg', 16, 1) | RAISE EXCEPTION 'msg'; |
+| @@ROWCOUNT | GET DIAGNOSTICS rc = ROW_COUNT; |
+| sp_executesql N'sql', ... | EXECUTE 'sql' USING ...; |
+| EXEC dbo.proc | CALL public.proc(); |
+| BEGIN TRAN ... COMMIT TRAN | (関数内では不要、PROCEDURE では BEGIN; COMMIT;) |
+
+### 関数
+| T-SQL | PL/pgSQL |
+|---|---|
+| ISNULL(a, b) | COALESCE(a, b) |
+| LEN(s) | length(s) |
+| CHARINDEX(p, s) | position(p in s) |
+| SUBSTRING(s, n, m) | substring(s from n for m) |
+| GETDATE() | now() / current_timestamp |
+| DATEPART(yy, d) | extract(year from d) |
+| DATEADD(dd, n, d) | d + n * interval '1 day' |
+| DATEDIFF(dd, a, b) | b::date - a::date |
+| CAST(x AS DATE) | x::date |
+| TOP n | LIMIT n |
+| SCOPE_IDENTITY() | RETURNING id INTO ... |
+
+### DML
+| T-SQL | PL/pgSQL |
+|---|---|
+| MERGE | INSERT ... ON CONFLICT DO UPDATE |
+| OUTPUT INSERTED.* | RETURNING * |
+| UPDATE t SET ... FROM t JOIN ... | UPDATE t SET ... FROM other WHERE ... |
+| WITH (NOLOCK) | (削除 — トランザクション分離レベルで対応) |
+
+### 型
+| T-SQL | PostgreSQL |
+|---|---|
+| BIT | boolean |
+| MONEY | numeric(19,4) |
+| DATETIME | timestamp |
+| DATETIME2(p) | timestamp(p) |
+| DATETIMEOFFSET | timestamptz |
+| UNIQUEIDENTIFIER | uuid |
+| VARBINARY(n) / IMAGE | bytea |
+| NVARCHAR(n) / NTEXT | text |
+
+### 識別子・命名
+- T-SQL の `[brackets]` は PostgreSQL では `"double quotes"` (必要時のみ)
+- 大文字混在の識別子は PostgreSQL ではダブルクオートで囲うか、すべて小文字に正規化
+- スキーマ名: T-SQL の `dbo` は PG では `public` に対応 (要件次第で別スキーマ)
+
+### エラーハンドリング詳細
+- T-SQL: TRY-CATCH 内で ERROR_NUMBER(), ERROR_MESSAGE() を取得
+- PL/pgSQL: EXCEPTION ブロック内で SQLSTATE, SQLERRM を取得
+
+### カーソル
+- T-SQL: `DECLARE c CURSOR FOR ... OPEN ... FETCH NEXT INTO ... CLOSE ... DEALLOCATE`
+- PL/pgSQL: `FOR rec IN SELECT ... LOOP ... END LOOP;` への書き換え推奨
+- 大量データ処理は set-based に書き換える方が PostgreSQL に最適
+
+### 動的 SQL
+- T-SQL: `EXEC sp_executesql N'SELECT ... WHERE x = @x', N'@x INT', @x = 1`
+- PL/pgSQL: `EXECUTE 'SELECT ... WHERE x = $1' USING 1`
+</conversion_rules>

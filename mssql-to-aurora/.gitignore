@@ -1,0 +1,23 @@
+# Generated artifacts
+mssql-to-aurora/cdk/cdk.out/
+mssql-to-aurora/cdk/node_modules/
+mssql-to-aurora/cdk/*.js
+!mssql-to-aurora/cdk/jest.config.js
+mssql-to-aurora/cdk/*.d.ts
+
+# Workbench / deploy outputs
+mssql-to-aurora/output.json
+mssql-to-aurora/mssql-workbench-key.pem
+mssql-to-aurora/ssh-config-mssql
+
+# Agent workspace
+mssql-to-aurora/agent/result/
+mssql-to-aurora/agent/.venv/
+mssql-to-aurora/agent/uv.lock
+
+# Extraction outputs
+mssql-to-aurora/extraction/output/
+
+# Editor / OS
+.DS_Store
+*.swp

@@ -1,0 +1,17 @@
+[project]
+name = "mssql-to-aurora-agent"
+version = "0.1.0"
+description = "MSSQL → Aurora PostgreSQL / Babelfish migration agent"
+requires-python = ">=3.12"
+dependencies = [
+  "boto3>=1.35.0",
+  "botocore>=1.35.0",
+  "mcp>=1.2.0",
+  "strands-agents>=0.6.0",
+  "strands-agents-tools>=0.5.0",
+  "pyodbc>=5.1.0",
+  "psycopg[binary]>=3.2.0",
+]
+
+[tool.uv]
+dev-dependencies = []
