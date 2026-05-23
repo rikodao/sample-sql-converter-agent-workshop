@@ -4,24 +4,31 @@
 <workflow>
 1. PostgreSQL 用テストの作成
    - `mssql_test.sql` を読み込み、PL/pgSQL 等価のテストとして `postgres_test.sql` に保存する
-   - 一時テーブル (#tmp_xxx → pg_temp.tmp_xxx) は PostgreSQL 構文に置換
+   - 一時テーブル (`#tmp_xxx`) は PostgreSQL の `CREATE TEMP TABLE pg_temp.tmp_xxx` または `CREATE TEMPORARY TABLE` に置換
    - 副作用 (INSERT/UPDATE/DELETE) のクリーンアップ手順は維持
+   - テストケース識別子 ('TC1', 'TC2', ...) は MSSQL 版と同じものを使う (比較しやすさのため)
+   - IDENTITY_INSERT ON/OFF は OVERRIDING SYSTEM VALUE 等に置換
 
 2. テスト実行
-   - `run_postgres_sql` で `postgres_test.sql` を実行し、出力を `postgres_test.txt` に保存する
+   - `run_postgres_sql` で `postgres_test.sql` の各 SQL を順次実行し、出力を `postgres_test.txt` に保存する
    - 失敗した場合は `postgres.sql` を修正し再実行 (最大3回)
-   - 各リトライの試行ログを `retry_log.txt` に追記
+   - 各リトライの試行内容を `retry_log.txt` に追記する
 
 3. 結果比較
    - `mssql_test.txt` と `postgres_test.txt` を比較し、`comparison_result.txt` に詳細を出力する
-   - 比較レベル: EXACT / SEMANTIC / STRUCTURAL を併記
-   - 自動許容差分 (時刻精度、末尾空白、浮動小数の表記揺れ等) は SEMANTIC で MATCH 扱い
+   - テストケース単位 (TC1, TC2, ...) で並べて記述
+   - 各 TC について:
+     * MATCH レベル: EXACT / SEMANTIC / STRUCTURAL
+     * Expected (MSSQL): 該当行の値
+     * Actual   (PG):   該当行の値
+     * 一致しない場合は Diff の説明
+   - 自動許容差分は SEMANTIC で MATCH 扱い
    - ORDER BY 未指定のクエリは結果をソートしてから比較
 
 4. 最終判定
-   - 全テストケースが SEMANTIC 以上で MATCH → `OK.txt` を作成
-   - 1つでも不一致が解消できなかった → `NG.txt` を作成
-   - `OK.txt` / `NG.txt` の中身は <output_specification> に従う
+   - 全テストケースが SEMANTIC 以上で MATCH → `OK.txt` を <output_specification> 通りに作成
+   - 1つでも不一致が解消できなかった → `NG.txt` を <output_specification> 通りに作成
+   - 必ずどちらか一方を作成する (両方は不可)
 
 {ERROR_POLICY}
 
@@ -29,14 +36,43 @@
 
 </workflow>
 
+## comparison_result.txt のフォーマット例
+
+```
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_xxx
+Test Cases: 13 total
+
+--- TC1: <名称> ---
+MSSQL:    [(1, 'A', 100), (2, 'B', 200)]
+PG:       [(1, 'A', 100), (2, 'B', 200)]
+Result:   ✓ EXACT MATCH
+
+--- TC2: <名称> ---
+MSSQL:    NULL
+PG:       NULL
+Result:   ✓ EXACT MATCH
+
+--- TC3: <名称, datetime precision> ---
+MSSQL:    2026-05-23 10:00:00.123
+PG:       2026-05-23 10:00:00.123000
+Result:   ✓ SEMANTIC MATCH (timestamp precision diff acceptable)
+
+=== Verdict ===
+EXACT=10, SEMANTIC=2, STRUCTURAL=1, MISMATCH=0
+Total Pass: 13/13
+```
+
 ## 成功条件
-以下のファイルが作成されていること:
+以下のファイルが全て作成されていること:
 - `postgres_test.sql`
 - `postgres_test.txt`
 - `comparison_result.txt`
-- `OK.txt` または `NG.txt`
+- `OK.txt` または `NG.txt` (どちらか一方)
 
 ## 注意
 - PostgreSQL の依存オブジェクト (参照テーブル等) が既に存在する場合は新規 DDL を作らず利用する
 - 既存テーブルを DROP しない
 - 依存が不在の場合は最小限のダミーデータを SETUP で作り、CLEANUP で必ず削除する
+- OK.txt / NG.txt の中身はフリーフォーマットではなく、必ず <output_specification> のテンプレートに従う
+- Test Cases の数値、Match Levels の内訳数値は必ず数字で記入する (集計スクリプトが解析する)

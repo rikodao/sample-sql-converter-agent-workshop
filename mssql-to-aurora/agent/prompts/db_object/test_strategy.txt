@@ -3,28 +3,78 @@
 各 DB オブジェクトに対し、以下のカテゴリを網羅すること:
 
 - 正常系 (代表入力で期待通り): 最低3ケース
-- 境界値 (NULL, 空文字, ゼロ, 最大値, 負値): 最低3ケース
+- 境界値 (NULL, 空文字, ゼロ, 最大値, 負値, IDENTITY=1 や最大ID): 最低3ケース
 - 例外系 (不正入力で適切なエラー): 最低2ケース
 - トランザクション (該当時のロールバック動作): 該当時1ケース
-- 副作用 (INSERT/UPDATE/DELETE の件数・内容): 該当時2ケース
+- 副作用 (INSERT/UPDATE/DELETE の件数・内容、トリガー発火): 該当時2ケース
+
+オブジェクト種別別の追加観点:
+- **STORED PROCEDURE with OUTPUT**: 各 OUTPUT パラメタの値が期待通りか
+- **STORED PROCEDURE with @@ROWCOUNT 等**: 副作用件数の確認
+- **TVF (Table-Valued Function)**: 行数 + 各行の値
+- **SCALAR FUNCTION**: NULL 入力時の挙動を必ず含める
+- **TRIGGER**: AFTER INSERT/UPDATE/DELETE それぞれで発火確認
+- **VIEW**: 結合されるテーブルそれぞれが空のとき・行ありのとき
+- **MERGE 文を含むストアド**: INSERT 経路・UPDATE 経路・DELETE 経路 それぞれを発火させる入力
 
 ## テストの構造
 各 *_test.sql は次のセクションを含むこと:
 
-  1. SETUP    - テストデータ準備、一時テーブル作成
+  1. SETUP    - テストデータ準備、一時テーブル作成、IDENTITY_INSERT ON 等の前処理
   2. EXEC     - 対象オブジェクトを複数パターンで実行
   3. ASSERT   - 結果を SELECT で出力 (後段で比較できる形)
-  4. CLEANUP  - 一時テーブル DROP、副作用ロールバック
+  4. CLEANUP  - 一時テーブル DROP、副作用ロールバック、IDENTITY_INSERT OFF 等
+
+各セクションの境界はコメントで明示する:
+```
+-- ============= TEST CASE n: <名称> =============
+-- SETUP
+...
+-- EXEC
+...
+-- ASSERT
+SELECT 'TC<n>' AS test_case, ... AS result;
+-- CLEANUP
+...
+```
+
+ASSERT の SELECT には必ず先頭に test_case 識別子 (`'TC1'`, `'TC2'` 等) を含めて、
+結果ファイル比較時にどのテストケースの結果か判別できるようにする。
 
 ## アサーション形式
 - 結果セットは SELECT 文で表形式に出力する
-- 単一値は `SELECT result = ... AS result` の形で出力する
-- エラー期待のテストは TRY-CATCH (T-SQL) / BEGIN-EXCEPTION (PL/pgSQL) でエラーメッセージを文字列として出力する
+- 単一値は `SELECT 'TCn' AS tc, <expr> AS result` の形で出力する
+- エラー期待のテストは TRY-CATCH (T-SQL) / BEGIN-EXCEPTION (PL/pgSQL) でエラーメッセージを文字列として出力:
+  ```
+  -- T-SQL
+  BEGIN TRY
+      EXEC dbo.usp_xxx @bad_input;
+      SELECT 'TC5' AS tc, 'NO_ERROR' AS result;
+  END TRY
+  BEGIN CATCH
+      SELECT 'TC5' AS tc, ERROR_MESSAGE() AS result;
+  END CATCH
+  ```
+
+## IDENTITY 列の扱い
+- INSERT で IDENTITY 列の値を指定する必要があるテストケースでは:
+  - T-SQL: `SET IDENTITY_INSERT <table> ON; ... SET IDENTITY_INSERT <table> OFF;` で囲む
+  - PG: `INSERT ... OVERRIDING SYSTEM VALUE` を使う
+- ただし通常のテストでは IDENTITY を指定せず、サロゲートキーは順序のみ確認 (テーブル間で値そのものは比較対象外)
 
 ## 自動許容差分
-以下は「差分なし」とみなす:
+以下は「差分なし」とみなす (SEMANTIC レベル):
 - DATETIME の `.000` と `.000000` のサフィックス
+- DATETIME 型と TIMESTAMP 型のミリ秒以下の精度差
 - 末尾空白のあり/なし (CHAR(n) 由来)
 - 浮動小数の 6桁以下の丸め誤差
 - ORDER BY 未指定クエリの順序差 (両方ソート後比較)
+- IDENTITY 値そのものの差 (順序が同じならマッチ扱い)
+- エラーメッセージ文言 (英文の異なるバージョン管理。エラーカテゴリ・SQLSTATE が一致すれば OK)
+
+## テスト実行時のクリーンアップ義務
+- テスト終了後、SETUP で作成した一時テーブル・データを必ず CLEANUP で削除
+- トランザクション開始したら必ず ROLLBACK or COMMIT で閉じる
+- IDENTITY_INSERT を ON にしたら必ず OFF にする
+- 既存テーブル (`employees`, `departments` 等) を DROP してはならない (破壊的)
 </test_strategy>

@@ -6,68 +6,208 @@
 |---|---|
 | CREATE PROCEDURE x AS BEGIN ... END | CREATE OR REPLACE PROCEDURE x() LANGUAGE plpgsql AS $$ BEGIN ... END $$ |
 | CREATE FUNCTION x(...) RETURNS T AS BEGIN ... END | CREATE OR REPLACE FUNCTION x(...) RETURNS T LANGUAGE plpgsql AS $$ BEGIN ... END $$ |
-| DECLARE @v INT = 0 | DECLARE v INT := 0; (DECLAREブロックに集約) |
+| @parameter | p_parameter (PG では @ を使えない、p_ プレフィックスが慣例) |
+| OUTPUT パラメタ | INOUT パラメタ |
+| DECLARE @v INT = 0 | DECLARE v INT := 0; (DECLARE ブロックに集約) |
 | SET @v = ... | v := ...; |
 | IF @v = 1 BEGIN ... END | IF v = 1 THEN ... END IF; |
 | WHILE @v < 10 BEGIN ... END | WHILE v < 10 LOOP ... END LOOP; |
 | TRY ... CATCH | BEGIN ... EXCEPTION WHEN OTHERS THEN ... END; |
 | PRINT 'msg' | RAISE NOTICE 'msg'; |
 | RAISERROR('msg', 16, 1) | RAISE EXCEPTION 'msg'; |
+| THROW 51001, 'msg', 1 | RAISE EXCEPTION 'msg' USING ERRCODE = 'P0001'; |
 | @@ROWCOUNT | GET DIAGNOSTICS rc = ROW_COUNT; |
+| @@FETCH_STATUS | (cursor の END_OF_DATA 例外で代替) |
+| @@TRANCOUNT | (Subtransactions に直接対応するものがなく、保存ポイントで代替) |
 | sp_executesql N'sql', ... | EXECUTE 'sql' USING ...; |
 | EXEC dbo.proc | CALL public.proc(); |
 | BEGIN TRAN ... COMMIT TRAN | (関数内では不要、PROCEDURE では BEGIN; COMMIT;) |
+| BEGIN TRY ... BEGIN CATCH ... ;THROW; END CATCH | BEGIN ... EXCEPTION WHEN OTHERS THEN ...; RAISE; END; |
+| GOTO label | (ループ + EXIT で書き換え推奨。安直な対応では LOOP ... CONTINUE LABEL ... END LOOP) |
+| RETURN <int> | RETURN; (PROCEDURE は値を返せないので OUTPUT param で表現) |
 
-### 関数
+### 関数 (組み込み)
 | T-SQL | PL/pgSQL |
 |---|---|
 | ISNULL(a, b) | COALESCE(a, b) |
-| LEN(s) | length(s) |
-| CHARINDEX(p, s) | position(p in s) |
+| NULLIF(a, b) | NULLIF(a, b) (同じ) |
+| LEN(s) | length(s) (注: T-SQL は末尾空白を無視、PG は無視しない) |
+| DATALENGTH(s) | octet_length(s) (バイト長) |
+| CHARINDEX(p, s [,start]) | position(p in s) または strpos(s, p) |
 | SUBSTRING(s, n, m) | substring(s from n for m) |
+| LEFT(s, n) | left(s, n) (同じ) / substring(s for n) |
+| RIGHT(s, n) | right(s, n) |
+| REPLACE(s, old, new) | replace(s, old, new) (同じ) |
+| STUFF(s, start, len, repl) | overlay(s placing repl from start for len) |
+| LTRIM(s) / RTRIM(s) / TRIM(s) | ltrim(s) / rtrim(s) / btrim(s) |
+| UPPER / LOWER | upper / lower (同じ) |
+| CONVERT(type, expr [, style]) | CAST(expr AS type) または expr::type / to_char(...) |
+| CAST(x AS DATE) | x::date |
+| CAST(x AS NVARCHAR(n)) | x::varchar(n) |
 | GETDATE() | now() / current_timestamp |
+| GETUTCDATE() | now() AT TIME ZONE 'UTC' |
+| SYSDATETIME() | clock_timestamp() |
 | DATEPART(yy, d) | extract(year from d) |
 | DATEADD(dd, n, d) | d + n * interval '1 day' |
+| DATEADD(mm, n, d) | d + n * interval '1 month' |
+| DATEDIFF(yy, a, b) | extract(year from age(b, a))::int (または b::date - a::date 等の派生) |
 | DATEDIFF(dd, a, b) | b::date - a::date |
-| CAST(x AS DATE) | x::date |
+| DATEFROMPARTS(y, m, d) | make_date(y, m, d) |
+| DATETIMEFROMPARTS(...) | make_timestamp(...) |
+| FORMAT(value, fmt) | to_char(value, fmt) (フォーマット文字列は要書き換え) |
+| TRY_CAST(x AS T) | (PG にはネイティブな TRY_CAST がない。BEGIN/EXCEPTION で実装するか、テキスト型で前処理) |
+| IIF(cond, a, b) | CASE WHEN cond THEN a ELSE b END |
+| CHOOSE(n, v1, v2, ...) | CASE WHEN n=1 THEN v1 WHEN n=2 THEN v2 ... END |
+| SCOPE_IDENTITY() | INSERT ... RETURNING id INTO ... 句で取得 |
+| @@IDENTITY | (SCOPE_IDENTITY と同様、RETURNING で代替) |
+| SUSER_SNAME() | current_user / session_user |
+| OBJECT_DEFINITION(OBJECT_ID('x')) | pg_get_functiondef(...) 等の system_information_schema |
+
+### 集約・ウィンドウ
+| T-SQL | PL/pgSQL |
+|---|---|
 | TOP n | LIMIT n |
-| SCOPE_IDENTITY() | RETURNING id INTO ... |
+| TOP n WITH TIES | LIMIT n WITH TIES (PG 13+) |
+| OFFSET n ROWS FETCH NEXT m ROWS ONLY | OFFSET n LIMIT m |
+| ROW_NUMBER() OVER (...) | 同 (PG も対応) |
+| RANK() / DENSE_RANK() | 同 |
+| LAG / LEAD | 同 |
+| CUME_DIST / PERCENT_RANK | 同 |
 
 ### DML
 | T-SQL | PL/pgSQL |
 |---|---|
-| MERGE | INSERT ... ON CONFLICT DO UPDATE |
+| MERGE ... USING ... WHEN MATCHED THEN UPDATE WHEN NOT MATCHED THEN INSERT | INSERT ... ON CONFLICT (key) DO UPDATE SET ... |
+| MERGE with OUTPUT | INSERT ... ON CONFLICT ... RETURNING * |
 | OUTPUT INSERTED.* | RETURNING * |
-| UPDATE t SET ... FROM t JOIN ... | UPDATE t SET ... FROM other WHERE ... |
-| WITH (NOLOCK) | (削除 — トランザクション分離レベルで対応) |
+| OUTPUT INSERTED.* INTO @t | (一時テーブルに直接 INSERT 後 RETURNING、または WITH 句で chain) |
+| UPDATE t SET ... FROM t JOIN ... | UPDATE t SET ... FROM other WHERE ... (ON 句相当を WHERE で表現) |
+| WITH (NOLOCK) | (削除 — トランザクション分離レベルで対応 / READ UNCOMMITTED は PG では未対応で READ COMMITTED) |
+| WITH (READPAST) | SKIP LOCKED (FOR UPDATE と組合せ) |
+| WITH (TABLOCK) | (LOCK TABLE ... IN ACCESS EXCLUSIVE MODE で代替) |
+| SELECT ... INTO #temp FROM source | CREATE TEMP TABLE temp AS SELECT ... FROM source |
+| INSERT INTO #temp EXEC dbo.proc | (PG では一時テーブルに RETURNING 経由で挿入) |
 
 ### 型
-| T-SQL | PostgreSQL |
-|---|---|
-| BIT | boolean |
-| MONEY | numeric(19,4) |
-| DATETIME | timestamp |
-| DATETIME2(p) | timestamp(p) |
-| DATETIMEOFFSET | timestamptz |
-| UNIQUEIDENTIFIER | uuid |
-| VARBINARY(n) / IMAGE | bytea |
-| NVARCHAR(n) / NTEXT | text |
+| T-SQL | PostgreSQL ネイティブ | Babelfish (透過) |
+|---|---|---|
+| INT | integer | INT |
+| BIGINT | bigint | BIGINT |
+| SMALLINT / TINYINT | smallint (TINYINT は0-255の制約付き) | SMALLINT / TINYINT |
+| DECIMAL(p,s) / NUMERIC(p,s) | numeric(p,s) | DECIMAL(p,s) |
+| MONEY | numeric(19,4) | MONEY (Babelfish型) |
+| SMALLMONEY | numeric(10,4) | SMALLMONEY |
+| BIT | boolean | BIT (1bit型) |
+| FLOAT(53) / REAL | double precision / real | FLOAT/REAL |
+| VARCHAR(n) / NVARCHAR(n) | varchar(n) または text | VARCHAR(n) / NVARCHAR(n) |
+| CHAR(n) / NCHAR(n) | char(n) | CHAR(n) |
+| TEXT / NTEXT | text | TEXT (非推奨) |
+| DATETIME | timestamp | DATETIME |
+| DATETIME2(p) | timestamp(p) | DATETIME2(p) |
+| DATETIMEOFFSET | timestamptz | DATETIMEOFFSET |
+| SMALLDATETIME | timestamp(0) | SMALLDATETIME |
+| DATE | date | DATE |
+| TIME(p) | time(p) | TIME(p) |
+| UNIQUEIDENTIFIER | uuid | UNIQUEIDENTIFIER |
+| VARBINARY(n) / IMAGE | bytea | VARBINARY(n) / IMAGE |
+| XML | xml | XML |
+| HIERARCHYID | (拡張 or text) | HIERARCHYID |
+| ROWVERSION / TIMESTAMP | bytea + trigger | ROWVERSION |
+| SQL_VARIANT | text + 型情報カラム | SQL_VARIANT |
+| TABLE (TVP) | record[] / カスタム composite type | TABLE |
+| GEOGRAPHY / GEOMETRY | (PostGIS) | GEOGRAPHY / GEOMETRY |
+| sysname (システム名識別子) | name または varchar(128) | sysname |
 
 ### 識別子・命名
 - T-SQL の `[brackets]` は PostgreSQL では `"double quotes"` (必要時のみ)
 - 大文字混在の識別子は PostgreSQL ではダブルクオートで囲うか、すべて小文字に正規化
 - スキーマ名: T-SQL の `dbo` は PG では `public` に対応 (要件次第で別スキーマ)
+- 予約語衝突 (例: `user`, `order`) はクオートかリネーム
 
 ### エラーハンドリング詳細
-- T-SQL: TRY-CATCH 内で ERROR_NUMBER(), ERROR_MESSAGE() を取得
-- PL/pgSQL: EXCEPTION ブロック内で SQLSTATE, SQLERRM を取得
+- T-SQL: TRY-CATCH 内で ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_PROCEDURE(), ERROR_SEVERITY(), ERROR_STATE() を取得
+- PL/pgSQL: EXCEPTION ブロック内で SQLSTATE, SQLERRM のみ取得可
+  - PG では severity / state / line を捕捉する標準手段がない (ログ書込みでカスタム実装が必要)
+- 再スロー: T-SQL の `;THROW;` は PL/pgSQL の `RAISE;` (引数なしで現在の例外を再スロー)
 
 ### カーソル
 - T-SQL: `DECLARE c CURSOR FOR ... OPEN ... FETCH NEXT INTO ... CLOSE ... DEALLOCATE`
-- PL/pgSQL: `FOR rec IN SELECT ... LOOP ... END LOOP;` への書き換え推奨
-- 大量データ処理は set-based に書き換える方が PostgreSQL に最適
+- PL/pgSQL:
+  - 推奨: `FOR rec IN SELECT ... LOOP ... END LOOP;` で書き換え (set-based、性能良)
+  - 代替: `DECLARE c CURSOR FOR ...; OPEN c; FETCH c INTO v; CLOSE c;` (T-SQL に近いが冗長)
+  - LOCAL FAST_FORWARD カーソルは BTW PG ではデフォルトの FETCH 動作と等価
 
 ### 動的 SQL
 - T-SQL: `EXEC sp_executesql N'SELECT ... WHERE x = @x', N'@x INT', @x = 1`
 - PL/pgSQL: `EXECUTE 'SELECT ... WHERE x = $1' USING 1`
+- OUTPUT パラメタを伴う場合:
+  - T-SQL: `@cnt INT OUTPUT, ..., @cnt = @count_out OUTPUT`
+  - PL/pgSQL: `EXECUTE '... INTO $1 USING ...' INTO count_out USING ...` (記法に注意)
+
+### TVP (Table-Valued Parameter)
+- T-SQL: `CREATE TYPE T AS TABLE(...)` + `CREATE PROC p (@list T READONLY)`
+- PL/pgSQL:
+  - VARIADIC パラメタ + 配列で受ける: `CREATE PROCEDURE p(VARIADIC ids int[]) ...`
+  - または UNNEST して JOIN: `INNER JOIN unnest($1) AS ids(id) ON ...`
+
+### MSTVF (Multi-Statement TVF)
+- T-SQL: `CREATE FUNCTION f(...) RETURNS @t TABLE(...) AS BEGIN INSERT INTO @t ... END`
+- PL/pgSQL: `CREATE FUNCTION f(...) RETURNS TABLE(...) LANGUAGE plpgsql AS $$ BEGIN ... RETURN QUERY SELECT ...; END $$;`
+
+### INSTEAD OF Trigger on View
+- T-SQL: `CREATE TRIGGER ... ON v INSTEAD OF UPDATE AS BEGIN UPDATE base FROM inserted ... END`
+- PL/pgSQL: `CREATE FUNCTION trg_fn() RETURNS trigger AS $$ BEGIN UPDATE base SET ... FROM (SELECT NEW.*) i WHERE base.pk = i.pk; RETURN NEW; END $$ LANGUAGE plpgsql;`
+  + `CREATE TRIGGER trg INSTEAD OF UPDATE ON v FOR EACH ROW EXECUTE FUNCTION trg_fn();`
+
+### JSON 関数 (T-SQL 2016+)
+| T-SQL | PostgreSQL |
+|---|---|
+| FOR JSON PATH | json_build_object(...) や row_to_json(...) |
+| FOR JSON AUTO | row_to_json(...) (構造は要書き換え) |
+| WITHOUT_ARRAY_WRAPPER | (要明示的書き換え) |
+| OPENJSON | json_to_recordset / json_array_elements |
+| JSON_VALUE(j, '$.x') | j ->> 'x' |
+| JSON_QUERY(j, '$.x') | j -> 'x' |
+| ISJSON(j) | (PG にはネイティブなし、try-cast で代替) |
+
+### XML 関数
+- T-SQL の XML 操作は PG の XML 型でも可能だが、関数体系が異なる
+- `value()`, `nodes()`, `query()` メソッド → `xpath()` 関数で代替
+
+### よくある落とし穴
+1. **照合順序 (Collation)**: T-SQL は大文字小文字区別なし (CI) がデフォルト。PG はデフォルト区別あり。`LOWER()` を使うか `COLLATE` を指定
+2. **NULL の比較**: T-SQL の `<>` で NULL を含むケースに注意 (PG も基本同じ)
+3. **トランザクション**: PG の関数内では明示的な BEGIN/COMMIT 不可、PROCEDURE 内では可
+4. **型エラー**: PG は型推論が厳格。整数 / 文字列の暗黙キャストが効かないケースあり
+5. **NULL を返す集約**: T-SQL で空集合の SUM/AVG は NULL、PG も同じ
+6. **配列インデックス**: T-SQL に配列なし。PG では 1始まり
+
+### Stage 3 で使う基本テンプレート
+
+```pl/pgsql
+CREATE OR REPLACE PROCEDURE public.usp_xxx(
+    p_param1 INT,
+    p_param2 VARCHAR(100),
+    INOUT p_output_value NUMERIC(10,2)
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_local INT := 0;
+    rc INT;
+BEGIN
+    -- 本体
+    SELECT ... INTO v_local FROM ...;
+
+    UPDATE ...;
+    GET DIAGNOSTICS rc = ROW_COUNT;
+
+    p_output_value := v_local;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error: %', SQLERRM;
+        p_output_value := NULL;
+END;
+$$;
+```
 </conversion_rules>

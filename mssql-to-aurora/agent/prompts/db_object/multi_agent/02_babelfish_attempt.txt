@@ -3,19 +3,18 @@
 動作可否と結果一致を機械的に判定することです。
 
 <workflow>
-以下の手順を守ってください。
-
 1. Babelfish に対する前提確認
    - `run_babelfish_tsql` ツールで `SELECT @@VERSION` を実行し、Babelfish 経由で接続できることを確認する
-   - 失敗した場合は `babelfish_attempt.txt` に「接続エラー」と記録し、Stage 2 を失敗で終了する
+   - 接続失敗時は `babelfish_attempt.txt` に詳細を記録、末尾に `RESULT: CONNECTION_ERROR` を書いて Stage 2 を終了
 
 2. オブジェクト投入試行
    - 指定された `mssql.sql` を読み込む
    - Babelfish に対して `run_babelfish_tsql` で実行する (CREATE 系 DDL)
    - 実行結果 (成功/失敗、エラー内容) を `babelfish_attempt.txt` に詳細記録する
-   - 構文エラーが出た場合は **書き換えはしない** — Babelfish 非対応として記録するのが目的
-     - エラー内容から、Babelfish が苦手とする領域 (CLR, sp_executesql の OUTPUT, 一部 DMV 等) を特定する
-   - DDL 投入が失敗したら、ファイル末尾に `RESULT: SYNTAX_FAILED` を記録して Stage 2 を終了する (BABELFISH_OK.txt は作らない)
+   - **構文エラーが出たら書き換えはしない** — Babelfish 非対応として記録するのが目的
+     - エラー内容から、Babelfish が苦手とする領域 (下記既知リスト参照) を特定する
+   - DDL 投入が失敗したら、ファイル末尾に `RESULT: SYNTAX_FAILED` を記録して Stage 2 を終了する
+     (BABELFISH_OK.txt は作らない)
 
 3. テスト実行 (DDL 成功時のみ)
    - `mssql_test.sql` を読み込み、Babelfish 用に必要最小限の修正のみ行い `babelfish_test.sql` に保存する
@@ -24,12 +23,15 @@
    - 例外発生時はエラー内容も記録する
 
 4. 結果比較・判定
-   - `mssql_test.txt` と `babelfish_test.txt` を読み込み、テストケースごとに結果を比較する
+   - `mssql_test.txt` と `babelfish_test.txt` を読み込み、テストケース単位で結果を比較する
+     (テストケース識別子 'TC1', 'TC2', ... が ASSERT に入っているはず)
    - 比較レベル:
-     * EXACT: 完全一致
-     * SEMANTIC: 値として等価 (タイムスタンプ精度、表記揺れ等を吸収)
-   - 全テストケースが SEMANTIC レベル以上で一致 → `BABELFISH_OK.txt` に判定根拠を書いて作成
-   - 1つでも不一致 → `BABELFISH_OK.txt` は **作らず**、`babelfish_attempt.txt` 末尾に `RESULT: TEST_MISMATCH` と差異を記録
+     * EXACT: 完全一致 (バイトレベル)
+     * SEMANTIC: 値として等価 (タイムスタンプ精度、表記揺れ、IDENTITY値、エラーメッセージ文言の差を吸収)
+     * STRUCTURAL: 件数・カラム順・型カテゴリのみ一致 (フォールバック)
+   - 全テストケースが SEMANTIC レベル以上で一致 → `BABELFISH_OK.txt` を <output_specification> 通りに作成
+   - 1つでも不一致 → `BABELFISH_OK.txt` は **作らず**、`babelfish_attempt.txt` 末尾に
+     `RESULT: TEST_MISMATCH` と差異を記録して Stage 2 を終了
 
 {ERROR_POLICY}
 
@@ -37,17 +39,49 @@
 
 </workflow>
 
-## 成功条件
-- DDL 投入失敗時: `babelfish_attempt.txt` に詳細記録があること (BABELFISH_OK.txt は不要)
-- DDL 投入成功・テスト一致時: `babelfish_attempt.txt`, `babelfish_test.sql`, `babelfish_test.txt`, `BABELFISH_OK.txt` の4つ
-- DDL 投入成功・テスト不一致時: `babelfish_attempt.txt`, `babelfish_test.sql`, `babelfish_test.txt` の3つ (BABELFISH_OK.txt は作らない)
+## Babelfish が苦手とする領域 (既知)
+
+Stage 2 のエージェントは以下の機能を見つけたら、エラーが出た原因として明示的に
+`babelfish_attempt.txt` に記録すること:
+
+### 構造的非対応 (DDL レベルで失敗する可能性大)
+- **CLR アセンブリ** — `.NET アセンブリの取り込み`
+- **Service Broker** — メッセージング
+- **Linked Server** — `OPENQUERY`, `OPENROWSET` 等
+- **WITH ENCRYPTION** — definition が NULL になり Stage 1 で抽出不可
+
+### 部分対応 (DDL は通るがテスト時に挙動差異の可能性)
+- **sp_executesql + OUTPUT パラメタ** — 動的 SQL の戻り値受取
+- **Table-Valued Parameter (TVP)** — `READONLY` テーブルパラメタ
+- **PIVOT / UNPIVOT** — 一部の式パターンで失敗
+- **MERGE 文** — Babelfish の MERGE は PG の MERGE 相当だが、`OUTPUT INTO` 句との組合せで挙動差
+- **INSTEAD OF Trigger on View** — 一部パターンで失敗
+- **FOR JSON PATH / FOR XML PATH** — JSON は部分対応、XML は限定対応
+- **DATETIMEOFFSET / DATETIME2 の最大精度** — 型変換時に丸め
+- **一部の DMV** (`sys.dm_exec_*`) — Babelfish 内では空または異なる結果
+- **READPAST / NOLOCK 等のテーブルヒント** — 多くは無視されるか警告
+
+### 数値・文字列の挙動差
+- **MONEY 型** — Babelfish 上では VARCHAR 表現が異なるケース
+- **NVARCHAR の照合順序** — Collation が PG の動作と微妙に異なる
+
+これらが原因と推察される失敗は `babelfish_attempt.txt` の HYPOTHESIS セクションに明記すること。
+
+## 成功条件 (どれかひとつ)
+- DDL 投入失敗時:
+  - `babelfish_attempt.txt` に詳細記録 + `RESULT: SYNTAX_FAILED` (or その他コード)
+  - `BABELFISH_OK.txt` は作成しない
+- DDL 投入成功・テスト一致時:
+  - `babelfish_attempt.txt`
+  - `babelfish_test.sql`
+  - `babelfish_test.txt`
+  - `BABELFISH_OK.txt` ← <output_specification> 通り
+- DDL 投入成功・テスト不一致時:
+  - `babelfish_attempt.txt` に `RESULT: TEST_MISMATCH`
+  - `babelfish_test.sql`
+  - `babelfish_test.txt`
+  - `BABELFISH_OK.txt` は作成しない
 
 ## 注意
-- Babelfish が苦手とする領域 (既知):
-  * CLR アセンブリ
-  * Service Broker
-  * Linked Server
-  * 一部の DMV (sys.dm_exec_*)
-  * sp_executesql の OUTPUT パラメタの一部
-  上記が原因と推察される失敗は `babelfish_attempt.txt` に明記すること
 - 構文を「修正して通す」のは Stage 2 の仕事ではない (Stage 3 で PL/pgSQL 変換として行う)
+- BABELFISH_OK.txt を作成するなら、必ずテスト数と Match Levels の数値を入れる (集計スクリプトが解析する)
