@@ -71,13 +71,17 @@ T-SQL（SQL Server）の DB オブジェクト（プロシージャ・関数・�
 
 - VPC: 2-AZ、`maxAzs=2`、NAT Gateway 1
 - サブネット: Public / PrivateWithEgress / Isolated
-- EC2 Instance Connect Endpoint: Workbench EC2 への SSH 用
 - Flow Logs: REJECT のみ CloudWatch へ
 - セキュリティグループ:
-  - `sgWorkbench` (EC2)
+  - `sgWorkbench` (EC2) — **インバウンドなし**（SSH不可、SSM Session Manager のみ）
   - `sgSourceMssql` (RDS SQL Server) — 1433 from sgWorkbench
   - `sgTargetPg` (Aurora PG) — 5432 from sgWorkbench
   - `sgTargetBabelfish` (Aurora PG with Babelfish) — 1433 + 5432 from sgWorkbench
+
+> [!IMPORTANT]
+> Workbench EC2 への接続は **SSM Session Manager 一本**です。
+> SSH (port 22) のインバウンドルールは作成しません。
+> EC2 Instance Connect Endpoint も使用しません。
 
 ### 3.2 Source (`cdk/lib/constructs/source-mssql.ts`)
 
@@ -114,15 +118,16 @@ T-SQL（SQL Server）の DB オブジェクト（プロシージャ・関数・�
 ### 3.5 Workbench EC2 (`cdk/lib/constructs/workbench-ec2.ts`)
 
 - Amazon Linux 2023 / `t3.medium` / 50GB gp3
-- UserData: uv / msodbcsql18 / unixODBC / psycopg / git をインストール
+- UserData: uv / msodbcsql18 / unixODBC / psycopg / git / jq をインストール
 - IAM Role:
-  - SSM Session Manager
+  - SSM Session Manager (`AmazonSSMManagedInstanceCore`)
   - Bedrock InvokeModel
   - SecretsManager:GetSecretValue
   - RDS Data API
   - S3 (Extraction Bucket)
 - Source/Target各DBへの接続権限
-- SSHキーペア: SSM Parameter Store経由（既存方式踏襲）
+- **Key Pair なし、SSH ポート開放なし**
+- 接続: `aws ssm start-session --target <instance-id>` 一本
 
 ### 3.6 S3 Extraction Bucket
 

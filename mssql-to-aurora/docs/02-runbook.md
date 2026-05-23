@@ -53,27 +53,47 @@ CDK context が `sourceMode=snapshot` で動作し、Source 構成が `DatabaseI
 
 ## 3. デプロイ後の接続確認
 
-```bash
-# Workbench EC2 に SSH（EC2 Instance Connect Endpoint 経由）
-ssh -F ssh-config-mssql workbench
+> [!IMPORTANT]
+> Workbench EC2 への接続は **SSM Session Manager 一本**です。SSH ポート(22) は SG レベルで遮断しています。
+> ローカル端末には [Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) のインストールが必要です。
 
-# Workbench EC2 上で以下のテストスクリプト実行
+```bash
+# output.json から接続コマンドを取得
+SSM_CMD=$(jq -r '.MssqlToAuroraStack.WorkbenchSsmStartSessionCommand' mssql-to-aurora/output.json)
+echo "$SSM_CMD"   # 例: aws ssm start-session --target i-0123abc... --region us-east-1
+eval "$SSM_CMD"
+
+# Workbench EC2 セッションに入った後:
+sudo -u ec2-user -i      # ec2-user に切替 (SSM デフォルトは ssm-user)
 cd ~/mssql-to-aurora/agent
 uv sync
-uv run python -m utils.connect_test
+set -a; source .env; set +a
+
+# 接続疎通テスト
+uv run python -c "
+import os
+import boto3, json, pyodbc, psycopg
+print('AWS account:', boto3.client('sts').get_caller_identity()['Account'])
+print('MSSQL_HOST :', os.environ['MSSQL_HOST'])
+print('PG / Babelfish env are set:', bool(os.environ.get('AURORA_PG_SECRET_NAME')))
+"
 ```
 
-`connect_test` が出力する内容:
-- `[OK] Source MSSQL: SELECT @@VERSION → ...`
-- `[OK] Aurora PG (native): SELECT version() → ...`
-- `[OK] Babelfish (TDS:1433): SELECT @@VERSION → ...`
-- `[OK] Babelfish (PG:5432): SELECT version() → ...`
+ポートフォワードでローカル端末から DB に接続したい場合 (例: PG エンドポイントを localhost:15432 にトンネル):
+
+```bash
+aws ssm start-session \
+  --target i-XXXXXXXXXXXXXX \
+  --document-name AWS-StartPortForwardingSessionToRemoteHost \
+  --parameters '{"host":["<TargetAuroraPgEndpoint>"],"portNumber":["5432"],"localPortNumber":["15432"]}'
+```
 
 ## 4. エージェントによる変換
 
 ### 4.1 単一オブジェクト
 
 ```bash
+# Workbench EC2 上で
 cd ~/mssql-to-aurora/agent
 uv run main.py --multi-agent --prompt "PROCEDURE dbo.usp_calculate_employee_bonus"
 ```
@@ -141,9 +161,16 @@ uv run python -m utils.summarize_results > summary.md
 ## 6. 結果の取り出し
 
 ```bash
-# Workbench EC2 → ローカル
-scp -F ssh-config-mssql -r workbench:~/mssql-to-aurora/agent/result ./result-snapshot-$(date +%Y%m%d)
-scp -F ssh-config-mssql workbench:~/mssql-to-aurora/agent/summary.md ./
+# Workbench EC2 → ローカル (SSM 経由)
+# 方法1: S3経由（推奨）
+WORKBENCH_ID=$(jq -r '.MssqlToAuroraStack.WorkbenchInstanceId' mssql-to-aurora/output.json)
+BUCKET=$(jq -r '.MssqlToAuroraStack.ExtractionBucketName' mssql-to-aurora/output.json)
+
+aws ssm send-command --instance-ids $WORKBENCH_ID --document-name AWS-RunShellScript \
+  --parameters "commands=[\"tar -C /home/ec2-user/mssql-to-aurora/agent -czf /tmp/results.tgz result summary.md 2>/dev/null || true; aws s3 cp /tmp/results.tgz s3://$BUCKET/results/\"]"
+
+aws s3 cp s3://$BUCKET/results/results.tgz ./
+tar -xzf results.tgz
 ```
 
 ## 7. クリーンアップ
@@ -170,6 +197,7 @@ aws rds describe-db-cluster-snapshots --query 'DBClusterSnapshots[?contains(DBCl
 | 症状 | 対処 |
 |---|---|
 | `cdk deploy` で `Bedrock model not enabled` | コンソールで Claude Sonnet 4.5 を有効化 |
+| `aws ssm start-session` で `SessionManagerPlugin is not found` | [Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) を導入 |
 | Workbench EC2 から MSSQL に接続できない | `msodbcsql18` インストール確認、SG 1433 確認 |
 | Babelfish に TDS で接続できない | `rds.babelfish_status=on` 確認、ポート1433疎通確認 |
 | Bedrock ThrottlingException | `--avoid-throttling` を付与 |

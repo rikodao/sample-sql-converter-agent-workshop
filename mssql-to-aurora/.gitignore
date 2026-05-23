@@ -1,22 +1,25 @@
-# Generated artifacts
-mssql-to-aurora/cdk/cdk.out/
-mssql-to-aurora/cdk/node_modules/
-mssql-to-aurora/cdk/*.js
-!mssql-to-aurora/cdk/jest.config.js
-mssql-to-aurora/cdk/*.d.ts
+# Paths are relative to this .gitignore (i.e., to mssql-to-aurora/)
 
-# Workbench / deploy outputs
-mssql-to-aurora/output.json
-mssql-to-aurora/mssql-workbench-key.pem
-mssql-to-aurora/ssh-config-mssql
+# CDK generated artifacts
+cdk/cdk.out/
+cdk/node_modules/
+cdk/*.js
+!cdk/jest.config.js
+cdk/*.d.ts
+
+# Workbench / deploy outputs (DO NOT COMMIT secrets/keys)
+output.json
+mssql-workbench-key.pem
+ssh-config-mssql
 
 # Agent workspace
-mssql-to-aurora/agent/result/
-mssql-to-aurora/agent/.venv/
-mssql-to-aurora/agent/uv.lock
+agent/result/
+agent/.venv/
+agent/uv.lock
+agent/.env
 
 # Extraction outputs
-mssql-to-aurora/extraction/output/
+extraction/output/
 
 # Editor / OS
 .DS_Store

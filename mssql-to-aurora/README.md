@@ -70,19 +70,28 @@ cd mssql-to-aurora/cdk && npx cdk bootstrap && cd ../..
 # 3. 全部デプロイ（30〜40分）
 ./mssql-to-aurora/scripts/deploy.sh
 
-# 4. サンプル T-SQL を Source MSSQL に投入（deploy.sh 内で自動実行）
+# 4. サンプル T-SQL を Source MSSQL に投入（deploy.sh 内で SSM RunCommand により自動実行）
 
-# 5. エージェント起動
-cd mssql-to-aurora/agent
+# 5. Workbench EC2 に SSM Session Manager で接続（SSH 不使用）
+#    output.json の WorkbenchSsmStartSessionCommand を実行
+aws ssm start-session --target i-XXXXXXXXXXXXX --region us-east-1
+
+# 6. (Workbench 上で) エージェント起動
+cd ~/mssql-to-aurora/agent
 uv sync
+set -a; source .env; set +a
 uv run main.py --multi-agent --prompt "PROCEDURE dbo.usp_calculate_employee_bonus"
 
-# 6. 一括変換
+# 7. 一括変換
 ./run.sh --multi-agent
 
-# 7. 結果集計
+# 8. 結果集計
 ls result/
 ```
+
+> [!IMPORTANT]
+> Workbench EC2 への接続は **SSM Session Manager 一本**です。SSH ポート(22) のSGルールは作成しません。
+> ローカル端末には [Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) が必要です。
 
 詳細: [docs/02-runbook.md](docs/02-runbook.md)
 
