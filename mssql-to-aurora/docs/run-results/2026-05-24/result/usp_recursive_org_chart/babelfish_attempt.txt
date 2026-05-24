@@ -1,0 +1,189 @@
+============================================================
+BABELFISH COMPATIBILITY VERIFICATION REPORT
+============================================================
+Object: dbo.usp_recursive_org_chart
+Type: STORED PROCEDURE
+Test Date: 2026-05-23
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+
+============================================================
+PHASE 1: CONNECTION TEST
+============================================================
+Status: ✓ SUCCESS
+Connection: Babelfish TDS endpoint (port 1433)
+Version Info: Babelfish 4.3.3 on PostgreSQL 16.4
+
+============================================================
+PHASE 2: DDL DEPLOYMENT
+============================================================
+Status: ✓ SUCCESS
+DDL Source: ./result/usp_recursive_org_chart/mssql.sql
+
+DDL Content:
+-----------------------------------------------------------
+CREATE PROCEDURE dbo.usp_recursive_org_chart
+    @root_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    WITH org AS (
+        SELECT department_id, name, parent_id, 0 AS depth, CAST(name AS NVARCHAR(MAX)) AS path
+        FROM dbo.departments
+        WHERE department_id = @root_id
+
+        UNION ALL
+
+        SELECT d.department_id, d.name, d.parent_id, o.depth + 1,
+               o.path + N' > ' + d.name
+        FROM dbo.departments d
+        INNER JOIN org o ON d.parent_id = o.department_id
+    )
+    SELECT department_id, name, depth, path FROM org ORDER BY path;
+END
+-----------------------------------------------------------
+
+Deployment Result: SUCCESS
+- Procedure created without syntax errors
+- Recursive CTE syntax accepted by Babelfish
+- CAST to NVARCHAR(MAX) accepted
+- String concatenation with N' > ' accepted
+
+============================================================
+PHASE 3: TEST EXECUTION
+============================================================
+Status: ✗ RUNTIME ERROR
+
+Error Category: SCHEMA MISMATCH
+Error Code: 42000 (SQL State)
+Error Message: column "name" does not exist
+
+Root Cause Analysis:
+-----------------------------------------------------------
+The stored procedure references column "name" in the departments table,
+but the actual Babelfish environment has column "department_name" instead.
+
+MSSQL Schema (Source):
+  - department_id (INT)
+  - name (NVARCHAR)
+  - parent_id (INT)
+  - created_at (DATETIME2)
+
+Babelfish Schema (Target):
+  - department_id (INT)
+  - department_name (VARCHAR)  ← MISMATCH
+  - (parent_id and created_at columns not verified)
+
+This is an ENVIRONMENT MISMATCH, not a Babelfish compatibility issue.
+The DDL itself is syntactically compatible with Babelfish.
+
+Test Cases Attempted:
+-----------------------------------------------------------
+TC1: Normal - Root with children
+  Status: FAILED
+  Error: column "name" does not exist
+
+TC2: Normal - Leaf node (no children)
+  Status: FAILED
+  Error: column "name" does not exist
+
+TC3: Normal - Different root department
+  Status: FAILED
+  Error: column "name" does not exist
+
+TC4: Boundary - Non-existent department ID
+  Status: FAILED
+  Error: column "name" does not exist
+
+TC5: Boundary - NULL input
+  Status: FAILED
+  Error: column "name" does not exist
+
+TC6: Boundary - Zero as input
+  Status: FAILED
+  Error: column "name" does not exist
+
+TC7: Exception - Negative ID
+  Status: FAILED
+  Error: column "name" does not exist
+
+TC8-TC11: Not executed due to early failure
+
+============================================================
+BABELFISH COMPATIBILITY ASSESSMENT
+============================================================
+
+Syntax Compatibility: ✓ PASS
+- Recursive CTE: Supported
+- CAST to NVARCHAR(MAX): Supported
+- String concatenation: Supported
+- SET NOCOUNT ON: Supported
+- ORDER BY in final SELECT: Supported
+
+Runtime Compatibility: ✗ FAIL (Environment Issue)
+- Schema mismatch between source and target environments
+- Column name "name" vs "department_name"
+
+============================================================
+HYPOTHESIS: KNOWN BABELFISH LIMITATIONS
+============================================================
+
+Potential Issue: Reserved Word Conflict
+-----------------------------------------------------------
+The column name "name" is a reserved word in PostgreSQL.
+While Babelfish should handle this in T-SQL mode, there may be
+edge cases where identifier resolution fails, especially in:
+- Recursive CTEs
+- Subqueries with multiple table references
+- Complex JOIN conditions
+
+However, the primary issue here is the actual schema difference
+between the MSSQL source and Babelfish target environments.
+
+Recommendation:
+-----------------------------------------------------------
+1. Verify that the departments table schema matches between
+   MSSQL and Babelfish environments
+2. If "name" is intentionally renamed to "department_name" in
+   Babelfish, the procedure DDL must be modified accordingly
+3. Consider using quoted identifiers [name] or "name" if the
+   column name is indeed "name" but PostgreSQL is treating it
+   as a reserved word
+
+============================================================
+CONCLUSION
+============================================================
+
+The stored procedure DDL is syntactically compatible with Babelfish.
+The recursive CTE pattern, string operations, and control flow are
+all supported. However, runtime execution fails due to a schema
+mismatch in the underlying departments table.
+
+This is NOT a Babelfish compatibility issue but an environment
+configuration issue. The procedure would work correctly if the
+table schema matched the source MSSQL environment.
+
+Next Steps:
+1. Do NOT proceed to Stage 3 (PL/pgSQL conversion) as the issue
+   is environmental, not syntactic
+2. Recommend schema alignment between MSSQL and Babelfish
+3. If schema cannot be aligned, Stage 4 would need to modify
+   the procedure to use "department_name" instead of "name"
+
+============================================================
+DETAILED TEST RESULTS
+============================================================
+
+All 7 executed test cases failed with identical error:
+  Error Code: 42000
+  Error Message: column "name" does not exist
+  SQL State: 42000
+
+This consistent error across all test cases confirms that the issue
+is not test-specific but a fundamental schema mismatch.
+
+============================================================
+END OF REPORT
+============================================================
+
+RESULT: RUNTIME_ERROR_SCHEMA_MISMATCH

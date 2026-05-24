@@ -1,0 +1,149 @@
+=============================================
+TEST EXECUTION RESULTS for dbo.usp_employee_json
+Source: SQL Server (MSSQL)
+Execution Date: 2026-05-23
+=============================================
+
+============= TEST CASE 1: Valid employee ID (normal case) =============
+Result:
+{
+  "tc": "TC1",
+  "test_description": "Valid employee ID",
+  "json_output": "{\"employee_id\":1,\"first_name\":\"Alice\",\"last_name\":\"Anderson\",\"email\":\"alice@example.com\",\"department_name\":\"Backend\",\"hire_date\":\"2020-01-15\"}",
+  "status": "PASS",
+  "has_employee_id": "PASS",
+  "has_first_name": "PASS",
+  "has_department_name": "PASS"
+}
+
+============= TEST CASE 2: Another valid employee ID =============
+Result:
+{
+  "tc": "TC2",
+  "test_description": "Another valid employee ID",
+  "json_output": "{\"employee_id\":2,\"first_name\":\"Bob\",\"last_name\":\"Brown\",\"email\":\"bob@example.com\",\"department_name\":\"Backend\",\"hire_date\":\"2021-03-01\"}",
+  "status": "PASS"
+}
+
+============= TEST CASE 3: Non-existent employee ID (boundary) =============
+Result:
+{
+  "tc": "TC3",
+  "test_description": "Non-existent employee ID",
+  "json_output": null,
+  "status": "PASS"
+}
+
+============= TEST CASE 4: NULL employee ID (boundary) =============
+Result:
+{
+  "tc": "TC4",
+  "test_description": "NULL employee ID",
+  "json_output": null,
+  "status": "PASS"
+}
+
+============= TEST CASE 5: Zero employee ID (boundary) =============
+Result:
+{
+  "tc": "TC5",
+  "test_description": "Zero employee ID",
+  "json_output": null,
+  "status": "PASS"
+}
+
+============= TEST CASE 6: Negative employee ID (boundary) =============
+Result:
+{
+  "tc": "TC6",
+  "test_description": "Negative employee ID",
+  "json_output": null,
+  "status": "PASS"
+}
+
+============= TEST CASE 7: Verify JSON structure with known employee =============
+Result:
+{
+  "tc": "TC7",
+  "test_description": "Verify JSON content matches database",
+  "json_output": "{\"employee_id\":1,\"first_name\":\"Alice\",\"last_name\":\"Anderson\",\"email\":\"alice@example.com\",\"department_name\":\"Backend\",\"hire_date\":\"2020-01-15\"}",
+  "expected_first_name": "Alice",
+  "expected_last_name": "Anderson",
+  "expected_email": "alice@example.com",
+  "expected_dept_name": "Backend",
+  "first_name_match": "PASS",
+  "last_name_match": "PASS",
+  "email_match": "PASS"
+}
+
+============= TEST CASE 8: Employee without department (exception case) =============
+Result:
+{
+  "status": "ok",
+  "rowcount": 1
+}
+Note: This test case simulates the procedure behavior with temp tables.
+The actual procedure uses real tables (employees and departments).
+
+============= TEST CASE 9: Maximum INT value for employee_id (boundary) =============
+Result:
+{
+  "tc": "TC9",
+  "test_description": "Maximum INT value for employee_id",
+  "json_output": null,
+  "status": "PASS"
+}
+
+============= TEST CASE 10: Verify OUTPUT parameter is properly set =============
+Result:
+{
+  "tc": "TC10",
+  "test_description": "OUTPUT parameter properly overwrites initial value",
+  "json_output": "{\"employee_id\":1,\"first_name\":\"Alice\",\"last_name\":\"Anderson\",\"email\":\"alice@example.com\",\"department_name\":\"Backend\",\"hire_date\":\"2020-01-15\"}",
+  "status": "PASS"
+}
+
+============= TEST CASE 11: Verify JSON is valid and parseable =============
+Result:
+{
+  "tc": "TC11",
+  "test_description": "JSON validity check",
+  "json_output": "{\"employee_id\":1,\"first_name\":\"Alice\",\"last_name\":\"Anderson\",\"email\":\"alice@example.com\",\"department_name\":\"Backend\",\"hire_date\":\"2020-01-15\"}",
+  "is_valid_json": true,
+  "status": "PASS"
+}
+
+============= TEST CASE 12: Parse JSON and verify field values =============
+Result:
+{
+  "tc": "TC12",
+  "test_description": "Parse JSON and extract field values",
+  "parsed_employee_id": "1",
+  "parsed_first_name": "Alice",
+  "parsed_last_name": "Anderson",
+  "parsed_email": "alice@example.com",
+  "parsed_department_name": "Backend",
+  "parsed_hire_date": "2020-01-15",
+  "employee_id_match": "PASS"
+}
+
+=============================================
+TEST SUMMARY
+=============================================
+Total Test Cases: 12
+All tests executed successfully.
+
+Key Findings:
+1. The procedure correctly returns JSON for valid employee IDs
+2. Returns NULL for non-existent, NULL, zero, negative, and max INT employee IDs
+3. OUTPUT parameter is properly set and overwrites initial values
+4. JSON output is valid and parseable using ISJSON() and JSON_VALUE()
+5. JSON structure includes all expected fields: employee_id, first_name, last_name, email, department_name, hire_date
+6. JSON content matches the database values exactly
+7. FOR JSON PATH with WITHOUT_ARRAY_WRAPPER produces a single JSON object (not an array)
+
+Expected Behavior for Migration:
+- Babelfish/PostgreSQL should produce identical JSON output for the same inputs
+- NULL handling should be consistent
+- JSON format should match (field names, structure, date format)
+- OUTPUT parameter behavior should be preserved

@@ -1,0 +1,194 @@
+=============================================
+TEST RESULTS for dbo.usp_propagate_salary_raise
+Source: SQL Server RDS
+Execution Date: 2026-05-23
+=============================================
+
+============= TEST CASE 1: Normal 5% raise for eligible employees =============
+SETUP: Created 2 test employees (9001, 9002) hired in 2020 and 2021 with salaries 50000 and 60000
+EXEC: Applied 5% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Old records closed: 2 records
+- New records created: 2 records
+- Salary amounts:
+  * Employee 9001: 52500.00 (50000 * 1.05)
+  * Employee 9002: 63000.00 (60000 * 1.05)
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 2: 10% raise with custom min_years_of_service =============
+SETUP: Created 2 test employees (9003, 9004) hired in 2022 and 2023 with salaries 45000 and 40000
+EXEC: Applied 10% raise with min_years_of_service = 2
+
+ASSERT Results:
+- Eligible count: 2 employees received raises
+- Salary amounts:
+  * Employee 9003: 49500.00 (45000 * 1.10)
+  * Employee 9004: 44000.00 (40000 * 1.10)
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 3: Zero percent raise (no change in amount) =============
+SETUP: Created 1 test employee (9005) hired in 2020 with salary 55000
+EXEC: Applied 0% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Records created: 1 new record (even with 0% raise)
+- Salary unchanged: 55000.00 (55000 * 1.00)
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 4: Inactive employee should not get raise =============
+SETUP: Created 1 inactive employee (9006, is_active=0) hired in 2019 with salary 70000
+EXEC: Applied 5% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Total records: 1 (original only)
+- Open records: 1 (no new record created)
+- Inactive employee correctly excluded from raise
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 5: Employee with insufficient years of service =============
+SETUP: Created 1 test employee (9007) hired 2 years ago with salary 48000
+EXEC: Applied 5% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Total records: 1 (original only)
+- Open records: 1 (no new record created)
+- Employee with only 2 years correctly excluded (min is 3)
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 6: Employee with no salary history =============
+SETUP: Created 1 test employee (9008) hired in 2019 with NO salary record
+EXEC: Applied 5% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Salary records: 0
+- Employee without salary history correctly excluded
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 7: Large raise percentage (50%) =============
+SETUP: Created 1 test employee (9009) hired in 2018 with salary 40000
+EXEC: Applied 50% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Employee 9009: 60000.00 (40000 * 1.50)
+- Large percentage raise calculated correctly
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 8: Negative raise percentage (salary decrease) =============
+SETUP: Created 1 test employee (9010) hired in 2019 with salary 50000
+EXEC: Applied -10% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Employee 9010: 45000.00 (50000 * 0.90)
+- Negative percentage (salary decrease) calculated correctly
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 9: Multiple salary history records (only latest should be used) =============
+SETUP: Created 1 test employee (9011) hired in 2018 with 3 salary records (40000, 45000, 50000)
+EXEC: Applied 10% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Total records: 4 (3 original + 1 new)
+- Open records: 1 (only the new one)
+- Latest salary: 55000.00 (50000 * 1.10)
+- Correctly used most recent salary (50000) as base
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 10: Exactly at minimum years threshold =============
+SETUP: Created 1 test employee (9012) hired exactly 3 years ago with salary 52000
+EXEC: Applied 5% raise with min_years_of_service = 3
+
+ASSERT Results:
+- New records: 1
+- Salary amount: 54600.00 (52000 * 1.05)
+- Employee at exactly 3 years threshold correctly included
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 11: Very small raise (0.01%) =============
+SETUP: Created 1 test employee (9013) hired in 2019 with salary 100000
+EXEC: Applied 0.01% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Employee 9013: 100010.00 (100000 * 1.0001)
+- Very small percentage raise calculated correctly
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 12: Min years of service = 0 (all active with salary eligible) =============
+SETUP: Created 1 test employee (9014) hired 6 months ago with salary 35000
+EXEC: Applied 5% raise with min_years_of_service = 0
+
+ASSERT Results:
+- New records: 1
+- Salary amount: 36750.00 (35000 * 1.05)
+- Employee with < 1 year correctly included when min_years = 0
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 13: Verify effective_to date is set correctly =============
+SETUP: Created 1 test employee (9015) hired in 2019 with salary 60000
+EXEC: Applied 5% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Old record closed: effective_to = today - 1 day (CORRECT)
+- New record date: effective_from = today (CORRECT)
+- Date handling verified correctly
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+============= TEST CASE 14: Multiple eligible employees processed in one call =============
+SETUP: Created 3 test employees (9016, 9017, 9018) hired in 2019, 2020, 2021 with salaries 50000, 55000, 60000
+EXEC: Applied 8% raise with min_years_of_service = 3
+
+ASSERT Results:
+- Employees with new salary: 3
+- Salary details:
+  * Employee 9016: 54000.00 (50000 * 1.08)
+  * Employee 9017: 59400.00 (55000 * 1.08)
+  * Employee 9018: 64800.00 (60000 * 1.08)
+- All eligible employees processed correctly in single call
+
+CLEANUP: Transaction rolled back
+STATUS: PASSED
+
+=============================================
+SUMMARY
+=============================================
+Total Test Cases: 14
+Passed: 14
+Failed: 0
+Success Rate: 100%
+
+Test Coverage:
+✓ Normal cases: 5% raise, 10% raise, 0% raise
+✓ Boundary cases: zero raise, large raise (50%), tiny raise (0.01%), negative raise (-10%)
+✓ Edge cases: inactive employees, insufficient years, no salary history, exactly at threshold
+✓ Multiple salary history: correctly uses latest salary
+✓ Date handling: effective_to and effective_from set correctly
+✓ Multiple employees: batch processing works correctly
+✓ Custom parameters: min_years_of_service = 0, 2, 3
+
+All tests executed successfully with expected results.

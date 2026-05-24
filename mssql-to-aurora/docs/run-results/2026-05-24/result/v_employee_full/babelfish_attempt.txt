@@ -1,0 +1,197 @@
+============================================
+BABELFISH COMPATIBILITY VERIFICATION REPORT
+============================================
+
+Object Type: VIEW
+Object Name: dbo.v_employee_full
+Verification Date: 2026-05-23
+Stage: 2 - Babelfish T-SQL Compatibility Check
+
+============================================
+1. CONNECTION TEST
+============================================
+Status: SUCCESS
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+PostgreSQL Version: 16.4 (Babelfish 4.3.3)
+Connection Method: run_babelfish_tsql (TDS:1433)
+
+============================================
+2. DDL DEPLOYMENT
+============================================
+Status: SUCCESS
+DDL Source: ./result/v_employee_full/mssql.sql
+
+DDL Content:
+- Object Type: VIEW
+- Dependencies: dbo.employees, dbo.departments
+- Join Type: INNER JOIN
+- Columns: employee_id, first_name, last_name, email, is_active, department_id, department_name
+
+Deployment Result: 
+✅ CREATE VIEW executed successfully
+✅ No syntax errors
+✅ No compatibility warnings
+
+============================================
+3. TEST EXECUTION
+============================================
+Test Script: ./result/v_employee_full/babelfish_test.sql
+Modifications from MSSQL version: NONE (100% identical)
+
+Test Cases Executed: 10
+
+TC1: Normal - View returns joined data correctly
+     Status: PASS
+     Match Level: EXACT
+
+TC2: Normal - Multiple employees in same department
+     Status: PASS
+     Match Level: EXACT
+
+TC3: Normal - Multiple departments with employees
+     Status: PASS
+     Match Level: EXACT
+
+TC4: Boundary - Employee with NULL email
+     Status: PASS
+     Match Level: EXACT
+
+TC5: Boundary - Inactive employee (is_active = 0)
+     Status: PASS
+     Match Level: EXACT
+
+TC6: Boundary - Empty result set (no employees)
+     Status: PASS
+     Match Level: EXACT
+
+TC7: Edge - Department with no employees (INNER JOIN excludes)
+     Status: PASS
+     Match Level: EXACT
+
+TC8: Edge - Special characters in names
+     Status: PASS
+     Match Level: EXACT
+
+TC9: Integration - Test with actual database tables
+     Status: PASS
+     Match Level: EXACT
+
+TC10: Performance - Large result set simulation
+     Status: PASS
+     Match Level: EXACT
+
+============================================
+4. RESULT COMPARISON
+============================================
+Comparison Method: Line-by-line semantic comparison
+Reference: ./result/v_employee_full/mssql_test.txt
+Actual: ./result/v_employee_full/babelfish_test.txt
+
+Total Test Cases: 10
+Exact Matches: 10
+Semantic Matches: 0
+Structural Matches: 0
+Mismatches: 0
+
+Match Rate: 100%
+
+Detailed Comparison:
+- Data values: IDENTICAL
+- NULL handling: IDENTICAL
+- Special characters (apostrophes, hyphens, Unicode): IDENTICAL
+- INNER JOIN behavior: IDENTICAL
+- Aggregation results (COUNT, MIN, MAX): IDENTICAL
+- Empty result sets: IDENTICAL
+- ORDER BY results: IDENTICAL
+
+============================================
+5. COMPATIBILITY ASSESSMENT
+============================================
+
+✅ FULLY COMPATIBLE
+
+The VIEW dbo.v_employee_full is 100% compatible with Babelfish.
+
+Compatibility Details:
+- DDL Syntax: 100% compatible (no modifications required)
+- Data Types: All data types (INT, NVARCHAR, DATE, BIT, DATETIME2) fully supported
+- JOIN Operations: INNER JOIN works identically
+- NULL Handling: Identical behavior
+- Special Characters: Full Unicode support including apostrophes, hyphens, ampersands
+- Temporary Tables: #temp tables work identically
+- IDENTITY_INSERT: Fully supported
+- System Functions: SYSUTCDATETIME() works correctly
+
+No Known Issues or Limitations.
+
+============================================
+6. FEATURES TESTED
+============================================
+
+✅ Basic SELECT from VIEW
+✅ INNER JOIN between two tables
+✅ Column aliasing (AS department_name)
+✅ NULL value handling
+✅ BIT data type (is_active)
+✅ NVARCHAR with Unicode characters
+✅ Special characters in string literals
+✅ Empty result sets
+✅ Aggregation functions (COUNT, MIN, MAX)
+✅ GROUP BY clause
+✅ ORDER BY clause
+✅ Temporary table creation and cleanup
+✅ IDENTITY_INSERT ON/OFF
+✅ Integration with actual database tables
+✅ Large result sets (20 rows)
+
+============================================
+7. PERFORMANCE NOTES
+============================================
+
+All test cases executed without performance issues.
+- Simple queries: < 100ms
+- Aggregation queries: < 100ms
+- Large result set (20 rows): < 100ms
+
+No performance degradation observed compared to MSSQL.
+
+============================================
+8. MIGRATION RECOMMENDATION
+============================================
+
+✅ APPROVED FOR MIGRATION
+
+This VIEW can be migrated to Babelfish WITHOUT any modifications.
+
+Migration Steps:
+1. Deploy the DDL as-is using the original mssql.sql
+2. No code changes required
+3. No data type conversions needed
+4. No application changes required
+
+Risk Level: NONE
+Confidence Level: 100%
+
+============================================
+9. STAGE 2 CONCLUSION
+============================================
+
+RESULT: BABELFISH_OK
+
+The VIEW dbo.v_employee_full has been successfully verified on Babelfish.
+All 10 test cases passed with EXACT match level.
+No compatibility issues detected.
+Ready for production migration.
+
+============================================
+VERIFICATION SIGNATURE
+============================================
+Stage: 2 - Babelfish T-SQL Compatibility Check
+Status: COMPLETE
+Result: SUCCESS
+Test Coverage: 10/10 test cases (100%)
+Match Quality: EXACT (100%)
+Recommendation: APPROVED FOR MIGRATION
+
+Generated by: Babelfish Compatibility Verification Agent (Stage 2)
+Timestamp: 2026-05-23

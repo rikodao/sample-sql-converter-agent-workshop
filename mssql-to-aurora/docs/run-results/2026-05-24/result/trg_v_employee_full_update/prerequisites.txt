@@ -1,0 +1,25 @@
+============================================================
+STAGE 1: PREREQUISITE CHECK
+============================================================
+Object: dbo.trg_v_employee_full_update
+Type: SQL_TRIGGER (INSTEAD OF UPDATE on VIEW)
+Created: 2026-05-23T23:20:23.260000
+Modified: 2026-05-23T23:20:23.260000
+
+EXISTENCE CHECK: PASSED
+- Object exists in sys.objects
+- Trigger type: SQL_TRIGGER
+- Parent object: dbo.v_employee_full (VIEW)
+
+ENCRYPTION CHECK: PASSED
+- Definition is NOT encrypted (is_encrypted = 0)
+- DDL can be retrieved from sys.sql_modules
+
+DEPENDENCIES:
+The trigger references the following objects:
+1. dbo.employees (TABLE) - Target table for UPDATE operation
+2. inserted (PSEUDO-TABLE) - System pseudo-table for trigger logic
+
+PREREQUISITE RESULT: PASSED
+- All checks completed successfully
+- Ready to proceed with DDL extraction and test case creation

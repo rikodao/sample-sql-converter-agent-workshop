@@ -1,0 +1,55 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2024
+Object: dbo.fn_get_dept_summary
+Type: SQL_TABLE_VALUED_FUNCTION
+
+OBJECT EXISTENCE: CONFIRMED
+- Object ID: 1557580587
+- Schema: dbo
+- Type: SQL_TABLE_VALUED_FUNCTION
+
+DEPENDENCIES:
+- dbo.departments (USER_TABLE)
+- dbo.employees (USER_TABLE)
+- dbo.salaries (USER_TABLE)
+
+ENCRYPTION STATUS: NOT ENCRYPTED
+- Definition successfully retrieved from sys.sql_modules
+
+TABLE STRUCTURES:
+departments:
+  - department_id (int, NOT NULL, PK)
+  - name (nvarchar, NOT NULL)
+  - parent_id (int, NULL)
+  - created_at (datetime2, NOT NULL)
+
+employees:
+  - employee_id (int, NOT NULL, PK)
+  - department_id (int, NOT NULL, FK)
+  - first_name (nvarchar, NOT NULL)
+  - last_name (nvarchar, NOT NULL)
+  - hire_date (date, NOT NULL)
+  - is_active (bit, NOT NULL)
+  - email (nvarchar, NULL)
+  - created_at (datetime2, NOT NULL)
+
+salaries:
+  - salary_id (int, NOT NULL, PK)
+  - employee_id (int, NOT NULL, FK)
+  - base_salary (money, NOT NULL)
+  - effective_from (date, NOT NULL)
+  - effective_to (date, NULL)
+
+FUNCTION SIGNATURE:
+- Input: @as_of DATE
+- Returns: TABLE (department_id INT, department_name NVARCHAR(100), headcount INT, avg_salary MONEY, total_payroll MONEY)
+
+BUSINESS LOGIC:
+- Returns department summary statistics as of a specific date
+- Counts only active employees (is_active = 1)
+- Uses OUTER APPLY to get the most recent salary effective as of @as_of date
+- Groups by department and calculates headcount, average salary, and total payroll
+- Includes departments even if they have no employees (LEFT JOIN)
+
+RESULT: PREREQUISITE_CHECK_PASSED

@@ -1,0 +1,164 @@
+================================================================
+STAGE 2: BABELFISH COMPATIBILITY VERIFICATION - ATTEMPT LOG
+================================================================
+Object: FUNCTION dbo.fn_get_fiscal_year
+Date: 2026-05-23
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8 (Babelfish 4.3.3)
+
+================================================================
+SECTION 1: CONNECTION TEST
+================================================================
+Status: ✓ SUCCESS
+Command: SELECT @@VERSION
+Result: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+        Dec 12 2025 21:33:56
+        Copyright (c) Amazon Web Services
+        PostgreSQL 16.4 on x86_64-pc-linux-gnu (Babelfish 4.3.3)
+
+================================================================
+SECTION 2: DDL DEPLOYMENT
+================================================================
+Status: ✓ SUCCESS
+DDL Source: ./result/fn_get_fiscal_year/mssql.sql
+
+DDL Content:
+------------------------------------------------------------
+CREATE FUNCTION dbo.fn_get_fiscal_year(@d DATE)
+RETURNS INT
+AS
+BEGIN
+    -- 4月始まりの会計年度
+    DECLARE @y INT = YEAR(@d);
+    DECLARE @m INT = MONTH(@d);
+    IF @m < 4
+        SET @y = @y - 1;
+    RETURN @y;
+END
+------------------------------------------------------------
+
+Execution Result: OK (rowcount: -1)
+Notes: 
+- Scalar function with DATE parameter
+- Uses YEAR() and MONTH() built-in functions
+- Simple IF statement for conditional logic
+- No Babelfish-specific issues detected
+
+================================================================
+SECTION 3: TEST EXECUTION
+================================================================
+Status: ✓ SUCCESS
+Test Source: ./result/fn_get_fiscal_year/mssql_test.sql
+Test Output: ./result/fn_get_fiscal_year/babelfish_test.txt
+
+Total Test Cases: 13
+Executed: 13
+Passed: 13
+Failed: 0
+
+Test Case Summary:
+- TC1: Mid fiscal year (July) → 2023 ✓
+- TC2: Start of fiscal year (April 1st) → 2023 ✓
+- TC3: End of fiscal year (March 31st) → 2022 ✓
+- TC4: January (Q4 of previous FY) → 2022 ✓
+- TC5: February (Q4 of previous FY) → 2022 ✓
+- TC6: March (last month of FY) → 2022 ✓
+- TC7: December (Q3 of FY) → 2023 ✓
+- TC8: NULL input → null ✓
+- TC9: Leap year February 29th → 2023 ✓
+- TC10: Very old date (1900) → 1899 ✓
+- TC11: Future date (2100) → 2100 ✓
+- TC12: April 30th → 2023 ✓
+- TC13: May 1st → 2023 ✓
+
+All test cases executed without errors.
+
+================================================================
+SECTION 4: RESULT COMPARISON
+================================================================
+Status: ✓ PERFECT MATCH
+
+Comparison Method: EXACT (byte-level comparison)
+Match Level Distribution:
+- EXACT: 13 test cases (100%)
+- SEMANTIC: 0 test cases (0%)
+- STRUCTURAL: 0 test cases (0%)
+- MISMATCH: 0 test cases (0%)
+
+Detailed Comparison:
+------------------------------------------------------------
+TC1:  MSSQL=2023, Babelfish=2023 → EXACT ✓
+TC2:  MSSQL=2023, Babelfish=2023 → EXACT ✓
+TC3:  MSSQL=2022, Babelfish=2022 → EXACT ✓
+TC4:  MSSQL=2022, Babelfish=2022 → EXACT ✓
+TC5:  MSSQL=2022, Babelfish=2022 → EXACT ✓
+TC6:  MSSQL=2022, Babelfish=2022 → EXACT ✓
+TC7:  MSSQL=2023, Babelfish=2023 → EXACT ✓
+TC8:  MSSQL=null, Babelfish=null → EXACT ✓
+TC9:  MSSQL=2023, Babelfish=2023 → EXACT ✓
+TC10: MSSQL=1899, Babelfish=1899 → EXACT ✓
+TC11: MSSQL=2100, Babelfish=2100 → EXACT ✓
+TC12: MSSQL=2023, Babelfish=2023 → EXACT ✓
+TC13: MSSQL=2023, Babelfish=2023 → EXACT ✓
+------------------------------------------------------------
+
+No discrepancies detected. All results match perfectly.
+
+================================================================
+SECTION 5: COMPATIBILITY ANALYSIS
+================================================================
+
+T-SQL Features Used:
+✓ SCALAR FUNCTION - Fully supported
+✓ DATE data type - Fully supported
+✓ INT return type - Fully supported
+✓ DECLARE with inline initialization (@y INT = ...) - Fully supported
+✓ YEAR() function - Fully supported
+✓ MONTH() function - Fully supported
+✓ IF statement - Fully supported
+✓ SET variable assignment - Fully supported
+✓ RETURN statement - Fully supported
+✓ NULL handling - Fully supported
+
+Known Babelfish Limitations (NOT applicable to this object):
+- CLR assemblies (N/A)
+- Service Broker (N/A)
+- Linked Server (N/A)
+- WITH ENCRYPTION (N/A)
+- sp_executesql with OUTPUT (N/A)
+- Table-Valued Parameters (N/A)
+- PIVOT/UNPIVOT (N/A)
+- MERGE with OUTPUT INTO (N/A)
+- FOR JSON/XML PATH (N/A)
+- DATETIMEOFFSET high precision (N/A)
+- DMVs (N/A)
+- Table hints (N/A)
+
+Compatibility Assessment:
+This scalar function uses only basic T-SQL features that are fully supported
+by Babelfish. The logic is straightforward (date arithmetic and conditional),
+with no advanced features or edge cases that could cause compatibility issues.
+
+================================================================
+SECTION 6: HYPOTHESIS & RECOMMENDATIONS
+================================================================
+
+Hypothesis:
+This function demonstrates PERFECT compatibility with Babelfish. The scalar
+function pattern with DATE input, INT output, and simple date manipulation
+logic is well within Babelfish's core T-SQL support.
+
+Recommendations:
+✓ READY FOR PRODUCTION - No modifications required
+✓ Can be deployed as-is to Babelfish
+✓ No performance concerns expected
+✓ No behavioral differences detected
+
+Migration Risk: NONE
+Confidence Level: 100%
+
+================================================================
+RESULT: BABELFISH_OK
+================================================================
+All tests passed with EXACT match level.
+DDL deployed successfully without modification.
+Function is fully compatible with Babelfish for Aurora PostgreSQL.

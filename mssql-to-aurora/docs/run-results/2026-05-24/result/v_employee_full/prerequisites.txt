@@ -1,0 +1,23 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2026-05-23
+Object: dbo.v_employee_full
+Type: VIEW
+
+OBJECT EXISTENCE: CONFIRMED
+- Object ID: 1573580644
+- Type: VIEW
+- Created: 2026-05-23T23:20:23.253000
+- Modified: 2026-05-23T23:20:23.260000
+
+DEPENDENCIES:
+1. dbo.employees (table)
+2. dbo.departments (table)
+
+ENCRYPTION STATUS: NOT ENCRYPTED
+- Definition can be retrieved from sys.sql_modules
+
+PREREQUISITE STATUS: PASSED
+- All dependent objects exist
+- Definition is accessible
+- Ready for DDL extraction and testing

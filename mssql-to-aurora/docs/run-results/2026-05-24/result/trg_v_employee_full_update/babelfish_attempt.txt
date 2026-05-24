@@ -1,0 +1,207 @@
+============================================================
+BABELFISH T-SQL COMPATIBILITY VERIFICATION
+============================================================
+Object: TRIGGER dbo.trg_v_employee_full_update
+Stage: 2 - Direct T-SQL Execution on Babelfish
+Timestamp: 2025-01-XX (Stage 2 Execution)
+
+============================================================
+SECTION 1: CONNECTION TEST
+============================================================
+Status: SUCCESS
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+PostgreSQL Version: PostgreSQL 16.4 on x86_64-pc-linux-gnu (Babelfish 4.3.3)
+Connection Method: run_babelfish_tsql (TDS:1433)
+
+============================================================
+SECTION 2: DDL EXECUTION ATTEMPT
+============================================================
+Status: FAILED
+Error Category: DEPENDENCY_MISSING
+
+DDL Statement:
+---------------------------------------------------------
+CREATE TRIGGER dbo.trg_v_employee_full_update
+ON dbo.v_employee_full
+INSTEAD OF UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE e
+    SET e.first_name = i.first_name,
+        e.last_name  = i.last_name,
+        e.email      = i.email,
+        e.is_active  = i.is_active
+    FROM dbo.employees e
+    INNER JOIN inserted i ON e.employee_id = i.employee_id;
+END
+---------------------------------------------------------
+
+Error Message:
+---------------------------------------------------------
+[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]
+relation "master_dbo.v_employee_full" does not exist (33557097)
+---------------------------------------------------------
+
+Error Code: 42000 (SQL State)
+Error Number: 33557097
+
+============================================================
+SECTION 3: DEPENDENCY ANALYSIS
+============================================================
+Required Object: dbo.v_employee_full (VIEW)
+Status: NOT FOUND
+
+Verification Query:
+  SELECT OBJECT_ID('dbo.v_employee_full') AS view_exists
+Result: NULL
+
+Base Table Check:
+  - dbo.employees: EXISTS (OBJECT_ID = 24058)
+  - dbo.departments: EXISTS (verified indirectly)
+
+Root Cause:
+---------------------------------------------------------
+This trigger is an INSTEAD OF UPDATE trigger that must be
+created ON a view (dbo.v_employee_full). The view does not
+exist in the Babelfish database at the time of this test.
+
+INSTEAD OF triggers can only be created on views or tables
+that already exist. Since the view is missing, the CREATE
+TRIGGER statement fails with a "relation does not exist" error.
+---------------------------------------------------------
+
+============================================================
+SECTION 4: BABELFISH COMPATIBILITY ASSESSMENT
+============================================================
+Trigger Type: INSTEAD OF UPDATE on VIEW
+Babelfish Support: SUPPORTED (when view exists)
+
+Syntax Analysis:
+✓ INSTEAD OF UPDATE - Supported by Babelfish
+✓ SET NOCOUNT ON - Supported
+✓ UPDATE with FROM clause - Supported (T-SQL style)
+✓ INNER JOIN with 'inserted' pseudo-table - Supported
+✓ Multi-column UPDATE - Supported
+
+Expected Behavior (if view existed):
+---------------------------------------------------------
+The trigger syntax itself is fully compatible with Babelfish.
+The DDL would succeed if the view dbo.v_employee_full existed.
+
+INSTEAD OF triggers on views are a standard T-SQL feature
+that Babelfish supports. The trigger logic uses:
+- 'inserted' pseudo-table (standard for triggers)
+- UPDATE...FROM syntax (T-SQL style, supported in Babelfish)
+- Simple column assignments
+
+No known Babelfish limitations apply to this trigger pattern.
+---------------------------------------------------------
+
+============================================================
+SECTION 5: HYPOTHESIS
+============================================================
+Failure Reason: DEPENDENCY_MISSING (not a compatibility issue)
+
+This is NOT a Babelfish compatibility failure. The trigger
+syntax is fully supported. The failure occurs because:
+
+1. The view dbo.v_employee_full does not exist in the target
+   Babelfish database
+2. Triggers must be created on existing objects
+3. The error is a standard SQL error (relation not found),
+   not a Babelfish-specific limitation
+
+Resolution Path:
+---------------------------------------------------------
+To successfully create this trigger in Babelfish:
+
+1. First create the view dbo.v_employee_full
+   (This should be done in a separate Stage 2 run for the view)
+2. Then create this trigger
+3. The trigger will work identically to SQL Server
+
+Dependency Order:
+  1. Base tables (employees, departments) - Already exist
+  2. View (v_employee_full) - MISSING
+  3. Trigger (trg_v_employee_full_update) - Cannot create yet
+---------------------------------------------------------
+
+Known Babelfish Limitations (NOT applicable here):
+---------------------------------------------------------
+The following Babelfish limitations do NOT apply to this trigger:
+
+✗ CLR assemblies - Not used
+✗ Service Broker - Not used
+✗ Linked Server - Not used
+✗ WITH ENCRYPTION - Not used
+✗ Complex MERGE with OUTPUT - Not used
+✗ Table-Valued Parameters - Not used
+✗ PIVOT/UNPIVOT - Not used
+✗ FOR JSON/XML PATH - Not used
+✗ DMVs - Not used
+✗ Advanced table hints - Not used
+
+This trigger uses only standard, well-supported T-SQL features.
+---------------------------------------------------------
+
+============================================================
+SECTION 6: TEST EXECUTION
+============================================================
+Status: SKIPPED
+Reason: DDL creation failed due to missing dependency
+
+Test File: mssql_test.sql
+Test Cases: 12 test cases prepared
+Coverage:
+  - Single and multiple row updates
+  - NULL and empty string boundary values
+  - Boolean flag toggles
+  - Non-existent employee_id edge cases
+  - @@ROWCOUNT verification
+  - Transaction rollback behavior
+  - Partial and full column updates
+  - Special characters in strings
+
+Tests cannot be executed until the view dependency is resolved.
+
+============================================================
+SECTION 7: CONCLUSION
+============================================================
+RESULT: DEPENDENCY_MISSING
+
+Summary:
+---------------------------------------------------------
+The trigger dbo.trg_v_employee_full_update CANNOT be created
+in Babelfish at this time because the required view
+dbo.v_employee_full does not exist.
+
+This is NOT a Babelfish compatibility issue. The trigger syntax
+is fully compatible with Babelfish's T-SQL implementation.
+
+Compatibility Assessment: COMPATIBLE (syntax-wise)
+Deployment Status: BLOCKED (missing dependency)
+---------------------------------------------------------
+
+Recommended Actions:
+---------------------------------------------------------
+1. Create the view dbo.v_employee_full first
+   - Run Stage 2 for the view object
+   - Verify view creation succeeds
+   
+2. Re-run Stage 2 for this trigger after view exists
+   - The trigger should create successfully
+   - All 12 test cases should pass
+   
+3. If creating objects in batch:
+   - Ensure dependency order: tables → views → triggers
+   - Use topological sort for object creation order
+---------------------------------------------------------
+
+Babelfish Compatibility Rating: FULL (pending dependencies)
+Test Execution: NOT PERFORMED (dependency missing)
+Stage 2 Outcome: DEPENDENCY_MISSING
+
+============================================================
+END OF REPORT
+============================================================

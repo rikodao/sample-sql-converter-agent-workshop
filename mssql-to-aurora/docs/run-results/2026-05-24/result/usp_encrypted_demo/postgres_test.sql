@@ -1,0 +1,66 @@
+-- ============================================================================
+-- PostgreSQL Test Cases for dbo.usp_encrypted_demo
+-- ============================================================================
+-- Object: PROCEDURE dbo.usp_encrypted_demo
+-- Target: Aurora PostgreSQL (native PL/pgSQL)
+-- Test Date: 2026-05-23
+-- Status: CANNOT BE CREATED
+-- ============================================================================
+
+-- ============================================================================
+-- PREREQUISITE FAILURE NOTICE
+-- ============================================================================
+-- This file cannot be created because the source stored procedure
+-- 'dbo.usp_encrypted_demo' was created with WITH ENCRYPTION in SQL Server.
+--
+-- The encryption prevents extraction of the DDL definition, which means:
+-- 1. We don't know what the procedure does
+-- 2. We don't know what parameters it accepts
+-- 3. We don't know what results it returns
+-- 4. We cannot create equivalent test cases
+--
+-- Without the source code, it is impossible to:
+-- - Convert the T-SQL to PL/pgSQL (postgres.sql does not exist)
+-- - Create test cases (this file cannot be populated)
+-- - Execute tests (postgres_test.txt cannot be generated)
+-- - Compare results with MSSQL baseline
+--
+-- ============================================================================
+-- REQUIRED ACTION
+-- ============================================================================
+-- To create this test file, you must first:
+-- 1. Obtain the original unencrypted source code from:
+--    - Source control repository (Git, SVN, TFS, Azure DevOps, etc.)
+--    - Original deployment scripts
+--    - Database documentation
+--    - Development team archives
+--    - Pre-encryption database backups
+--
+-- 2. Place the unencrypted DDL in ./result/usp_encrypted_demo/mssql.sql
+--
+-- 3. Create MSSQL test cases in ./result/usp_encrypted_demo/mssql_test.sql
+--
+-- 4. Re-run Stage 1 (MSSQL validation)
+--
+-- 5. Re-run Stage 2 (Babelfish compatibility)
+--
+-- 6. Re-run Stage 3 (PL/pgSQL conversion) to generate postgres.sql
+--
+-- 7. Re-run Stage 4 (PostgreSQL validation) to generate this file
+--
+-- ============================================================================
+-- PLACEHOLDER TEST CASE (CANNOT BE EXECUTED)
+-- ============================================================================
+
+-- TC0: Prerequisite Check
+-- Expected: FAIL (procedure does not exist because postgres.sql does not exist)
+-- Actual: ERROR (cannot execute test without knowing procedure signature)
+
+SELECT 'PREREQUISITE_FAILED: WITH ENCRYPTION - Source code not available' AS status;
+
+-- ============================================================================
+-- END OF FILE
+-- ============================================================================
+-- Result: This file is a placeholder only
+-- Action Required: Obtain source code and restart migration from Stage 1
+-- ============================================================================

@@ -1,0 +1,235 @@
+============================================================================
+BABELFISH COMPATIBILITY VERIFICATION REPORT
+============================================================================
+Object: FUNCTION dbo.fn_get_dept_summary
+Test Date: 2024
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+                   (Babelfish 4.3.3 on PostgreSQL 16.4)
+
+============================================================================
+PHASE 1: CONNECTION TEST
+============================================================================
+Status: SUCCESS ✓
+Connection: Established via TDS:1433 (T-SQL compatible endpoint)
+Version Query: SELECT @@VERSION
+Result: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+
+============================================================================
+PHASE 2: DDL DEPLOYMENT
+============================================================================
+Status: SUCCESS ✓
+DDL Script: ./result/fn_get_dept_summary/mssql.sql
+
+DDL Content:
+------------
+CREATE FUNCTION dbo.fn_get_dept_summary(@as_of DATE)
+RETURNS @summary TABLE (
+    department_id INT,
+    department_name NVARCHAR(100),
+    headcount INT,
+    avg_salary MONEY,
+    total_payroll MONEY
+)
+AS
+BEGIN
+    INSERT INTO @summary(department_id, department_name, headcount, avg_salary, total_payroll)
+    SELECT
+        d.department_id,
+        d.name,
+        COUNT(DISTINCT e.employee_id) AS headcount,
+        AVG(s.base_salary) AS avg_salary,
+        SUM(s.base_salary) AS total_payroll
+    FROM dbo.departments d
+    LEFT JOIN dbo.employees e ON d.department_id = e.department_id AND e.is_active = 1
+    OUTER APPLY (
+        SELECT TOP 1 base_salary
+        FROM dbo.salaries
+        WHERE employee_id = e.employee_id
+          AND effective_from <= @as_of
+          AND (effective_to IS NULL OR effective_to >= @as_of)
+        ORDER BY effective_from DESC
+    ) s
+    GROUP BY d.department_id, d.name;
+    RETURN;
+END
+
+Execution Result: OK (rowcount: -1)
+Function Created: YES
+
+Verification Query: SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.fn_get_dept_summary'))
+Verification Result: Function definition retrieved successfully
+
+COMPATIBILITY NOTES:
+- Table-Valued Function (TVF) with table variable (@summary) - SUPPORTED ✓
+- OUTER APPLY operator - SUPPORTED ✓
+- TOP 1 with ORDER BY - SUPPORTED ✓
+- LEFT JOIN with filter condition - SUPPORTED ✓
+- COUNT(DISTINCT ...) aggregate - SUPPORTED ✓
+- AVG() and SUM() aggregates - SUPPORTED ✓
+- GROUP BY clause - SUPPORTED ✓
+- DATE parameter type - SUPPORTED ✓
+- MONEY data type - SUPPORTED ✓
+- NVARCHAR data type - SUPPORTED ✓
+
+============================================================================
+PHASE 3: TEST EXECUTION
+============================================================================
+Status: RUNTIME ERROR ✗
+
+Error Details:
+--------------
+Error Code: 42000
+Error Message: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]
+               column "effective_to" does not exist (33557097)
+
+Test Case: TC1 (Normal case with active employees and current salaries)
+Query: SELECT 'TC1' AS tc, department_id, department_name, headcount, avg_salary, total_payroll
+       FROM dbo.fn_get_dept_summary('2024-01-01')
+       WHERE department_id = 1001
+       ORDER BY department_id;
+
+ROOT CAUSE ANALYSIS:
+--------------------
+The function was successfully created in Babelfish, but execution fails because
+the underlying table structure differs between the MSSQL source and Babelfish target.
+
+Table Structure Investigation:
+-------------------------------
+Query: SELECT COLUMN_NAME, DATA_TYPE 
+       FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_NAME = 'salaries' AND TABLE_SCHEMA = 'dbo'
+       ORDER BY ORDINAL_POSITION;
+
+Result:
+  - salary_id (int)
+  - employee_id (int)
+  - base_salary (money)
+  - effective_from (date)
+
+MISSING COLUMN: effective_to
+
+The function references "effective_to" column in the OUTER APPLY subquery:
+  WHERE employee_id = e.employee_id
+    AND effective_from <= @as_of
+    AND (effective_to IS NULL OR effective_to >= @as_of)
+
+However, the dbo.salaries table in Babelfish environment does NOT have the
+"effective_to" column, which exists in the MSSQL source environment.
+
+============================================================================
+HYPOTHESIS: SCHEMA MISMATCH
+============================================================================
+
+Category: ENVIRONMENT_MISMATCH
+Severity: CRITICAL
+
+The DDL syntax is fully compatible with Babelfish (all T-SQL features used
+are supported), but the function cannot execute because it depends on a
+table column that does not exist in the target environment.
+
+This is NOT a Babelfish compatibility issue - it's a schema migration issue.
+
+Possible Causes:
+1. The salaries table was not fully migrated from MSSQL to Babelfish
+2. The table was created with a different schema in Babelfish
+3. The effective_to column was dropped or never created in Babelfish
+4. Stage 0 (schema migration) did not complete successfully
+
+Expected Schema (MSSQL):
+  dbo.salaries (
+    salary_id INT IDENTITY PRIMARY KEY,
+    employee_id INT NOT NULL,
+    base_salary MONEY NOT NULL,
+    effective_from DATE NOT NULL,
+    effective_to DATE NULL  -- <-- MISSING IN BABELFISH
+  )
+
+Actual Schema (Babelfish):
+  dbo.salaries (
+    salary_id INT,
+    employee_id INT,
+    base_salary MONEY,
+    effective_from DATE
+  )
+
+============================================================================
+BABELFISH COMPATIBILITY ASSESSMENT
+============================================================================
+
+DDL Compatibility: 100% ✓
+  - All T-SQL syntax accepted
+  - Function created successfully
+  - No syntax errors or warnings
+
+Runtime Compatibility: CANNOT ASSESS ✗
+  - Function cannot execute due to missing table column
+  - This is a data migration issue, not a Babelfish limitation
+
+T-SQL Features Used (All Supported):
+  ✓ Table-Valued Functions with table variables
+  ✓ OUTER APPLY operator
+  ✓ TOP N with ORDER BY
+  ✓ LEFT JOIN with inline filter
+  ✓ COUNT(DISTINCT), AVG(), SUM() aggregates
+  ✓ GROUP BY
+  ✓ DATE and MONEY data types
+  ✓ NVARCHAR data type
+  ✓ NULL handling in WHERE clause
+
+Known Babelfish Limitations (None Apply):
+  - CLR assemblies: NOT USED
+  - Service Broker: NOT USED
+  - Linked Server: NOT USED
+  - WITH ENCRYPTION: NOT USED
+  - sp_executesql with OUTPUT: NOT USED
+  - Table-Valued Parameters: NOT USED
+  - PIVOT/UNPIVOT: NOT USED
+  - MERGE with OUTPUT INTO: NOT USED
+  - FOR JSON/XML PATH: NOT USED
+  - DATETIMEOFFSET: NOT USED
+  - DMVs: NOT USED
+  - Table hints (NOLOCK, etc.): NOT USED
+
+============================================================================
+RECOMMENDATION
+============================================================================
+
+Action Required: FIX SCHEMA MISMATCH
+
+Before proceeding with Stage 3 (PL/pgSQL conversion), the following must be done:
+
+1. Verify the source MSSQL schema for dbo.salaries table
+2. Add the missing "effective_to" column to Babelfish dbo.salaries table:
+   
+   ALTER TABLE dbo.salaries ADD effective_to DATE NULL;
+
+3. Migrate historical data for the effective_to column if applicable
+4. Re-run Stage 2 verification
+
+Alternative Approach:
+If the effective_to column is intentionally omitted in Babelfish, the function
+logic must be modified to work without it. This would require:
+- Removing the effective_to condition from the WHERE clause
+- Adjusting the date range logic to work with effective_from only
+- This would be a Stage 4 (Retry/Fix) activity
+
+============================================================================
+RESULT: RUNTIME_ERROR (SCHEMA_MISMATCH)
+============================================================================
+
+The function DDL is 100% compatible with Babelfish T-SQL syntax.
+However, execution fails due to missing table column in the target environment.
+
+This is NOT a Babelfish compatibility issue.
+This is a schema migration/environment setup issue.
+
+Test Cases Executed: 0 (execution blocked by schema error)
+Test Cases Passed: N/A
+Test Cases Failed: N/A
+
+BABELFISH_OK.txt: NOT CREATED (runtime error prevents testing)
+
+Next Steps:
+1. Fix schema mismatch (add effective_to column)
+2. Re-run Stage 2 verification
+3. If schema cannot be fixed, proceed to Stage 4 for function logic modification

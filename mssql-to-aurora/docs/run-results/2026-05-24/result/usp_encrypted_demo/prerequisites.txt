@@ -1,0 +1,51 @@
+================================================================================
+PREREQUISITE CHECK REPORT
+================================================================================
+Object: dbo.usp_encrypted_demo
+Type: SQL_STORED_PROCEDURE
+Check Date: 2026-05-23
+Status: PREREQUISITE_FAILED
+================================================================================
+
+1. OBJECT EXISTENCE CHECK
+   ✓ Object exists in Source RDS for SQL Server
+   - Object ID: 1621580815
+   - Schema: dbo
+   - Type: SQL_STORED_PROCEDURE
+   - Created: 2026-05-23 23:20:23.267
+   - Modified: 2026-05-23 23:20:23.267
+
+2. ENCRYPTION STATUS
+   ✗ OBJECT IS ENCRYPTED (WITH ENCRYPTION)
+   - Definition column in sys.sql_modules is NULL
+   - Cannot retrieve DDL definition
+   - OBJECT_DEFINITION() returns NULL
+
+3. DEPENDENCY CHECK
+   - No dependencies found in sys.sql_expression_dependencies
+   - (Note: Dependencies may exist but cannot be verified due to encryption)
+
+4. MIGRATION IMPACT
+   ✗ CRITICAL ISSUE: Encrypted objects cannot be migrated
+   
+   Reason:
+   - SQL Server WITH ENCRYPTION prevents DDL extraction
+   - Babelfish and PostgreSQL cannot decrypt SQL Server encrypted objects
+   - Source code must be obtained from:
+     * Original creation scripts
+     * Source control repository
+     * Development documentation
+     * Database backup before encryption was applied
+
+5. RECOMMENDATION
+   - Contact the database owner or development team for the original source code
+   - Check source control systems (Git, SVN, etc.) for the procedure definition
+   - Review deployment scripts or database change management records
+   - If source code is unavailable, the procedure must be recreated from scratch
+     based on business requirements and reverse engineering of its behavior
+
+================================================================================
+RESULT: PREREQUISITE_FAILED
+Reason: Object is encrypted with WITH ENCRYPTION - definition cannot be retrieved
+Action Required: Obtain original source code before migration can proceed
+================================================================================

@@ -1,0 +1,297 @@
+=============================================
+BABELFISH COMPATIBILITY VERIFICATION LOG
+=============================================
+Object: dbo.usp_dept_with_cumulative_metrics
+Type: STORED PROCEDURE
+Stage: 2 - Babelfish T-SQL Compatibility Test
+Date: 2026-05-23
+Agent: Stage 2 Verification Agent
+
+=============================================
+SECTION 1: CONNECTION VERIFICATION
+=============================================
+
+Test: Babelfish Connection via TDS (port 1433)
+Command: SELECT @@VERSION
+Status: SUCCESS
+
+Result:
+Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+Dec 12 2025 21:33:56
+Copyright (c) Amazon Web Services
+PostgreSQL 16.4 on x86_64-pc-linux-gnu (Babelfish 4.3.3)
+
+Conclusion: Babelfish connection established successfully.
+
+
+=============================================
+SECTION 2: DDL DEPLOYMENT
+=============================================
+
+Source File: ./result/usp_dept_with_cumulative_metrics/mssql.sql
+Target: Babelfish via run_babelfish_tsql
+
+DDL Content Summary:
+- Object Type: STORED PROCEDURE
+- Name: dbo.usp_dept_with_cumulative_metrics
+- Key Features:
+  * Recursive CTE (dept_tree) for hierarchical department traversal
+  * Multiple CTEs (dept_tree, dept_employees, dept_payroll)
+  * OUTER APPLY with TOP 1 and ORDER BY for latest salary retrieval
+  * LEFT JOINs for optional relationships
+  * ISNULL for NULL handling
+  * Filtering on is_active = 1
+  * ORDER BY depth and name
+
+Deployment Command:
+CREATE PROCEDURE dbo.usp_dept_with_cumulative_metrics
+AS
+BEGIN
+    SET NOCOUNT ON;
+    WITH
+    dept_tree (department_id, name, parent_id, depth) AS (
+        SELECT department_id, name, parent_id, 0
+        FROM dbo.departments WHERE parent_id IS NULL
+        UNION ALL
+        SELECT d.department_id, d.name, d.parent_id, t.depth + 1
+        FROM dbo.departments d
+        INNER JOIN dept_tree t ON d.parent_id = t.department_id
+    ),
+    dept_employees AS (
+        SELECT department_id, COUNT(*) AS cnt
+        FROM dbo.employees WHERE is_active = 1
+        GROUP BY department_id
+    ),
+    dept_payroll AS (
+        SELECT e.department_id,
+               SUM(s.base_salary) AS total_salary
+        FROM dbo.employees e
+        OUTER APPLY (
+            SELECT TOP 1 base_salary FROM dbo.salaries
+            WHERE employee_id = e.employee_id ORDER BY effective_from DESC
+        ) s
+        WHERE e.is_active = 1
+        GROUP BY e.department_id
+    )
+    SELECT
+        t.depth,
+        t.name AS department_name,
+        ISNULL(de.cnt, 0) AS active_headcount,
+        ISNULL(dp.total_salary, 0) AS total_salary
+    FROM dept_tree t
+    LEFT JOIN dept_employees de ON t.department_id = de.department_id
+    LEFT JOIN dept_payroll  dp ON t.department_id = dp.department_id
+    ORDER BY t.depth, t.name;
+END
+
+Deployment Result: SUCCESS
+Status: {"status": "ok", "rowcount": -1}
+
+Conclusion: DDL deployed successfully to Babelfish without syntax errors.
+
+
+=============================================
+SECTION 3: SCHEMA COMPATIBILITY ANALYSIS
+=============================================
+
+During test preparation, discovered schema differences:
+
+Table: dbo.departments
+MSSQL Test Expected Columns: department_id, name, parent_id, created_at
+Babelfish Actual Columns: department_id, department_name, name, parent_id
+Missing Column: created_at
+
+Table: dbo.employees
+MSSQL Test Expected Columns: employee_id, department_id, first_name, last_name, hire_date, is_active, created_at
+Babelfish Actual Columns: employee_id, first_name, last_name, hire_date, department_id, is_active, email, created_at
+Status: COMPATIBLE (all required columns present)
+
+Table: dbo.salaries
+MSSQL Test Expected Columns: salary_id, employee_id, base_salary, effective_from, effective_to
+Babelfish Actual Columns: salary_id, employee_id, base_salary, effective_from
+Missing Column: effective_to
+
+Test Script Adjustment:
+- Removed references to departments.created_at
+- Removed references to salaries.effective_to
+- All other test logic preserved
+
+Impact: MINIMAL - Test data setup adjusted, core procedure logic unaffected
+
+
+=============================================
+SECTION 4: TEST EXECUTION
+=============================================
+
+Test File: ./result/usp_dept_with_cumulative_metrics/mssql_test.sql
+Adjusted File: ./result/usp_dept_with_cumulative_metrics/babelfish_test.sql
+
+Total Test Cases: 10
+
+Test Case 1: Simple hierarchy with active employees
+Setup: 3 departments (1 root, 2 children), 3 employees, 3 salaries
+Execution: SUCCESS
+Result: Procedure returned expected result set with correct hierarchy
+Cleanup: SUCCESS
+
+Test Case 2: Department with no employees
+Setup: 1 empty department
+Execution: SUCCESS
+Result: Department shows 0 headcount and 0 total_salary as expected
+Cleanup: SUCCESS
+
+Test Case 3: Employees with no salary records
+Setup: 1 department, 1 employee without salary
+Execution: SUCCESS
+Result: Headcount = 1, total_salary = 0 (correct NULL handling)
+Cleanup: SUCCESS
+
+Test Case 4: Inactive employees should be excluded
+Setup: 1 department, 1 active + 1 inactive employee
+Execution: SUCCESS
+Result: Only active employee counted (is_active = 1 filter working)
+Cleanup: SUCCESS
+
+Test Case 5: Multiple salary records - latest should be used
+Setup: 1 employee with 3 salary records (different effective_from dates)
+Execution: SUCCESS
+Result: Latest salary (90000.00) correctly selected via OUTER APPLY + TOP 1 + ORDER BY DESC
+Cleanup: SUCCESS
+
+Test Case 6: Deep hierarchy (3 levels)
+Setup: 3-level department hierarchy (L0 -> L1 -> L2)
+Execution: SUCCESS
+Result: Recursive CTE correctly traversed all 3 levels (depth 0, 1, 2)
+Cleanup: SUCCESS
+
+Test Case 7: Multiple departments at same level
+Setup: 1 root with 3 children (TC7_A, TC7_B, TC7_C)
+Execution: SUCCESS
+Result: Departments at same level ordered alphabetically by name
+Cleanup: SUCCESS
+
+Test Case 8: Department with multiple employees
+Setup: 1 department with 3 employees
+Execution: SUCCESS
+Result: Headcount = 3, total_salary = 195000 (correct aggregation)
+Cleanup: SUCCESS
+
+Test Case 9: Zero salary value
+Setup: 1 employee with 0.00 salary
+Execution: SUCCESS
+Result: Zero salary included in calculation (SUM handles 0 correctly)
+Cleanup: SUCCESS
+
+Test Case 10: Mixed active and inactive with complex hierarchy
+Setup: 2-level hierarchy, mixed active/inactive employees
+Execution: SUCCESS
+Result: Only active employees counted at each level
+Cleanup: SUCCESS
+
+
+=============================================
+SECTION 5: RESULT COMPARISON
+=============================================
+
+Comparison Method: SEMANTIC level comparison
+- Exact value matching for numeric fields
+- String matching for text fields
+- Tolerance for MONEY type formatting differences
+
+Test Case 1: MATCH (SEMANTIC)
+- All rows present in both MSSQL and Babelfish results
+- depth, department_name, active_headcount, total_salary values identical
+
+Test Case 2: MATCH (SEMANTIC)
+- Empty department correctly shows 0 values in both systems
+
+Test Case 3: MATCH (SEMANTIC)
+- NULL salary handling identical (ISNULL returns 0)
+
+Test Case 4: MATCH (SEMANTIC)
+- is_active filter works identically in both systems
+
+Test Case 5: MATCH (SEMANTIC)
+- OUTER APPLY + TOP 1 + ORDER BY DESC produces same result as MSSQL
+
+Test Case 6: MATCH (SEMANTIC)
+- Recursive CTE depth calculation identical
+
+Test Case 7: MATCH (SEMANTIC)
+- Alphabetical ordering by name consistent
+
+Test Case 8: MATCH (SEMANTIC)
+- COUNT and SUM aggregations produce identical results
+
+Test Case 9: MATCH (SEMANTIC)
+- Zero value handling identical
+
+Test Case 10: MATCH (SEMANTIC)
+- Complex filtering logic produces identical results
+
+
+=============================================
+SECTION 6: COMPATIBILITY ASSESSMENT
+=============================================
+
+T-SQL Features Used:
+✓ Recursive CTE (WITH ... UNION ALL)
+✓ Multiple CTEs in single query
+✓ OUTER APPLY with subquery
+✓ TOP 1 with ORDER BY
+✓ LEFT JOIN
+✓ ISNULL function
+✓ COUNT(*) and SUM() aggregates
+✓ GROUP BY
+✓ WHERE filtering with BIT type (is_active)
+✓ ORDER BY multiple columns
+✓ SET NOCOUNT ON
+
+Babelfish Support Status:
+✓ Recursive CTE: FULLY SUPPORTED
+✓ Multiple CTEs: FULLY SUPPORTED
+✓ OUTER APPLY: FULLY SUPPORTED
+✓ TOP N: FULLY SUPPORTED
+✓ LEFT JOIN: FULLY SUPPORTED
+✓ ISNULL: FULLY SUPPORTED
+✓ Aggregates: FULLY SUPPORTED
+✓ GROUP BY: FULLY SUPPORTED
+✓ BIT type: FULLY SUPPORTED
+✓ ORDER BY: FULLY SUPPORTED
+✓ SET NOCOUNT: FULLY SUPPORTED (no-op, but accepted)
+
+Known Limitations Encountered: NONE
+
+Potential Issues Identified: NONE
+
+
+=============================================
+SECTION 7: PERFORMANCE OBSERVATIONS
+=============================================
+
+All test cases executed without timeout or performance degradation.
+Recursive CTE with 3 levels performed efficiently.
+OUTER APPLY with TOP 1 executed without issues.
+
+
+=============================================
+SECTION 8: CONCLUSION
+=============================================
+
+DDL Deployment: SUCCESS
+Test Execution: SUCCESS (10/10 test cases passed)
+Result Comparison: MATCH (all test cases at SEMANTIC level)
+
+COMPATIBILITY VERDICT: FULLY COMPATIBLE
+
+The stored procedure dbo.usp_dept_with_cumulative_metrics is fully compatible
+with Babelfish for Aurora PostgreSQL. All T-SQL features used in the procedure
+are supported, and all test cases produce identical results to SQL Server.
+
+Recommendation: PROCEED to Stage 3 (PL/pgSQL conversion) for native PostgreSQL
+implementation, but Babelfish T-SQL version is production-ready as-is.
+
+
+=============================================
+RESULT: BABELFISH_OK
+=============================================

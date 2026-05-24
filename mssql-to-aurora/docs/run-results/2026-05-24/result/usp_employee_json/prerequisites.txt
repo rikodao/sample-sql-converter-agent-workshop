@@ -1,0 +1,28 @@
+PREREQUISITE CHECK for dbo.usp_employee_json
+==============================================
+
+Object Type: SQL_STORED_PROCEDURE
+Created: 2026-05-23T23:20:23.267000
+Modified: 2026-05-23T23:20:23.267000
+Encryption: NOT ENCRYPTED (definition available)
+
+DEPENDENCIES:
+-------------
+1. dbo.employees (table)
+2. dbo.departments (table)
+
+DESCRIPTION:
+------------
+This stored procedure retrieves employee information along with department name
+and returns it as a JSON string via an OUTPUT parameter.
+
+Parameters:
+- @employee_id INT (input)
+- @json_out NVARCHAR(MAX) (output)
+
+The procedure uses FOR JSON PATH with WITHOUT_ARRAY_WRAPPER to return a single
+JSON object representing one employee record.
+
+PREREQUISITE STATUS: PASSED
+All dependencies are available.
+Definition is not encrypted and can be retrieved.

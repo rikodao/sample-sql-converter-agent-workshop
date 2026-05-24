@@ -1,0 +1,55 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2026-05-23
+Object: dbo.usp_dept_with_cumulative_metrics
+Type: SQL_STORED_PROCEDURE
+
+OBJECT EXISTENCE: CONFIRMED
+- Object ID: 1653580929
+- Created: 2026-05-23T23:20:23.270000
+- Modified: 2026-05-23T23:20:23.270000
+- Encrypted: NO
+
+DEPENDENCIES:
+-------------
+1. dbo.departments (USER_TABLE)
+   - department_id (int, IDENTITY, NOT NULL, PK)
+   - name (nvarchar(100), NOT NULL)
+   - parent_id (int, NULL) - self-referencing FK for hierarchy
+   - created_at (datetime2(7), NOT NULL)
+
+2. dbo.employees (USER_TABLE)
+   - employee_id (int, IDENTITY, NOT NULL, PK)
+   - department_id (int, NOT NULL, FK)
+   - first_name (nvarchar(50), NOT NULL)
+   - last_name (nvarchar(50), NOT NULL)
+   - hire_date (date, NOT NULL)
+   - is_active (bit, NOT NULL)
+   - email (nvarchar(200), NULL)
+   - created_at (datetime2(7), NOT NULL)
+
+3. dbo.salaries (USER_TABLE)
+   - salary_id (int, IDENTITY, NOT NULL, PK)
+   - employee_id (int, NOT NULL, FK)
+   - base_salary (money, NOT NULL)
+   - effective_from (date, NOT NULL)
+   - effective_to (date, NULL)
+
+PROCEDURE CHARACTERISTICS:
+--------------------------
+- No input parameters
+- No output parameters
+- Returns result set with columns:
+  * depth (int) - hierarchy level
+  * department_name (nvarchar) - department name
+  * active_headcount (int) - count of active employees
+  * total_salary (money) - sum of current base salaries
+
+- Uses recursive CTE (dept_tree) to traverse department hierarchy
+- Uses OUTER APPLY to get latest salary per employee
+- Filters only active employees (is_active = 1)
+- Orders by depth and department name
+
+PREREQUISITE STATUS: PASSED
+All dependencies exist and are accessible.
+Definition retrieved successfully (not encrypted).

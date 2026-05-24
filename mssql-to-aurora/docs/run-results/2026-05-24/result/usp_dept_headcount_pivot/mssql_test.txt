@@ -1,0 +1,306 @@
+============================================================================
+TEST EXECUTION RESULTS: dbo.usp_dept_headcount_pivot
+Execution Date: 2026-05-23
+Database: Source RDS for SQL Server
+============================================================================
+
+============= TEST CASE 1: Execute with original production data =============
+DESCRIPTION: Baseline test with existing production data
+SETUP: Using existing departments and employees
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name | Active | Inactive
+----------------|--------|----------
+Backend         | 2      | 0
+Engineering     | 0      | 0
+Frontend        | 1      | 0
+HR              | 1      | 0
+Sales           | 1      | 0
+
+ASSERT: TC1 - Baseline execution successful
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 2: Mixed active and inactive employees =============
+DESCRIPTION: Add inactive employees to existing departments
+SETUP: 
+- Inserted 3 inactive employees into departments 2, 3, 4
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name | Active | Inactive
+----------------|--------|----------
+Backend         | 2      | 1
+Engineering     | 0      | 0
+Frontend        | 1      | 1
+HR              | 1      | 0
+Sales           | 1      | 1
+
+ASSERT: TC2 - Inactive employees correctly counted
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 3: Department with multiple inactive employees =============
+DESCRIPTION: Add more inactive employees to HR department
+SETUP:
+- Inserted 2 additional inactive employees into HR (dept 5)
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name | Active | Inactive
+----------------|--------|----------
+Backend         | 2      | 1
+Engineering     | 0      | 0
+Frontend        | 1      | 1
+HR              | 1      | 2
+Sales           | 1      | 1
+
+ASSERT: TC3 - Multiple inactive employees aggregated correctly
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 4: Department with no employees (boundary) =============
+DESCRIPTION: Add a new department with zero employees
+SETUP:
+- Created new department 'Test Empty Dept' with no employees
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name  | Active | Inactive
+-----------------|--------|----------
+Backend          | 2      | 1
+Engineering      | 0      | 0
+Frontend         | 1      | 1
+HR               | 1      | 2
+Sales            | 1      | 1
+Test Empty Dept  | 0      | 0
+
+ASSERT: TC4 - Empty department shows zero counts for both columns
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 5: Department with only active employees =============
+DESCRIPTION: Create department with exclusively active employees
+SETUP:
+- Created 'Test Active Only' department
+- Inserted 2 active employees
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name  | Active | Inactive
+-----------------|--------|----------
+Backend          | 2      | 1
+Engineering      | 0      | 0
+Frontend         | 1      | 1
+HR               | 1      | 2
+Sales            | 1      | 1
+Test Active Only | 2      | 0
+Test Empty Dept  | 0      | 0
+
+ASSERT: TC5 - Only active employees counted, inactive column is 0
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 6: Department with only inactive employees =============
+DESCRIPTION: Create department with exclusively inactive employees
+SETUP:
+- Created 'Test Inactive Only' department
+- Inserted 3 inactive employees
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name    | Active | Inactive
+-------------------|--------|----------
+Backend            | 2      | 1
+Engineering        | 0      | 0
+Frontend           | 1      | 1
+HR                 | 1      | 2
+Sales              | 1      | 1
+Test Active Only   | 2      | 0
+Test Empty Dept    | 0      | 0
+Test Inactive Only | 0      | 3
+
+ASSERT: TC6 - Only inactive employees counted, active column is 0
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 7: Department names with special characters (boundary) =============
+DESCRIPTION: Test departments with special characters in names
+SETUP:
+- Created departments: 'R&D', 'Sales & Marketing', 'IT/Support'
+- Inserted employees with mixed active/inactive status
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name    | Active | Inactive
+-------------------|--------|----------
+Backend            | 2      | 1
+Engineering        | 0      | 0
+Frontend           | 1      | 1
+HR                 | 1      | 2
+IT/Support         | 0      | 1
+R&D                | 1      | 1
+Sales              | 1      | 1
+Sales & Marketing  | 1      | 0
+Test Active Only   | 2      | 0
+Test Empty Dept    | 0      | 0
+Test Inactive Only | 0      | 3
+
+ASSERT: TC7 - Special characters (&, /) handled correctly in department names
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 8: Large employee count (boundary) =============
+DESCRIPTION: Test with large number of employees in single department
+SETUP:
+- Created 'Test Large Dept' department
+- Inserted 50 employees with mixed active/inactive status (modulo 3 pattern)
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name    | Active | Inactive
+-------------------|--------|----------
+Backend            | 2      | 1
+Engineering        | 0      | 0
+Frontend           | 1      | 1
+HR                 | 1      | 2
+IT/Support         | 0      | 1
+R&D                | 1      | 1
+Sales              | 1      | 1
+Sales & Marketing  | 1      | 0
+Test Active Only   | 2      | 0
+Test Empty Dept    | 0      | 0
+Test Inactive Only | 0      | 3
+Test Large Dept    | 34     | 16
+
+ASSERT: TC8 - Large employee count (50 total: 34 active, 16 inactive) aggregated correctly
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 9: Verify column names and structure =============
+DESCRIPTION: Validate output column structure
+SETUP: Using accumulated test data
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+Columns returned: department_name (NVARCHAR), Active (INT), Inactive (INT)
+All 12 departments returned with correct structure
+
+ASSERT: TC9 - Column structure verified (department_name, Active, Inactive)
+STATUS: ✓ PASSED
+
+
+============= TEST CASE 10: Verify sorting by department name =============
+DESCRIPTION: Confirm results are ordered alphabetically by department name
+SETUP: Using accumulated test data
+
+EXECUTION:
+SELECT department_name, Active, Inactive
+FROM (
+    SELECT
+        d.name AS department_name,
+        CASE WHEN e.is_active = 1 THEN 'Active' ELSE 'Inactive' END AS status,
+        e.employee_id
+    FROM dbo.departments d
+    LEFT JOIN dbo.employees e ON d.department_id = e.department_id
+) src
+PIVOT (
+    COUNT(employee_id) FOR status IN ([Active], [Inactive])
+) p
+ORDER BY department_name;
+
+RESULTS:
+Departments returned in alphabetical order:
+1. Backend
+2. Engineering
+3. Frontend
+4. HR
+5. IT/Support
+6. R&D
+7. Sales
+8. Sales & Marketing
+9. Test Active Only
+10. Test Empty Dept
+11. Test Inactive Only
+12. Test Large Dept
+
+ASSERT: TC10 - Results correctly sorted by department_name
+STATUS: ✓ PASSED
+
+
+============= CLEANUP =============
+DESCRIPTION: Remove all test data and restore original state
+ACTIONS:
+- Deleted 64 test employees (email LIKE '%test.com' OR first_name IN test names)
+- Deleted 7 test departments (Test%, R&D, Sales & Marketing, IT/Support)
+
+VERIFICATION:
+- Final department count: 5 (matches original)
+- Final employee count: 5 (matches original)
+
+FINAL EXECUTION (post-cleanup):
+EXEC dbo.usp_dept_headcount_pivot;
+
+RESULTS:
+department_name | Active | Inactive
+----------------|--------|----------
+Backend         | 2      | 0
+Engineering     | 0      | 0
+Frontend        | 1      | 0
+HR              | 1      | 0
+Sales           | 1      | 0
+
+STATUS: ✓ CLEANUP SUCCESSFUL - Database restored to original state
+
+
+============================================================================
+TEST SUMMARY
+============================================================================
+Total Test Cases: 10
+Passed: 10
+Failed: 0
+Success Rate: 100%
+
+KEY FINDINGS:
+1. PIVOT operation correctly aggregates employee counts by status
+2. LEFT JOIN properly handles departments with no employees (shows 0 for both columns)
+3. Special characters in department names are handled correctly
+4. Large employee counts (50+) are aggregated accurately
+5. Results are consistently sorted alphabetically by department_name
+6. Column structure is stable: department_name, Active, Inactive
+7. NULL handling: No NULL values in output (COUNT returns 0 for empty groups)
+
+EDGE CASES VALIDATED:
+✓ Empty departments (0 employees)
+✓ Departments with only active employees
+✓ Departments with only inactive employees
+✓ Special characters in department names (&, /)
+✓ Large employee counts (50+)
+✓ Mixed active/inactive ratios
+
+COMPATIBILITY NOTES:
+- PIVOT syntax is T-SQL specific
+- CASE expression for status mapping is standard SQL
+- LEFT JOIN ensures all departments appear in results
+- ORDER BY department_name provides deterministic output
+
+============================================================================

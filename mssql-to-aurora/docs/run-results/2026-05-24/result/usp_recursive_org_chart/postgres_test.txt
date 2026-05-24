@@ -1,0 +1,202 @@
+============================================================
+TEST RESULTS: public.usp_recursive_org_chart
+Target: Aurora PostgreSQL (native PL/pgSQL)
+Execution Date: 2026-05-23
+============================================================
+
+============= TEST CASE 1: Normal - Root with children =============
+Description: Execute with root department that has child departments
+Input: p_root_id = 1 (Engineering)
+Expected: Returns root and all descendants with depth and path
+
+RESULTS:
+tc   | department_id | name        | depth | path
+-----|---------------|-------------|-------|----------------------
+TC1  | 1             | Engineering | 0     | Engineering
+TC1  | 2             | Backend     | 1     | Engineering > Backend
+TC1  | 3             | Frontend    | 1     | Engineering > Frontend
+
+Status: ✓ PASSED
+Rows returned: 3
+
+
+============= TEST CASE 2: Normal - Leaf node (no children) =============
+Description: Execute with leaf department (no children)
+Input: p_root_id = 2 (Backend)
+Expected: Returns only the single department
+
+RESULTS:
+tc   | department_id | name    | depth | path
+-----|---------------|---------|-------|--------
+TC2  | 2             | Backend | 0     | Backend
+
+Status: ✓ PASSED
+Rows returned: 1
+
+
+============= TEST CASE 3: Normal - Different root department =============
+Description: Execute with different root department
+Input: p_root_id = 4 (Sales)
+Expected: Returns the Sales department
+
+RESULTS:
+tc   | department_id | name  | depth | path
+-----|---------------|-------|-------|------
+TC3  | 4             | Sales | 0     | Sales
+
+Status: ✓ PASSED
+Rows returned: 1
+
+
+============= TEST CASE 4: Boundary - Non-existent department ID =============
+Description: Execute with non-existent department ID
+Input: p_root_id = 99999
+Expected: Returns empty result set (0 rows)
+
+RESULTS:
+tc   | row_count
+-----|----------
+TC4  | 0
+
+Status: ✓ PASSED
+Rows returned: 0 (empty result set as expected)
+
+
+============= TEST CASE 5: Boundary - NULL input =============
+Description: Execute with NULL as input parameter
+Input: p_root_id = NULL
+Expected: Returns empty result set (NULL in WHERE clause evaluates to false)
+
+RESULTS:
+tc   | result
+-----|----------
+TC5  | NO_ERROR
+
+Status: ✓ PASSED
+Behavior: NULL input returns empty result set without error
+
+
+============= TEST CASE 6: Boundary - Zero as input =============
+Description: Execute with zero as department ID
+Input: p_root_id = 0
+Expected: Returns empty result set (no department with ID 0)
+
+RESULTS:
+tc   | row_count
+-----|----------
+TC6  | 0
+
+Status: ✓ PASSED
+Rows returned: 0 (empty result set as expected)
+
+
+============= TEST CASE 7: Exception - Negative ID =============
+Description: Execute with negative department ID
+Input: p_root_id = -1
+Expected: Returns empty result set (no department with negative ID)
+
+RESULTS:
+tc   | row_count
+-----|----------
+TC7  | 0
+
+Status: ✓ PASSED
+Rows returned: 0 (empty result set as expected)
+
+
+============= TEST CASE 8: Deep hierarchy - Multi-level recursion =============
+Description: Test deep recursive hierarchy (5 levels)
+Input: p_root_id = 1001 (TC8_Root)
+Expected: Returns all 5 levels with correct depth values (0-4)
+
+RESULTS:
+tc   | department_id | name      | depth | path
+-----|---------------|-----------|-------|------------------------------------------
+TC8  | 1001          | TC8_Root  | 0     | TC8_Root
+TC8  | 1002          | TC8_L1    | 1     | TC8_Root > TC8_L1
+TC8  | 1003          | TC8_L2    | 2     | TC8_Root > TC8_L1 > TC8_L2
+TC8  | 1004          | TC8_L3    | 3     | TC8_Root > TC8_L1 > TC8_L2 > TC8_L3
+TC8  | 1005          | TC8_L4    | 4     | TC8_Root > TC8_L1 > TC8_L2 > TC8_L3 > TC8_L4
+
+Status: ✓ PASSED
+Rows returned: 5
+Verification: Depth values correctly increment from 0 to 4
+
+
+============= TEST CASE 9: Multiple children at same level =============
+Description: Test parent with multiple children at same depth
+Input: p_root_id = 2001 (TC9_Root)
+Expected: Returns root + 3 children, all children at depth 1
+
+RESULTS:
+tc   | department_id | name       | depth | path
+-----|---------------|------------|-------|---------------------
+TC9  | 2001          | TC9_Root   | 0     | TC9_Root
+TC9  | 2002          | TC9_Child1 | 1     | TC9_Root > TC9_Child1
+TC9  | 2003          | TC9_Child2 | 1     | TC9_Root > TC9_Child2
+TC9  | 2004          | TC9_Child3 | 1     | TC9_Root > TC9_Child3
+
+Status: ✓ PASSED
+Rows returned: 4
+Verification: All children have depth = 1, paths ordered alphabetically
+
+
+============= TEST CASE 10: Verify depth calculation =============
+Description: Verify depth values are correctly calculated
+Input: p_root_id = 3001 (TC10_L0)
+Expected: Depth values 0, 1, 2 for 3-level hierarchy
+
+RESULTS:
+tc    | name     | depth
+------|----------|------
+TC10  | TC10_L0  | 0
+TC10  | TC10_L1  | 1
+TC10  | TC10_L2  | 2
+
+Status: ✓ PASSED
+Rows returned: 3
+Verification: Depth values correctly increment: 0 → 1 → 2
+
+
+============= TEST CASE 11: Verify path construction =============
+Description: Verify path string is correctly constructed with " > " separator
+Input: p_root_id = 4001 (A)
+Expected: Paths "A", "A > B", "A > B > C"
+
+RESULTS:
+tc    | path
+------|----------
+TC11  | A
+TC11  | A > B
+TC11  | A > B > C
+
+Status: ✓ PASSED
+Rows returned: 3
+Verification: Path correctly concatenates with " > " separator
+
+
+============================================================
+SUMMARY
+============================================================
+Total Test Cases: 11
+Passed: 11
+Failed: 0
+Success Rate: 100%
+
+KEY BEHAVIORS VERIFIED:
+✓ Recursive CTE correctly traverses parent-child relationships
+✓ Depth calculation increments correctly at each level
+✓ Path construction uses " > " separator and accumulates correctly
+✓ ORDER BY path provides consistent, alphabetical ordering
+✓ Empty result set for non-existent, NULL, zero, and negative IDs
+✓ Handles leaf nodes (no children) correctly
+✓ Handles multiple children at same level
+✓ Handles deep hierarchies (5+ levels)
+✓ No errors thrown for invalid inputs (graceful empty results)
+
+NOTES:
+- All test data was cleaned up after execution
+- No permanent changes to database (test data removed)
+- Function returns TABLE type (PostgreSQL equivalent of MSSQL result set)
+- VARCHAR used instead of NVARCHAR(MAX) for path column
+- CURRENT_TIMESTAMP used instead of GETDATE()

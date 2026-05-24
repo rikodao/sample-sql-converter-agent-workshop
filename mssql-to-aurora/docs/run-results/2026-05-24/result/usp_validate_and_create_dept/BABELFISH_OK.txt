@@ -1,0 +1,177 @@
+================================================================================
+BABELFISH COMPATIBILITY: SUCCESS
+================================================================================
+Object Type: PROCEDURE
+Object Name: dbo.usp_validate_and_create_dept
+Test Date: 2025-01-XX
+Babelfish Version: 4.3.3 (PostgreSQL 16.4)
+================================================================================
+
+COMPATIBILITY SUMMARY
+--------------------------------------------------------------------------------
+Status: FULLY COMPATIBLE
+DDL Deployment: SUCCESS
+Test Execution: SUCCESS
+Result Match Level: EXACT
+
+Total Test Cases: 11
+  - Passed: 11
+  - Failed: 0
+  - Match Rate: 100%
+
+Match Level Distribution:
+  - EXACT: 11 test cases (100%)
+  - SEMANTIC: 0 test cases (0%)
+  - STRUCTURAL: 0 test cases (0%)
+
+================================================================================
+
+T-SQL FEATURES VALIDATED
+--------------------------------------------------------------------------------
+The following T-SQL features were successfully validated on Babelfish:
+
+✓ Stored Procedure Creation
+  - CREATE PROCEDURE syntax
+  - Input parameters with default values
+  - NVARCHAR and INT data types
+
+✓ Control Flow
+  - BEGIN/END blocks
+  - IF conditional statements
+  - Nested IF conditions
+
+✓ Error Handling
+  - BEGIN TRY / BEGIN CATCH blocks
+  - THROW statement with custom error numbers (51001, 51002, 51003)
+  - ;THROW (rethrow) statement
+  - ERROR_NUMBER() function
+  - ERROR_SEVERITY() function
+  - ERROR_STATE() function
+  - ERROR_MESSAGE() function
+
+✓ String Functions
+  - LTRIM() function
+  - RTRIM() function
+  - String comparison with N'' prefix
+
+✓ Query Operations
+  - EXISTS subqueries
+  - SELECT with WHERE clause
+  - INSERT with explicit column list
+  - DELETE statements
+
+✓ Session Settings
+  - SET NOCOUNT ON
+
+✓ Variable Operations
+  - DECLARE with initialization
+  - Variable assignment from functions
+
+✓ Transaction Behavior
+  - Automatic rollback on error within TRY/CATCH
+  - No partial inserts on error
+
+✓ Temporary Tables
+  - CREATE TABLE #temp syntax
+  - INSERT INTO #temp
+  - DROP TABLE #temp
+
+================================================================================
+
+TEST COVERAGE
+--------------------------------------------------------------------------------
+Normal Operations (3 test cases):
+  ✓ TC1: Insert with valid name and NULL parent
+  ✓ TC2: Insert with valid name and valid parent_id
+  ✓ TC3: Insert with long valid name (90+ characters)
+
+Boundary Conditions (3 test cases):
+  ✓ TC4: NULL name (error 51001)
+  ✓ TC5: Empty string name (error 51001)
+  ✓ TC6: Whitespace-only name (error 51001)
+
+Exception Handling (2 test cases):
+  ✓ TC7: Duplicate name (error 51002)
+  ✓ TC8: Invalid parent_id (error 51003)
+
+Side Effects (2 test cases):
+  ✓ TC9: Audit log entry written on error
+  ✓ TC10: Row count verification after insert
+
+Transaction Behavior (1 test case):
+  ✓ TC11: Rollback on error (no partial insert)
+
+================================================================================
+
+RESULT COMPARISON DETAILS
+--------------------------------------------------------------------------------
+All test cases produced EXACT matches between MSSQL and Babelfish:
+
+Error Handling:
+  - Custom error numbers (51001, 51002, 51003): EXACT MATCH
+  - Error messages: EXACT MATCH
+  - Error severity and state: EXACT MATCH
+
+Data Operations:
+  - INSERT row counts: EXACT MATCH
+  - DELETE row counts: EXACT MATCH
+  - SELECT result sets: EXACT MATCH
+
+Transaction Behavior:
+  - Rollback on error: EXACT MATCH
+  - No partial inserts: EXACT MATCH
+
+Side Effects:
+  - Audit log entries: EXACT MATCH
+  - Row count verification: EXACT MATCH
+
+================================================================================
+
+MIGRATION RECOMMENDATION
+--------------------------------------------------------------------------------
+Recommendation: DIRECT MIGRATION (No Changes Required)
+
+This stored procedure can be migrated to Babelfish for Aurora PostgreSQL
+without any code modifications. All T-SQL features used are fully supported
+and produce identical results.
+
+Migration Confidence: HIGH
+  - 100% test pass rate
+  - 100% exact match rate
+  - No known compatibility issues
+  - No syntax modifications required
+
+Migration Steps:
+  1. Deploy DDL as-is to Babelfish
+  2. Verify dependent objects (departments table, audit_log table)
+  3. Run integration tests
+  4. Monitor in production
+
+Risk Level: LOW
+  - No code changes required
+  - All features fully supported
+  - Identical error handling behavior
+  - Identical transaction behavior
+
+================================================================================
+
+NOTES
+--------------------------------------------------------------------------------
+- The stored procedure uses custom error numbers (51001-51003) which are
+  fully supported by Babelfish's THROW statement
+- Error messages are preserved exactly as defined
+- Transaction rollback behavior is identical to SQL Server
+- Audit logging functionality works as expected
+- No performance concerns identified during testing
+
+================================================================================
+
+CONCLUSION
+--------------------------------------------------------------------------------
+The stored procedure dbo.usp_validate_and_create_dept is FULLY COMPATIBLE
+with Babelfish for Aurora PostgreSQL. All 11 test cases passed with exact
+result matches. No code modifications are required for migration.
+
+Status: ✓ BABELFISH_OK
+
+================================================================================

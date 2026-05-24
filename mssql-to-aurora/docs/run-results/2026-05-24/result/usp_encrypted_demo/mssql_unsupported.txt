@@ -1,0 +1,53 @@
+================================================================================
+UNSUPPORTED OBJECT - ENCRYPTED STORED PROCEDURE
+================================================================================
+Object: dbo.usp_encrypted_demo
+Type: SQL_STORED_PROCEDURE
+Issue: WITH ENCRYPTION
+================================================================================
+
+PROBLEM:
+This stored procedure was created with the WITH ENCRYPTION option in SQL Server.
+The definition is encrypted and cannot be retrieved using:
+- sys.sql_modules.definition (returns NULL)
+- OBJECT_DEFINITION() function (returns NULL)
+- sp_helptext (returns "The text for object 'dbo.usp_encrypted_demo' is encrypted.")
+
+MIGRATION BLOCKER:
+Encrypted objects cannot be migrated to Babelfish or PostgreSQL because:
+1. The encryption is SQL Server proprietary and cannot be decrypted
+2. No DDL can be extracted for conversion
+3. The procedure logic is completely hidden
+
+REQUIRED ACTION:
+To proceed with migration, you must:
+
+1. Locate the original source code from:
+   - Source control repository (Git, SVN, TFS, etc.)
+   - Original deployment scripts
+   - Database documentation
+   - Development team archives
+   - Pre-encryption database backups
+
+2. Once source code is obtained:
+   - Place the unencrypted DDL in mssql.sql
+   - Re-run Stage 1 validation
+   - Proceed with normal migration workflow
+
+3. If source code cannot be found:
+   - Reverse engineer the procedure behavior through:
+     * Execution testing with various inputs
+     * Analysis of calling applications
+     * Business requirement documentation
+   - Recreate the procedure from scratch
+   - Validate with stakeholders before migration
+
+SECURITY NOTE:
+If this procedure was encrypted for security reasons, ensure that:
+- The migration maintains equivalent security controls
+- Access to source code is properly restricted
+- The new environment has appropriate encryption/obfuscation if required
+
+================================================================================
+STAGE 1 STATUS: FAILED - CANNOT PROCEED WITHOUT SOURCE CODE
+================================================================================

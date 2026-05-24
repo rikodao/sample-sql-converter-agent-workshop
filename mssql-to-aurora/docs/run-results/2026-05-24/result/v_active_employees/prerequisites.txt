@@ -1,0 +1,19 @@
+PREREQUISITE CHECK for VIEW dbo.v_active_employees
+=======================================================
+
+Object Information:
+- Name: v_active_employees
+- Type: VIEW
+- Object ID: 1429580131
+- Created: 2026-05-23T23:20:23.190000
+- Modified: 2026-05-23T23:20:23.190000
+
+Dependencies:
+1. dbo.employees (TABLE)
+2. dbo.departments (TABLE)
+3. dbo.salaries (TABLE)
+4. dbo.fn_format_employee_name (FUNCTION)
+
+Encryption Status: NOT ENCRYPTED (definition retrievable)
+
+All prerequisites satisfied: YES

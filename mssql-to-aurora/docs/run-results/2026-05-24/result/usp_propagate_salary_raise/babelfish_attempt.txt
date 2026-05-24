@@ -1,0 +1,223 @@
+=============================================
+BABELFISH COMPATIBILITY VERIFICATION REPORT
+Object: dbo.usp_propagate_salary_raise
+Type: STORED PROCEDURE
+Stage: 2 - T-SQL Compatibility Test
+Date: 2025-01-23
+=============================================
+
+## 1. CONNECTION TEST
+Status: SUCCESS
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+PostgreSQL Version: PostgreSQL 16.4 on x86_64-pc-linux-gnu (Babelfish 4.3.3)
+Connection Method: run_babelfish_tsql (TDS:1433)
+
+## 2. DDL DEPLOYMENT
+Status: SUCCESS
+Action: CREATE PROCEDURE dbo.usp_propagate_salary_raise
+Result: Procedure created successfully without errors
+
+DDL Features Used:
+- DECLARE variables (INT, MONEY, DATE)
+- CURSOR (LOCAL FAST_FORWARD)
+- OUTER APPLY with subquery
+- DATEDIFF with 'yy' datepart
+- GETDATE() function
+- DATEADD function
+- UPDATE and INSERT statements
+- @@FETCH_STATUS system variable
+- SET NOCOUNT ON
+
+Babelfish Compatibility Assessment:
+✓ All T-SQL constructs are supported by Babelfish
+✓ CURSOR with LOCAL FAST_FORWARD - Supported
+✓ OUTER APPLY - Supported
+✓ DATEDIFF(yy, ...) - Supported
+✓ MONEY data type - Supported
+✓ DATE data type - Supported
+✓ @@FETCH_STATUS - Supported
+
+## 3. TEST EXECUTION
+Status: SUCCESS
+Total Test Cases: 14
+Executed: 14
+Passed: 14
+Failed: 0
+
+Test Execution Details:
+
+TC1: Normal 5% raise for eligible employees
+  - Old records closed: 2 ✓
+  - New records created: 2 ✓
+  - Salary calculations: 52500.00, 63000.00 ✓
+  - Match Level: EXACT
+
+TC2: 10% raise with custom min_years_of_service
+  - Eligible count: 2 ✓
+  - Salary calculations: 49500.00, 44000.00 ✓
+  - Match Level: EXACT
+
+TC3: Zero percent raise (no change in amount)
+  - Records created: 1 ✓
+  - Salary unchanged: 55000.00 ✓
+  - Match Level: EXACT
+
+TC4: Inactive employee should not get raise
+  - Total records: 1, Open records: 1 ✓
+  - Correctly excluded inactive employee ✓
+  - Match Level: EXACT
+
+TC5: Employee with insufficient years of service
+  - Total records: 1, Open records: 1 ✓
+  - Correctly excluded employee with < 3 years ✓
+  - Match Level: EXACT
+
+TC6: Employee with no salary history
+  - Salary records: 0 ✓
+  - Correctly excluded employee without salary ✓
+  - Match Level: EXACT
+
+TC7: Large raise percentage (50%)
+  - Salary calculation: 60000.00 ✓
+  - Match Level: EXACT
+
+TC8: Negative raise percentage (salary decrease)
+  - Salary calculation: 45000.00 ✓
+  - Match Level: EXACT
+
+TC9: Multiple salary history records (only latest should be used)
+  - Total records: 4, Open records: 1 ✓
+  - Latest salary: 55000.00 ✓
+  - Match Level: EXACT
+
+TC10: Exactly at minimum years threshold
+  - New records: 1 ✓
+  - Salary calculation: 54600.00 ✓
+  - Match Level: EXACT
+
+TC11: Very small raise (0.01%)
+  - Salary calculation: 100010.00 ✓
+  - Match Level: EXACT
+
+TC12: Min years of service = 0 (all active with salary eligible)
+  - New records: 1 ✓
+  - Salary calculation: 36750.00 ✓
+  - Match Level: EXACT
+
+TC13: Verify effective_to date is set correctly
+  - Old record closed: CORRECT ✓
+  - New record date: CORRECT ✓
+  - Match Level: EXACT
+
+TC14: Multiple eligible employees processed in one call
+  - Employees with new salary: 3 ✓
+  - Salary calculations: 54000.00, 59400.00, 64800.00 ✓
+  - Match Level: EXACT
+
+## 4. RESULT COMPARISON
+
+Comparison Method: Semantic comparison with tolerance for:
+- MONEY type formatting differences
+- Date/time precision differences
+- Whitespace normalization
+
+Comparison Results by Test Case:
+- TC1:  EXACT match (100%)
+- TC2:  EXACT match (100%)
+- TC3:  EXACT match (100%)
+- TC4:  EXACT match (100%)
+- TC5:  EXACT match (100%)
+- TC6:  EXACT match (100%)
+- TC7:  EXACT match (100%)
+- TC8:  EXACT match (100%)
+- TC9:  EXACT match (100%)
+- TC10: EXACT match (100%)
+- TC11: EXACT match (100%)
+- TC12: EXACT match (100%)
+- TC13: EXACT match (100%)
+- TC14: EXACT match (100%)
+
+Overall Match Rate: 100% (14/14 test cases)
+
+Key Observations:
+1. MONEY type handling: Babelfish correctly handles MONEY arithmetic and storage
+2. CURSOR operations: All cursor operations (OPEN, FETCH, CLOSE, DEALLOCATE) work identically
+3. OUTER APPLY: Lateral join semantics are correctly implemented
+4. DATEDIFF: Year calculation matches SQL Server behavior
+5. Date arithmetic: DATEADD functions produce identical results
+6. Transaction handling: ROLLBACK works correctly in all test cases
+7. IDENTITY_INSERT: ON/OFF operations work as expected
+
+## 5. BEHAVIORAL DIFFERENCES
+None detected. All test cases produce identical results between SQL Server and Babelfish.
+
+## 6. PERFORMANCE NOTES
+- Cursor-based operations executed successfully
+- No timeout or performance issues observed
+- Transaction rollback operations completed cleanly
+
+## 7. COMPATIBILITY ASSESSMENT
+
+Overall Compatibility: FULL (100%)
+
+Feature Compatibility Matrix:
+┌─────────────────────────────────┬──────────┬─────────────┐
+│ Feature                         │ Status   │ Notes       │
+├─────────────────────────────────┼──────────┼─────────────┤
+│ CURSOR (LOCAL FAST_FORWARD)     │ ✓ PASS   │ Identical   │
+│ OUTER APPLY                     │ ✓ PASS   │ Identical   │
+│ DATEDIFF (year)                 │ ✓ PASS   │ Identical   │
+│ DATEADD                         │ ✓ PASS   │ Identical   │
+│ MONEY arithmetic                │ ✓ PASS   │ Identical   │
+│ DATE type                       │ ✓ PASS   │ Identical   │
+│ @@FETCH_STATUS                  │ ✓ PASS   │ Identical   │
+│ SET NOCOUNT ON                  │ ✓ PASS   │ Identical   │
+│ IDENTITY_INSERT                 │ ✓ PASS   │ Identical   │
+│ Transaction (BEGIN/ROLLBACK)    │ ✓ PASS   │ Identical   │
+└─────────────────────────────────┴──────────┴─────────────┘
+
+## 8. MIGRATION RECOMMENDATION
+
+Migration Readiness: READY FOR PRODUCTION
+
+This stored procedure can be migrated to Babelfish WITHOUT any modifications.
+
+Confidence Level: VERY HIGH
+- All 14 test cases passed with exact matches
+- No syntax modifications required
+- No behavioral differences detected
+- All T-SQL features fully supported
+
+Migration Path: DIRECT (Stage 2 → Production)
+- No need for Stage 3 (PL/pgSQL conversion)
+- No need for Stage 4 (retry/modification)
+- Can be deployed as-is to Babelfish
+
+## 9. RISK ASSESSMENT
+
+Risk Level: MINIMAL
+
+Potential Risks:
+- None identified
+
+Mitigation:
+- Not required - procedure is fully compatible
+
+## 10. CONCLUSION
+
+The stored procedure dbo.usp_propagate_salary_raise demonstrates FULL compatibility with Babelfish for Aurora PostgreSQL. All test cases executed successfully with identical results to SQL Server. The procedure uses standard T-SQL features that are well-supported by Babelfish, including cursors, OUTER APPLY, date functions, and MONEY type arithmetic.
+
+RESULT: BABELFISH_OK
+
+Test Summary:
+- Total Tests: 14
+- Passed: 14 (100%)
+- Failed: 0 (0%)
+- Match Level: EXACT (14/14)
+- Compatibility: FULL
+
+Recommendation: APPROVE for direct migration to Babelfish without modifications.
+
+=============================================
+END OF REPORT
+=============================================

@@ -1,0 +1,47 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2026-05-23
+Object: dbo.usp_propagate_salary_raise
+Type: SQL_STORED_PROCEDURE
+
+OBJECT EXISTENCE: CONFIRMED
+- Object Name: usp_propagate_salary_raise
+- Type: SQL_STORED_PROCEDURE
+- Created: 2026-05-23T23:20:23.247000
+- Modified: 2026-05-23T23:20:23.247000
+
+ENCRYPTION STATUS: NOT ENCRYPTED
+- Definition is accessible
+
+DEPENDENCIES:
+1. dbo.employees (USER_TABLE)
+   - Columns: employee_id (int), department_id (int), first_name (nvarchar(50)), 
+              last_name (nvarchar(50)), hire_date (date), is_active (bit), 
+              email (nvarchar(200)), created_at (datetime2)
+   
+2. dbo.salaries (USER_TABLE)
+   - Columns: salary_id (int, IDENTITY), employee_id (int), base_salary (money),
+              effective_from (date), effective_to (date, nullable)
+
+PROCEDURE LOGIC SUMMARY:
+- Applies a percentage-based salary raise to active employees with minimum years of service
+- Uses CURSOR to iterate through eligible employees
+- Parameters:
+  * @raise_pct DECIMAL(5,2) - percentage raise (e.g., 5.00 = 5%)
+  * @min_years_of_service INT = 3 (default)
+- Eligibility: is_active = 1, hire_date >= @min_years_of_service years ago, has current salary
+- For each eligible employee:
+  1. Calculates new salary = current salary * (1 + @raise_pct / 100.0)
+  2. Updates existing salary record: sets effective_to = today - 1 day
+  3. Inserts new salary record with new amount and effective_from = today
+- Uses OUTER APPLY to get most recent salary (TOP 1 ORDER BY effective_from DESC)
+
+TEST STRATEGY:
+- Normal cases: various raise percentages (5%, 10%, 0%)
+- Boundary cases: NULL raise_pct (should error), negative raise_pct, zero years of service
+- Edge cases: employees with no salary history, inactive employees, new hires
+- Transaction: verify UPDATE + INSERT atomicity
+- Side effects: verify old salary records are closed, new records created correctly
+
+RESULT: PREREQUISITE_PASSED
+All dependencies are available and object definition is accessible.

@@ -1,0 +1,141 @@
+============================================================================
+BABELFISH TEST EXECUTION RESULTS
+============================================================================
+Object: FUNCTION dbo.fn_get_dept_summary
+Test Date: 2024
+Database: Babelfish for Aurora PostgreSQL (TDS endpoint)
+
+============================================================================
+TEST EXECUTION SUMMARY
+============================================================================
+Status: BLOCKED BY RUNTIME ERROR
+Total Test Cases: 11 (planned)
+Executed: 0
+Passed: 0
+Failed: 0
+Blocked: 11
+
+============================================================================
+ERROR DETAILS
+============================================================================
+
+All test cases blocked by the following runtime error:
+
+Error Code: 42000
+Error Message: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]
+               column "effective_to" does not exist (33557097)
+
+Query That Failed:
+------------------
+SELECT 'TC1' AS tc, department_id, department_name, headcount, avg_salary, total_payroll
+FROM dbo.fn_get_dept_summary('2024-01-01')
+WHERE department_id = 1001
+ORDER BY department_id;
+
+Root Cause:
+-----------
+The function dbo.fn_get_dept_summary references a column "effective_to" in the
+dbo.salaries table, but this column does not exist in the Babelfish environment.
+
+Function Logic (excerpt):
+-------------------------
+OUTER APPLY (
+    SELECT TOP 1 base_salary
+    FROM dbo.salaries
+    WHERE employee_id = e.employee_id
+      AND effective_from <= @as_of
+      AND (effective_to IS NULL OR effective_to >= @as_of)  -- <-- COLUMN NOT FOUND
+    ORDER BY effective_from DESC
+) s
+
+Actual Table Schema in Babelfish:
+----------------------------------
+dbo.salaries:
+  - salary_id (int)
+  - employee_id (int)
+  - base_salary (money)
+  - effective_from (date)
+  - [effective_to is MISSING]
+
+============================================================================
+TEST CASES (NOT EXECUTED)
+============================================================================
+
+The following test cases were prepared but could not be executed:
+
+TC1: Normal case with active employees and current salaries
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC2: Department with no employees
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC3: Department with inactive employees only
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC4: Historical salary lookup (as_of date in the past)
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC5: Multiple departments with varying employee counts
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC6: NULL as_of date (boundary test)
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC7: Future as_of date (no salary records yet)
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC8: Employee with no salary record
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC9: Salary with zero value (boundary test)
+     Status: BLOCKED
+     Reason: Runtime error on function call
+
+TC10: Mixed active and inactive employees
+      Status: BLOCKED
+      Reason: Runtime error on function call
+
+TC11: Salary effective_to boundary test
+      Status: BLOCKED
+      Reason: Runtime error on function call
+
+============================================================================
+COMPARISON WITH MSSQL RESULTS
+============================================================================
+
+Cannot compare results because Babelfish execution was blocked by schema error.
+
+MSSQL Test Results Summary (from mssql_test.txt):
+- Total Test Cases: 11
+- Passed: 8
+- Inconclusive: 3 (timing issues)
+- Failed: 0
+
+Babelfish Test Results:
+- All tests blocked by missing column error
+
+============================================================================
+CONCLUSION
+============================================================================
+
+The function DDL was successfully created in Babelfish (100% syntax compatibility),
+but runtime execution is impossible due to a schema mismatch between MSSQL source
+and Babelfish target environments.
+
+This is NOT a Babelfish T-SQL compatibility issue.
+This is an environment/schema migration issue.
+
+Required Action:
+- Add the missing "effective_to" column to dbo.salaries table in Babelfish
+- OR modify the function logic to work without the effective_to column
+- Then re-run Stage 2 verification
+
+============================================================================

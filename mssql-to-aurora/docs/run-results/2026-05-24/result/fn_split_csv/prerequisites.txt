@@ -1,0 +1,20 @@
+PREREQUISITE CHECK - dbo.fn_split_csv
+========================================
+
+Object Type: SQL_TABLE_VALUED_FUNCTION
+Object ID: 1333579789
+Created: 2026-05-23T23:20:23.163000
+Modified: 2026-05-23T23:20:23.163000
+
+Dependencies:
+- No dependencies found (no referenced objects)
+
+Encryption Status: NOT ENCRYPTED (definition retrieved successfully)
+
+Result Directory: ./result/fn_split_csv/
+Status: ✓ All prerequisites met
+
+Notes:
+- This is a table-valued function that splits a CSV string by a separator
+- Returns a table with idx (position) and value (substring) columns
+- No external dependencies

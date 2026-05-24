@@ -1,0 +1,26 @@
+============================================================
+RETRY LOG: PostgreSQL Conversion Fixes
+============================================================
+
+--- Attempt 1 ---
+Date: 2026-05-23
+Issue: Cannot commit while a subtransaction is active
+Error: ERROR: cannot commit while a subtransaction is active; SQLState: P0001
+
+Root Cause:
+PostgreSQL プロシージャ内で COMMIT/ROLLBACK を使用する場合、
+DO ブロック内から呼び出すことができません。
+DO ブロックは暗黙的にサブトランザクションを作成するため、
+プロシージャ内の COMMIT/ROLLBACK と競合します。
+
+Solution:
+1. プロシージャ内の明示的な COMMIT/ROLLBACK を削除
+2. PostgreSQL は自動的にトランザクション管理を行うため、
+   プロシージャ内で明示的なトランザクション制御は不要
+3. エラー時の ROLLBACK は EXCEPTION ハンドラで自動的に行われる
+
+Modified Code:
+- COMMIT; を削除
+- ROLLBACK; を削除（EXCEPTION ハンドラ内）
+- トランザクションは呼び出し元で管理される
+

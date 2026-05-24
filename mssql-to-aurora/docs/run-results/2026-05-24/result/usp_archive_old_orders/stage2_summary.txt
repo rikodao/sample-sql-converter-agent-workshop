@@ -1,0 +1,72 @@
+============================================================
+STAGE 2 COMPLETION SUMMARY
+Object: PROCEDURE dbo.usp_archive_old_orders
+Date: 2026-05-23
+============================================================
+
+EXECUTION STATUS: COMPLETED
+RESULT: TEST_MISMATCH
+
+FILES GENERATED:
+✓ babelfish_attempt.txt  - Detailed compatibility analysis and test results
+✓ babelfish_test.sql     - Test script (identical to mssql_test.sql)
+✓ babelfish_test.txt     - Test execution results from Babelfish
+
+FILES NOT GENERATED:
+✗ BABELFISH_OK.txt       - Not created due to test mismatch (TC10 failed)
+
+------------------------------------------------------------
+COMPATIBILITY SUMMARY
+------------------------------------------------------------
+
+DDL Deployment:        SUCCESS ✓
+Syntax Compatibility:  100% (All T-SQL constructs supported)
+Test Pass Rate:        90% (9/10 tests passed)
+Overall Assessment:    HIGH COMPATIBILITY with known limitation
+
+PASSED TESTS (9):
+- TC1: Normal archiving of old completed orders
+- TC2: Archive with cutoff date matching exact boundary
+- TC3: No orders to archive (all orders are recent)
+- TC4: Only COMPLETED orders are archived
+- TC5: NULL cutoff_date parameter
+- TC6: Archive large batch of orders (50 rows)
+- TC7: Verify transaction rollback on error
+- TC8: Archive with zero total_amount
+- TC9: Verify OUTPUT parameter is set correctly when no rows archived
+
+FAILED TESTS (1):
+- TC10: Archive orders with maximum date precision
+  Reason: DATETIME2(7) precision rounding issue
+  Impact: High-precision fractional seconds (.9999999) rounded to next second
+  Category: Known Babelfish limitation (PostgreSQL TIMESTAMP precision)
+
+------------------------------------------------------------
+KEY FINDINGS
+------------------------------------------------------------
+
+SUPPORTED FEATURES:
+✓ Stored procedures with OUTPUT parameters
+✓ DELETE ... OUTPUT ... INTO clause
+✓ TRY/CATCH error handling
+✓ Transaction management (BEGIN/COMMIT/ROLLBACK)
+✓ System variables (@@ROWCOUNT, @@TRANCOUNT)
+✓ THROW statement
+✓ All data types used (DATE, DATETIME2, MONEY, NVARCHAR, INT)
+
+KNOWN LIMITATIONS:
+⚠ DATETIME2(7) precision - PostgreSQL supports max 6 decimal places
+  Values with 7 decimal places are rounded, potentially changing boundary behavior
+
+RECOMMENDATION:
+The procedure is production-ready for Babelfish with the following caveat:
+- Document the DATETIME2 precision limitation
+- Consider using DATETIME2(6) instead of DATETIME2(7) in table schemas
+- Add buffer to cutoff dates if exact nanosecond precision is critical
+
+NEXT STEPS:
+Stage 3 (PL/pgSQL conversion) is OPTIONAL for this object.
+The T-SQL version works correctly in Babelfish for 90% of test cases.
+Only proceed to Stage 3 if DATETIME2(7) precision is a hard requirement.
+
+============================================================

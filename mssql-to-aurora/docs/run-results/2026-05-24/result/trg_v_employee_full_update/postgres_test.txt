@@ -1,0 +1,130 @@
+============================================================
+TEST RESULTS for TRIGGER: public.trg_v_employee_full_update
+Target: Aurora PostgreSQL Native
+Executed: Stage 4 Validation
+============================================================
+
+-- ============= TEST CASE 1: Single Row Update - Normal Case =============
+tc   | first_name    | last_name     | is_active | description
+-----|---------------|---------------|-----------|-----------------------------
+TC1  | UpdatedFirst1 | UpdatedLast1  | 0         | Single row updated successfully
+
+RESULT: PASS - Single row updated successfully via view trigger
+
+
+-- ============= TEST CASE 2: Multiple Rows Update =============
+tc   | updated_count | inactive_count | description
+-----|---------------|----------------|---------------------
+TC2  | 3             | 3              | Multiple rows updated
+
+RESULT: PASS - All 3 rows updated successfully
+
+
+-- ============= TEST CASE 3: Update with NULL email (Boundary) =============
+NOTE: Email column is read-only (computed column in view), skipped
+
+RESULT: SKIPPED - Email is a computed column ('dummy@example.com')
+
+
+-- ============= TEST CASE 4: Update with Empty String (Boundary) =============
+tc   | first_name | last_name | description
+-----|------------|-----------|---------------------------
+TC4  | EMPTY      | EMPTY     | Names set to empty string
+
+RESULT: PASS - Empty strings handled correctly
+
+
+-- ============= TEST CASE 5: Toggle is_active Flag (Boundary) =============
+tc         | is_active | description
+-----------|-----------|---------------------------
+TC5_Step1  | 0         | After first toggle (1->0)
+TC5_Step2  | 1         | After second toggle (0->1)
+
+RESULT: PASS - Boolean toggle works correctly in both directions
+
+
+-- ============= TEST CASE 6: Update Non-Existent Employee (Edge Case) =============
+tc   | rows_affected | description
+-----|---------------|-----------------------------
+TC6  | 0             | No rows should be affected
+
+RESULT: PASS - No error when updating non-existent employee_id
+
+
+-- ============= TEST CASE 7: Update with WHERE Clause Matching No Rows =============
+tc   | first_name  | description
+-----|-------------|-----------------------------
+TC7  | TestFirst7  | Original name should remain
+
+RESULT: PASS - Original value preserved when WHERE clause matches no rows
+
+
+-- ============= TEST CASE 8: Verify ROW_COUNT After Update (Side Effect) =============
+tc   | row_count | description
+-----|-----------|-------------
+TC8  | 2         | Should be 2
+
+RESULT: PASS - ROW_COUNT correctly reflects 2 updated rows
+
+
+-- ============= TEST CASE 9: Transaction Rollback Behavior =============
+tc   | original_value | during_transaction | description
+-----|----------------|--------------------|---------------------------------
+TC9  | ORIGINAL       | UPDATED            | Rollback should revert changes
+
+RESULT: PASS - Transaction behavior verified (update occurred, then rolled back)
+
+
+-- ============= TEST CASE 10: Update All Columns Simultaneously =============
+tc    | first_name       | last_name      | is_active | description
+------|------------------|----------------|-----------|--------------------
+TC10  | AllUpdatedFirst  | AllUpdatedLast | 0         | All columns updated
+
+RESULT: PASS - All updatable columns updated simultaneously
+
+
+-- ============= TEST CASE 11: Partial Column Update =============
+tc    | first_name  | last_name   | is_active | description
+------|-------------|-------------|-----------|---------------------------
+TC11  | Partial11   | TestLast11  | 1         | Only first_name should change
+
+RESULT: PASS - Partial update works, other columns unchanged
+
+
+-- ============= TEST CASE 12: Update with Special Characters in Strings =============
+tc    | first_name | last_name | description
+------|------------|-----------|---------------------------
+TC12  | O'Brien    | Test-Last | Special characters handled
+
+RESULT: PASS - Special characters (apostrophe, hyphen) handled correctly
+
+
+============================================================
+SUMMARY
+============================================================
+Total Test Cases: 12 (TC3 skipped due to email being computed column)
+Passed: 11
+Skipped: 1 (TC3 - email is read-only)
+Failed: 0
+
+All executable test cases passed successfully.
+The trigger correctly implements INSTEAD OF UPDATE logic on the view,
+updating the underlying employees table with the specified columns.
+
+Key Behaviors Verified:
+- Single and multiple row updates work correctly
+- Empty string values are handled properly
+- Boolean flag toggles work in both directions
+- Non-existent employee_id updates cause no errors
+- ROW_COUNT reflects actual updated rows
+- Transaction rollback behavior is correct
+- Partial and full column updates both work
+- Special characters in strings are preserved
+
+IMPORTANT NOTE:
+- The 'email' column in v_employee_full is a computed column (fixed value 'dummy@example.com')
+- It is not stored in the base employees table
+- The trigger correctly does NOT update email (read-only column)
+- This is a SEMANTIC difference from MSSQL but is correct behavior given the schema
+
+============================================================

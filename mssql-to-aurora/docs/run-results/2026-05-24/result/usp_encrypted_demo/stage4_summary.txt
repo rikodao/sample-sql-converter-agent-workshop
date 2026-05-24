@@ -1,0 +1,261 @@
+================================================================================
+STAGE 4: POSTGRESQL NATIVE VALIDATION - EXECUTION SUMMARY
+================================================================================
+Object: PROCEDURE dbo.usp_encrypted_demo
+Execution Date: 2026-05-23
+Target: Aurora PostgreSQL (native PL/pgSQL)
+Status: BLOCKED - PREREQUISITE FAILED
+================================================================================
+
+STAGE 4 OBJECTIVE:
+Validate that the converted PostgreSQL code (postgres.sql) produces equivalent
+results to the original MSSQL code by executing comprehensive test cases and
+comparing outputs.
+
+================================================================================
+EXECUTION WORKFLOW
+================================================================================
+
+Step 1: Load Required Files
+   Status: FAILED
+   - mssql_test.sql: NOT FOUND (Stage 1 failed - encrypted object)
+   - mssql_test.txt: NOT FOUND (Stage 1 failed - encrypted object)
+   - postgres.sql: NOT FOUND (Stage 3 blocked - no source to convert)
+   
+   Reason: The stored procedure was created with WITH ENCRYPTION in SQL Server,
+           which prevents extraction of the DDL definition.
+
+Step 2: Create PostgreSQL Test Cases
+   Status: PLACEHOLDER ONLY
+   - postgres_test.sql: Created as placeholder (no real tests)
+   
+   Reason: Cannot create test cases without knowing the procedure's logic,
+           parameters, or expected behavior.
+
+Step 3: Execute PostgreSQL Tests
+   Status: NOT ATTEMPTED
+   - postgres_test.txt: Created as status report (no test results)
+   
+   Reason: No procedure to test (postgres.sql does not exist).
+
+Step 4: Compare Results
+   Status: NOT PERFORMED
+   - comparison_result.txt: Created (documents why comparison is impossible)
+   
+   Reason: No MSSQL baseline results and no PostgreSQL test results to compare.
+
+Step 5: Generate Final Report
+   Status: COMPLETED
+   - NG.txt: Created (documents prerequisite failure)
+   
+   Result: NG - PREREQUISITE_FAILED
+
+================================================================================
+PREREQUISITE ANALYSIS
+================================================================================
+
+Root Cause: WITH ENCRYPTION (SQL Server proprietary feature)
+
+Impact on Migration Workflow:
+
+Stage 1 (MSSQL Validation): FAILED
+- Cannot extract DDL from sys.sql_modules (definition = NULL)
+- Cannot use OBJECT_DEFINITION() (returns NULL)
+- Cannot use sp_helptext (returns "text is encrypted")
+- Result: mssql.sql NOT CREATED
+
+Stage 2 (Babelfish Compatibility): BLOCKED
+- No DDL to test on Babelfish
+- Cannot verify T-SQL compatibility
+- Result: DDL_NOT_AVAILABLE
+
+Stage 3 (PL/pgSQL Conversion): BLOCKED
+- No source DDL to convert
+- Cannot generate postgres.sql
+- Result: UNSUPPORTED - SOURCE CODE NOT AVAILABLE
+
+Stage 4 (PostgreSQL Validation): BLOCKED (THIS STAGE)
+- No converted code to test
+- Cannot create meaningful test cases
+- Cannot execute tests
+- Cannot compare results
+- Result: NG - PREREQUISITE_FAILED
+
+================================================================================
+FILES GENERATED
+================================================================================
+
+Stage 1 Files:
+✓ prerequisites.txt (PREREQUISITE_FAILED)
+✓ mssql_unsupported.txt (detailed explanation of encryption issue)
+✗ mssql.sql (NOT CREATED - encrypted object)
+✗ mssql_test.sql (NOT CREATED - cannot create tests without DDL)
+✗ mssql_test.txt (NOT CREATED - cannot execute tests without DDL)
+
+Stage 2 Files:
+✓ babelfish_attempt.txt (DDL_NOT_AVAILABLE)
+✗ babelfish_test.sql (NOT CREATED - no DDL to test)
+✗ babelfish_test.txt (NOT CREATED - no tests to execute)
+✗ BABELFISH_OK.txt (NOT CREATED - no successful compatibility verification)
+
+Stage 3 Files:
+✓ postgres_unsupported.txt (UNSUPPORTED - SOURCE CODE NOT AVAILABLE)
+✗ postgres.sql (NOT CREATED - no source to convert)
+
+Stage 4 Files (THIS STAGE):
+✓ postgres_test.sql (placeholder only - no real tests)
+✓ postgres_test.txt (status report - no test results)
+✓ comparison_result.txt (documents why comparison is impossible)
+✓ NG.txt (detailed failure report)
+✓ stage4_summary.txt (this file)
+✗ OK.txt (NOT CREATED - no successful conversion)
+
+================================================================================
+TEST EXECUTION SUMMARY
+================================================================================
+
+Total Test Cases: 0 (no tests defined)
+Test Cases Executed: 0
+Test Cases Passed: 0
+Test Cases Failed: 0
+
+Match Level Breakdown:
+- EXACT: 0
+- SEMANTIC: 0
+- STRUCTURAL: 0
+- MISMATCH: 0
+
+Result: NOT APPLICABLE (no tests available)
+
+================================================================================
+RETRY LOG
+================================================================================
+
+Retry Attempts: 0 (no retries attempted)
+
+Reason: Retries are only applicable when there is code to fix. In this case,
+        there is no source code available to convert or fix.
+
+Expected Retry Scenarios (if source code were available):
+- Syntax errors in postgres.sql → Fix and retry (max 3 attempts)
+- Runtime errors during test execution → Fix and retry (max 3 attempts)
+- Result mismatches → Analyze and fix conversion logic (max 3 attempts)
+
+Actual Scenario:
+- No source code → Cannot convert → Cannot test → Cannot retry
+- Requires human intervention to obtain source code
+
+================================================================================
+FINAL VERDICT
+================================================================================
+
+Conversion Result: NG
+
+NG Reason: PREREQUISITE_FAILED
+
+Category: WITH ENCRYPTION (SQL Server proprietary feature)
+
+Summary:
+The stored procedure 'dbo.usp_encrypted_demo' cannot be migrated to PostgreSQL
+because it was created with the WITH ENCRYPTION option in SQL Server. This
+proprietary encryption prevents extraction of the DDL definition, which blocks
+the entire migration workflow at Stage 1.
+
+Without the source code, it is impossible to:
+- Convert T-SQL to PL/pgSQL
+- Create test cases
+- Execute tests
+- Validate functional equivalence
+- Ensure data integrity during migration
+
+Required Action:
+Obtain the original unencrypted source code from source control, deployment
+scripts, or development team archives. Once the source code is available,
+restart the migration workflow from Stage 1.
+
+Alternative Action (if source code cannot be found):
+Reverse engineer the procedure through black-box testing, analyze calling
+applications, review business requirements, and recreate the procedure from
+scratch. Validate the recreated procedure with business stakeholders before
+deployment.
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+Immediate Actions:
+1. Escalate to migration project manager
+2. Contact database owner/development team for source code
+3. Check source control systems (Git, SVN, TFS, Azure DevOps, etc.)
+4. Review deployment scripts and change management records
+5. Search for database backups created before encryption was applied
+
+Long-Term Recommendations:
+1. Avoid using WITH ENCRYPTION in SQL Server:
+   - It creates migration barriers
+   - It prevents debugging and maintenance
+   - It provides minimal security benefit
+   - Use source control and access control instead
+
+2. Implement proper source code management:
+   - Store all DDL scripts in version control
+   - Maintain deployment scripts in Git/SVN
+   - Document all database objects
+   - Use database change management tools (Liquibase, Flyway, etc.)
+
+3. For PostgreSQL security:
+   - Use file system permissions on PostgreSQL data directory
+   - Implement schema-level access control
+   - Use SECURITY DEFINER for privilege elevation
+   - Implement Row-Level Security (RLS) policies
+   - Consider application-level encryption for sensitive data
+
+================================================================================
+MIGRATION STATUS
+================================================================================
+
+Overall Status: BLOCKED at Stage 1
+
+Blocking Issue: WITH ENCRYPTION (SQL Server proprietary feature)
+
+Stages Completed: None (all stages blocked by prerequisite failure)
+
+Stages Failed:
+- Stage 1: FAILED (cannot extract DDL)
+- Stage 2: BLOCKED (no DDL to test)
+- Stage 3: BLOCKED (no DDL to convert)
+- Stage 4: BLOCKED (no converted code to test)
+
+Action Required: OBTAIN ORIGINAL SOURCE CODE
+
+Next Steps:
+1. Locate and provide original unencrypted source code
+2. Place unencrypted DDL in ./result/usp_encrypted_demo/mssql.sql
+3. Create test cases in ./result/usp_encrypted_demo/mssql_test.sql
+4. Re-run Stage 1 (MSSQL validation)
+5. Re-run Stage 2 (Babelfish compatibility)
+6. Re-run Stage 3 (PL/pgSQL conversion)
+7. Re-run Stage 4 (PostgreSQL validation)
+
+================================================================================
+CONCLUSION
+================================================================================
+
+Stage 4 (PostgreSQL Native Validation) cannot proceed for 'dbo.usp_encrypted_demo'
+because the object is encrypted with WITH ENCRYPTION in SQL Server. This is a
+known migration blocker that requires human intervention to resolve.
+
+The migration workflow is blocked at Stage 1 (DDL extraction) and cannot proceed
+to Stage 4 (PostgreSQL validation) until the original unencrypted source code is
+obtained and provided.
+
+Result: NG - PREREQUISITE_FAILED
+
+Files Generated: NG.txt, comparison_result.txt, postgres_test.sql (placeholder),
+                 postgres_test.txt (status report), stage4_summary.txt (this file)
+
+Action Required: OBTAIN ORIGINAL SOURCE CODE BEFORE MIGRATION CAN PROCEED
+
+================================================================================
+END OF STAGE 4 SUMMARY
+================================================================================
