@@ -1,0 +1,57 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: FUNCTION dbo.fn_format_employee_name
+Test Cases: 0 total (comparison not performed)
+
+================================================================================
+COMPARISON STATUS: NOT PERFORMED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Stage 1 did not complete successfully. Required files are missing:
+  - mssql.sql          : NOT FOUND
+  - mssql_test.sql     : NOT FOUND
+  - mssql_test.txt     : NOT FOUND
+
+Stage 3 did not complete successfully. Required files are missing:
+  - postgres.sql       : NOT FOUND
+
+Without baseline MSSQL test results and PostgreSQL conversion artifacts,
+comparison cannot be performed.
+
+Root Cause:
+-----------
+Source RDS for SQL Server connection failed with error:
+"You must specify a region."
+
+Impact:
+-------
+- Cannot extract function definition from MSSQL
+- Cannot generate test cases
+- Cannot establish baseline results
+- Cannot perform T-SQL → PL/pgSQL conversion
+- Cannot validate result equivalence
+
+================================================================================
+VERDICT
+================================================================================
+
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0
+Total Pass: 0/0 (N/A - comparison not performed)
+
+Result: PREREQUISITE_FAILED
+
+Comparison cannot proceed until Stage 1 completes successfully and provides
+baseline MSSQL test results for validation.
+
+================================================================================
+COMPLIANCE WITH ANTI-FABRICATION POLICY
+================================================================================
+
+✅ Did NOT fabricate comparison results
+✅ Did NOT assume "expected" values without real execution
+✅ Did NOT create OK.txt based on assumptions
+✅ Did record actual blocking reason
+
+This report accurately reflects that no comparison was performed due to
+missing prerequisites.

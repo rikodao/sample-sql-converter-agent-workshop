@@ -1,0 +1,34 @@
+================================================================================
+STAGE 1: SOURCE OBJECT VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: dbo.fn_get_dept_summary
+Type: FUNCTION
+Timestamp: Stage 1 execution
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Connection to Source RDS for SQL Server failed with error:
+"Error executing tool run_mssql_sql: You must specify a region."
+
+This is an AWS configuration/connectivity issue preventing access to the source database.
+
+IMPACT:
+-------
+- Cannot verify object existence
+- Cannot retrieve DDL definition
+- Cannot extract dependencies
+- Cannot execute test cases
+- Cannot obtain actual results from source MSSQL
+
+NEXT STEPS:
+-----------
+Stage 1 is ABORTED. Downstream stages (2/3/4) must detect this failure
+and generate NG.txt accordingly.
+
+DO NOT proceed with migration validation until source database connectivity
+is restored and Stage 1 can successfully complete.
+
+RESULT: PREREQUISITE_FAILED (connectivity issue)
+================================================================================

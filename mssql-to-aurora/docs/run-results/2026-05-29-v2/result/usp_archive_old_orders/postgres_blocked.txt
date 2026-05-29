@@ -1,0 +1,95 @@
+================================================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION - BLOCKED
+================================================================================
+Object: PROCEDURE dbo.usp_archive_old_orders
+Timestamp: 2025-01-10 (automated conversion attempt)
+
+================================================================================
+SECTION 1: PREREQUISITE CHECK
+================================================================================
+
+Required Input Files:
+---------------------
+1. ./result/usp_archive_old_orders/mssql.sql
+   Status: NOT FOUND ❌
+   Purpose: Source T-SQL DDL to convert to PL/pgSQL
+
+2. ./result/usp_archive_old_orders/babelfish_attempt.txt
+   Status: FOUND ✓
+   Content: Stage 2 failed due to CONNECTION_ERROR
+   - Babelfish connection not configured (missing AWS region)
+   - Stage 1 artifacts (mssql.sql) were already missing at Stage 2
+
+================================================================================
+SECTION 2: BLOCKING REASON
+================================================================================
+
+Root Cause: MISSING_STAGE1_ARTIFACTS
+
+Stage 3 cannot proceed because:
+
+1. **No source DDL available**
+   - mssql.sql does not exist
+   - Cannot convert T-SQL to PL/pgSQL without source code
+   - Stage 1 (MSSQL extraction) was not completed successfully
+
+2. **Upstream failure cascade**
+   - Stage 1: Failed to extract DDL from source MSSQL
+   - Stage 2: Could not test Babelfish compatibility (no DDL + connection error)
+   - Stage 3: Cannot convert non-existent DDL to PostgreSQL
+
+================================================================================
+SECTION 3: COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 3 specification:
+"接続失敗時の正しい挙動:
+1. ステージログ (postgres_blocked.txt 等) に RESULT: CONNECTION_ERROR と記録
+2. postgres.sql は作成しない
+3. Stage 3 を即座に終了する"
+
+And:
+"🚫 絶対禁止事項 — 接続失敗時の捏造禁止
+- ❌ mssql.sql を読めていないのに postgres.sql に推測のコードを書く
+- ❌ Aurora PostgreSQL に CREATE できていないのに postgres.sql を完成形として扱う"
+
+Actions taken:
+✓ Verified mssql.sql does not exist
+✓ Did NOT fabricate postgres.sql based on object name alone
+✓ Did NOT create placeholder or template code
+✓ Recorded detailed blocking reason in postgres_blocked.txt
+✓ Will terminate Stage 3 immediately
+
+Prohibited actions avoided:
+✓ Did NOT guess procedure implementation from name "usp_archive_old_orders"
+✓ Did NOT create postgres.sql without source DDL
+✓ Did NOT attempt PostgreSQL connection without valid conversion
+
+================================================================================
+SECTION 4: RESOLUTION PATH
+================================================================================
+
+To unblock Stage 3:
+
+1. **Fix Stage 1 first**
+   - Verify source MSSQL connection is configured correctly
+   - Run Stage 1 agent to extract DDL for dbo.usp_archive_old_orders
+   - Ensure mssql.sql is created successfully
+
+2. **Optionally fix Stage 2**
+   - Configure Babelfish connection (AWS region)
+   - Run Stage 2 to test Babelfish compatibility
+   - Note: Stage 2 success is not required for Stage 3
+     (Stage 3 can convert directly from mssql.sql even if Babelfish fails)
+
+3. **Re-run Stage 3**
+   - Once mssql.sql exists, Stage 3 can proceed
+   - T-SQL will be converted to PL/pgSQL
+   - Conversion will be tested against Aurora PostgreSQL
+
+================================================================================
+RESULT: MISSING_INPUT_FILES
+================================================================================
+
+Stage 3 terminated: Cannot convert without source DDL.
+postgres.sql: NOT CREATED (correct behavior per error policy)

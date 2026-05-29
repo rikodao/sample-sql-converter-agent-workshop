@@ -1,0 +1,162 @@
+=== Conversion Result: NG ===
+Object: PROCEDURE dbo.usp_search_employees_paged
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE SUMMARY
+================================================================================
+
+Stage 1 (MSSQL Object Extraction):
+  Status: FAILED
+  Error: "You must specify a region."
+  Impact: Cannot connect to Source RDS for SQL Server
+  
+Stage 2 (Babelfish Compatibility):
+  Status: SKIPPED (CONNECTION_ERROR)
+  Reason: Babelfish connection failed (AWS region not specified)
+  
+Stage 3 (PostgreSQL Conversion):
+  Status: BLOCKED (PREREQUISITE_MISSING)
+  Reason: mssql.sql does not exist (Stage 1 not completed)
+  
+Stage 4 (Final Verification):
+  Status: CANNOT EXECUTE
+  Reason: No baseline results and no conversion output
+
+================================================================================
+MISSING ARTIFACTS
+================================================================================
+
+Required for Stage 4 execution:
+  ❌ mssql.sql              - Source T-SQL DDL (Stage 1)
+  ❌ mssql_test.sql         - MSSQL test script (Stage 1)
+  ❌ mssql_test.txt         - MSSQL baseline results (Stage 1)
+  ❌ postgres.sql           - Converted PL/pgSQL DDL (Stage 3)
+  ❌ postgres_test.sql      - PostgreSQL test script (Stage 4)
+  ❌ postgres_test.txt      - PostgreSQL execution results (Stage 4)
+
+Existing artifacts:
+  ✓ prerequisites.txt       - Documents Stage 1 failure
+  ✓ babelfish_attempt.txt   - Documents Stage 2 connection failure
+  ✓ postgres_blocked.txt    - Documents Stage 3 blocked status
+  ✓ comparison_result.txt   - Documents comparison impossibility
+  ✓ NG.txt                  - This file
+
+================================================================================
+FAILED TEST CASE
+================================================================================
+
+Name: ALL TEST CASES
+Expected (MSSQL):
+  (No baseline results available - Stage 1 not executed)
+
+Actual (PG):
+  (No conversion output available - Stage 3 blocked)
+
+Diff:
+  Cannot perform comparison without both baseline and actual results.
+  
+  Stage 1 failed to connect to Source RDS for SQL Server due to missing
+  AWS region configuration. Without the source DDL and test results,
+  subsequent stages cannot proceed.
+
+================================================================================
+HYPOTHESIS
+================================================================================
+
+Root Cause:
+-----------
+AWS region configuration is missing or not properly set for the run_mssql_sql
+tool. This is an infrastructure/configuration issue, not an object-specific
+compatibility issue.
+
+The failure occurred at the earliest stage (Stage 1), preventing:
+1. Extraction of the source T-SQL DDL
+2. Generation of test cases
+3. Execution of baseline tests on MSSQL
+4. Any conversion or compatibility assessment
+
+Impact on Conversion Assessment:
+--------------------------------
+We CANNOT determine whether this stored procedure:
+- Is compatible with Babelfish
+- Can be converted to PL/pgSQL
+- Would produce equivalent results on Aurora PostgreSQL
+
+The object itself may be perfectly convertible, but the conversion workflow
+cannot proceed without the source artifacts from Stage 1.
+
+================================================================================
+RECOMMENDED ACTION
+================================================================================
+
+Immediate Actions:
+------------------
+1. ✅ Configure AWS Region
+   - Set AWS_REGION environment variable or
+   - Update run_mssql_sql tool configuration with correct region
+   - Verify Source RDS for SQL Server endpoint accessibility
+
+2. ✅ Verify Network Connectivity
+   - Ensure network path to Source RDS for SQL Server
+   - Check security groups and VPC settings
+   - Verify authentication credentials
+
+3. ✅ Re-run Stage 1
+   - Execute Stage 1 agent to generate:
+     * mssql.sql (DDL)
+     * mssql_test.sql (test script)
+     * mssql_test.txt (baseline results)
+
+4. ✅ Continue Workflow
+   - After Stage 1 succeeds, proceed with Stage 2 (optional)
+   - Execute Stage 3 to generate postgres.sql
+   - Execute Stage 4 to perform final verification
+
+Human Review Points:
+--------------------
+- This is NOT a conversion failure - it's a prerequisite failure
+- The stored procedure has not been evaluated for compatibility
+- No code review or manual intervention is needed at this stage
+- Focus on fixing the infrastructure/configuration issue first
+
+Prevention:
+-----------
+- Add pre-flight checks for AWS region configuration
+- Validate database connectivity before starting conversion workflow
+- Consider adding retry logic for transient connection failures
+
+================================================================================
+COMPLIANCE WITH ANTI-FABRICATION RULES
+================================================================================
+
+This NG.txt was created in compliance with the workflow's "絶対禁止事項":
+
+✅ Did NOT create OK.txt without actual database execution
+✅ Did NOT fabricate test results or comparison data
+✅ Did NOT assume "it would work" based on code inspection
+✅ Did NOT proceed with conversion without source artifacts
+✅ Clearly documented the actual error condition
+
+Historical Context:
+-------------------
+2026-05-29 バルクラン事例: 接続失敗時に偽 OK.txt が 12 件生成され、
+実際には 1 件も DB に投入されていなかった。
+
+This NG.txt prevents such hallucination by explicitly documenting the
+prerequisite failure and refusing to generate OK.txt without real execution.
+
+================================================================================
+FINAL VERDICT
+================================================================================
+
+Conversion Status: ❌ FAILED (PREREQUISITE_FAILED)
+Test Cases: 0/0 matched (no tests executed)
+Match Levels: EXACT=0, SEMANTIC=0, STRUCTURAL=0
+
+This object requires Stage 1 completion before conversion can be assessed.
+
+================================================================================
+END OF NG REPORT
+================================================================================

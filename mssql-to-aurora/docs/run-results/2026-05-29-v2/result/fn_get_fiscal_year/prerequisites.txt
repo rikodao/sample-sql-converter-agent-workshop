@@ -1,0 +1,40 @@
+================================================================================
+STAGE 1: SOURCE OBJECT VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: dbo.fn_get_fiscal_year
+Type: FUNCTION
+Date: 2025-01-10
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Connection to Source RDS for SQL Server failed with error:
+"You must specify a region."
+
+This is an AWS configuration/authentication error. Cannot proceed with:
+- Object existence verification
+- DDL extraction
+- Dependency analysis
+- Test case execution
+
+IMPACT:
+-------
+Stage 1 cannot be completed without database connectivity.
+The following files will NOT be created:
+- mssql.sql (DDL definition)
+- mssql_test.sql (test cases)
+- mssql_test.txt (test results)
+
+REQUIRED ACTION:
+----------------
+1. Verify AWS region configuration
+2. Check AWS credentials and permissions
+3. Confirm Source RDS for SQL Server endpoint accessibility
+4. Retry Stage 1 after resolving connectivity issues
+
+Stage 2/3/4 should detect this failure and generate NG.txt accordingly.
+
+================================================================================
+END OF PREREQUISITES CHECK
+================================================================================

@@ -1,0 +1,61 @@
+=== Conversion Result: NG ===
+Object: FUNCTION dbo.fn_get_dept_summary
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+--- Failed Test Case ---
+Name: Stage 1 - Source Object Verification
+Expected (MSSQL):
+  - mssql.sql (source DDL definition)
+  - mssql_test.sql (test cases)
+  - mssql_test.txt (baseline test results from actual SQL Server execution)
+Actual (PG):
+  - mssql.sql: NOT FOUND
+  - mssql_test.sql: NOT FOUND
+  - mssql_test.txt: NOT FOUND
+  - postgres.sql: NOT FOUND (Stage 3 blocked due to missing source)
+Diff:
+  All required Stage 1 artifacts are missing due to connectivity failure.
+  Error: "You must specify a region." (AWS configuration issue)
+
+--- Hypothesis ---
+The Source RDS for SQL Server connection failed during Stage 1 execution.
+This is an infrastructure/configuration issue, not a code conversion issue.
+
+Root cause:
+- AWS region parameter is missing or misconfigured in the run_mssql_sql tool
+- Source database endpoint may be unreachable
+- IAM credentials or security group rules may be blocking access
+
+Without Stage 1 completion:
+- No source T-SQL definition to convert
+- No baseline test results to compare against
+- Stage 2 (Babelfish) also failed with same connectivity issue
+- Stage 3 (PL/pgSQL conversion) was correctly blocked
+- Stage 4 (this stage) cannot perform validation without test data
+
+--- Recommended Action ---
+1. **Infrastructure Team**: Verify AWS configuration
+   - Check that AWS region is properly set in environment variables or tool config
+   - Verify Source RDS for SQL Server endpoint is accessible
+   - Confirm IAM role has rds:ExecuteStatement permission
+   - Check VPC security groups allow database connections
+
+2. **Re-run Stage 1**: Once connectivity is restored, execute Stage 1 agent to:
+   - Extract dbo.fn_get_dept_summary DDL from source SQL Server
+   - Generate test cases (mssql_test.sql)
+   - Execute tests and capture baseline results (mssql_test.txt)
+
+3. **Do NOT manually create artifacts**: Per workflow rules, fabricating
+   mssql_test.txt or postgres.sql without actual database execution is
+   strictly prohibited (hallucination prevention).
+
+4. **After Stage 1 succeeds**: Re-run Stages 2, 3, and 4 in sequence.
+
+--- Compliance Note ---
+This NG.txt was generated in accordance with <error_policy> and
+<output_specification>. No OK.txt was created because the prerequisite
+condition "mssql_test.txt must exist from actual SQL Server execution"
+was not met.
+
+This is the correct behavior to prevent false positives in migration validation.

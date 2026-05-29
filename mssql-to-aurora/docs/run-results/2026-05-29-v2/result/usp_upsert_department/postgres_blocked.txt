@@ -1,0 +1,38 @@
+================================================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION - BLOCKED
+================================================================================
+Object: PROCEDURE dbo.usp_upsert_department
+Timestamp: 2025-01-10 (Stage 3 execution)
+
+================================================================================
+BLOCKING CONDITION
+================================================================================
+
+Stage 1 artifacts are missing:
+- mssql.sql: NOT FOUND
+
+Without the source T-SQL definition, Stage 3 cannot perform conversion.
+
+Per workflow policy (絶対禁止事項):
+❌ MUST NOT create postgres.sql with guessed/fabricated code
+❌ MUST NOT proceed with "might work" assumptions
+✅ MUST terminate Stage 3 immediately with CONNECTION_ERROR status
+
+================================================================================
+RESULT: CONNECTION_ERROR
+================================================================================
+
+Error Category: PREREQUISITE_FAILURE
+- Stage 1 artifacts: MISSING
+- T-SQL source: UNAVAILABLE
+- PL/pgSQL conversion: NOT ATTEMPTED
+- Aurora PostgreSQL deployment: NOT ATTEMPTED
+
+Recommended Actions:
+1. Verify Stage 1 completed successfully for object 'dbo.usp_upsert_department'
+2. Ensure mssql.sql exists in ./result/usp_upsert_department/
+3. Re-run Stage 3 after Stage 1 completes
+
+Stage 3 terminates here. No postgres.sql will be created.
+Stage 4 will detect this condition and generate appropriate NG.txt.
+================================================================================

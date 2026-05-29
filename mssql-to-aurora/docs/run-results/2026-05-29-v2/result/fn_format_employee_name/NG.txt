@@ -1,0 +1,43 @@
+=== Conversion Result: NG ===
+Object: FUNCTION dbo.fn_format_employee_name
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+--- Failed Test Case ---
+Name: Stage 1 - Source Object Extraction
+Expected (MSSQL):
+  - mssql.sql (DDL definition)
+  - mssql_test.sql (test cases)
+  - mssql_test.txt (baseline test results)
+Actual (PG):
+  N/A (Stage 1 did not complete)
+Diff:
+  All Stage 1 artifacts are missing due to MSSQL connection failure.
+  Error: "You must specify a region."
+
+--- Hypothesis ---
+The Source RDS for SQL Server connection failed due to missing AWS region configuration.
+Without Stage 1 completion:
+- Cannot extract the function definition from MSSQL
+- Cannot generate test cases
+- Cannot establish baseline results for comparison
+- Cannot proceed with T-SQL → PL/pgSQL conversion
+- Cannot validate PostgreSQL compatibility
+
+This is a prerequisite failure, not a conversion failure.
+The object may be convertible, but verification cannot proceed without source data.
+
+--- Recommended Action ---
+1. Configure AWS region for Source RDS for SQL Server connection
+2. Verify network connectivity and authentication credentials
+3. Re-run Stage 1 to extract DDL and generate baseline test results
+4. After Stage 1 completes successfully, re-run Stages 2, 3, and 4
+
+--- Compliance Note ---
+Per anti-fabrication policy:
+✅ Did NOT create OK.txt without real test execution
+✅ Did NOT fabricate mssql_test.txt or postgres_test.txt
+✅ Did NOT assume compatibility based on code inspection
+✅ Did record actual blocking reason (PREREQUISITE_FAILED)
+
+This NG.txt correctly reflects that validation cannot proceed due to missing prerequisites.

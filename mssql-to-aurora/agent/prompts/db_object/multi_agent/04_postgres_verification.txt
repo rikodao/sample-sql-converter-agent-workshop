@@ -76,3 +76,28 @@ Total Pass: 13/13
 - 依存が不在の場合は最小限のダミーデータを SETUP で作り、CLEANUP で必ず削除する
 - OK.txt / NG.txt の中身はフリーフォーマットではなく、必ず <output_specification> のテンプレートに従う
 - Test Cases の数値、Match Levels の内訳数値は必ず数字で記入する (集計スクリプトが解析する)
+
+## 🚫 絶対禁止事項 — OK 判定の前提条件と捏造禁止
+
+OK.txt を作成できる条件は **以下を全て満たした場合のみ**:
+
+1. ✅ `mssql_test.txt` が **実 SQL Server で実行された結果**として存在する (Stage 1 で作成済み)
+2. ✅ `postgres_test.sql` を **実 Aurora PostgreSQL に投入して実行**できた
+3. ✅ `postgres_test.txt` が **実 Aurora PostgreSQL での実行結果**として存在する
+4. ✅ `mssql_test.txt` と `postgres_test.txt` の各 TC を比較して、全ての TC が EXACT または SEMANTIC で一致
+
+**以下のいずれかに該当する場合は、絶対に OK.txt を作成してはならない**:
+
+- ❌ Stage 1 の成果物 (`mssql_test.txt`) が無い、または「expected results (not executed)」のような捏造である
+- ❌ ツール呼び出し (`run_postgres_sql`) が失敗して、`postgres_test.txt` を実 DB から取得できていない
+- ❌ `mssql_test.txt` または `postgres_test.txt` の冒頭に「Due to connectivity issues」「expected」「assumed」「想定」などの捏造マーカーがある
+- ❌ 「コードを読んで論理的には一致する」という推論だけで OK 判定を出す
+
+接続失敗または前提条件不足の場合の正しい挙動:
+1. `NG.txt` を `NG Reason: PREREQUISITE_FAILED` で生成
+2. `comparison_result.txt` に「比較不能の理由」を記録
+3. `OK.txt` は **絶対に作成しない** (LLM hallucination による偽 OK は最も避けるべき結果)
+
+過去の事例: 2026-05-29 のバルクラン (20件) で、接続失敗時にこのガードが無かったため、
+12 件で偽 OK.txt が生成され、実際には 1 件も DB に投入されていなかった。
+このような hallucination は本番投入時に重大な事故を引き起こす。

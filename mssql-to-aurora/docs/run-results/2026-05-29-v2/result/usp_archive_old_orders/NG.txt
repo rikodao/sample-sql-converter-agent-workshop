@@ -1,0 +1,165 @@
+=== Conversion Result: NG ===
+Object: PROCEDURE dbo.usp_archive_old_orders
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE SUMMARY
+================================================================================
+
+Stage 4 (PostgreSQL Native Verification) cannot proceed because Stage 1
+(MSSQL Extraction) failed to complete successfully.
+
+Root Cause:
+-----------
+AWS region configuration is missing or invalid. The Source RDS for SQL Server
+connection tool requires proper AWS region specification.
+
+Error Message (Stage 1):
+"You must specify a region."
+
+Impact:
+-------
+- No DDL extracted from source MSSQL (mssql.sql: NOT FOUND)
+- No test script generated (mssql_test.sql: NOT FOUND)
+- No baseline test results (mssql_test.txt: NOT FOUND)
+- Stage 2 (Babelfish) blocked by same connection issue
+- Stage 3 (PostgreSQL conversion) blocked by missing mssql.sql
+- Stage 4 (this stage) cannot verify conversion without baseline
+
+================================================================================
+MISSING ARTIFACTS
+================================================================================
+
+Required for Stage 4:
+1. ✗ mssql_test.txt - Baseline test results from Source MSSQL
+2. ✗ mssql_test.sql - Test script to convert to postgres_test.sql
+3. ✗ mssql.sql - Source DDL (needed by Stage 3 to generate postgres.sql)
+4. ✗ postgres.sql - Converted PL/pgSQL DDL (blocked by missing mssql.sql)
+
+Created by Stage 4:
+- comparison_result.txt: Created (documents prerequisite failure)
+- postgres_test.sql: NOT CREATED (cannot create without mssql_test.sql)
+- postgres_test.txt: NOT CREATED (cannot execute without postgres_test.sql)
+- OK.txt: NOT CREATED (prohibited by error policy when prerequisites missing)
+- NG.txt: Created (this file)
+
+================================================================================
+COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 4 specification:
+"🚫 絶対禁止事項 — OK 判定の前提条件と捏造禁止
+
+**以下のいずれかに該当する場合は、絶対に OK.txt を作成してはならない**:
+- ❌ Stage 1 の成果物 (`mssql_test.txt`) が無い ← **APPLICABLE**
+- ❌ ツール呼び出しが失敗して実 DB から取得できていない ← **APPLICABLE**
+
+接続失敗または前提条件不足の場合の正しい挙動:
+1. `NG.txt` を `NG Reason: PREREQUISITE_FAILED` で生成 ← **DONE**
+2. `comparison_result.txt` に「比較不能の理由」を記録 ← **DONE**
+3. `OK.txt` は **絶対に作成しない** ← **COMPLIANT**"
+
+This NG.txt is generated in strict compliance with the error policy to prevent
+false positive results that could lead to production incidents.
+
+================================================================================
+HYPOTHESIS
+================================================================================
+
+Technical Root Cause:
+---------------------
+The AWS SDK or database connection tool is not receiving the required region
+parameter. This could be due to:
+
+1. Missing environment variable (AWS_DEFAULT_REGION or AWS_REGION)
+2. Missing configuration in ~/.aws/config
+3. Tool invocation not passing region parameter
+4. IAM role/credentials issue preventing region detection
+
+Workflow Impact:
+----------------
+This is a Stage 1 failure that cascades through all subsequent stages:
+- Stage 1: Cannot connect to source MSSQL → no artifacts generated
+- Stage 2: Cannot connect to Babelfish (same region issue) → compatibility unknown
+- Stage 3: Cannot convert without source DDL → postgres.sql not created
+- Stage 4: Cannot verify without baseline → NG.txt generated (correct behavior)
+
+================================================================================
+RECOMMENDED ACTION
+================================================================================
+
+Immediate Actions (Infrastructure):
+------------------------------------
+1. **Configure AWS Region**
+   - Set environment variable: export AWS_DEFAULT_REGION=us-east-1 (or appropriate region)
+   - Or configure in ~/.aws/config:
+     [default]
+     region = us-east-1
+
+2. **Verify RDS Endpoints**
+   - Confirm Source RDS for SQL Server endpoint and region
+   - Confirm Babelfish endpoint and region (if different)
+   - Ensure network connectivity (security groups, VPC, etc.)
+
+3. **Test Connections**
+   - Test Source MSSQL: run_mssql_sql("SELECT @@VERSION")
+   - Test Babelfish: run_babelfish_tsql("SELECT @@VERSION")
+   - Test Aurora PostgreSQL: run_postgres_sql("SELECT version()")
+
+Re-run Workflow:
+----------------
+Once AWS region is configured and connections are verified:
+
+1. Re-run Stage 1 (MSSQL Extraction)
+   - Should successfully extract DDL for dbo.usp_archive_old_orders
+   - Should generate mssql.sql, mssql_test.sql, mssql_test.txt
+
+2. Re-run Stage 2 (Babelfish Compatibility) - Optional
+   - Tests T-SQL compatibility with Babelfish
+   - Not required for Stage 3/4 to proceed
+
+3. Re-run Stage 3 (PostgreSQL Conversion)
+   - Converts T-SQL to PL/pgSQL
+   - Generates postgres.sql
+
+4. Re-run Stage 4 (PostgreSQL Verification)
+   - Executes tests against Aurora PostgreSQL
+   - Compares results with MSSQL baseline
+   - Generates OK.txt or NG.txt based on actual test results
+
+Human Review Required:
+----------------------
+- Verify AWS infrastructure configuration
+- Confirm RDS instance endpoints and regions
+- Review IAM permissions for database access
+- Check network security groups and routing
+
+Do NOT:
+-------
+- ❌ Manually create mssql_test.txt with assumed results
+- ❌ Skip Stage 1 and proceed directly to Stage 3
+- ❌ Mark this object as "OK" without actual database testing
+- ❌ Deploy any code to production without successful Stage 4 completion
+
+================================================================================
+HISTORICAL CONTEXT
+================================================================================
+
+This strict error handling was implemented after the 2026-05-29 incident where
+12 objects received false OK.txt files due to connection failures, resulting in
+0 actual database deployments despite 12 "successful" conversions reported.
+
+The current behavior (generating NG.txt for prerequisite failures) is correct
+and prevents false positives that could cause production incidents.
+
+================================================================================
+FINAL STATUS
+================================================================================
+
+Conversion Status: FAILED (prerequisite not met)
+Test Execution: NOT POSSIBLE (no baseline results)
+Comparison: NOT PERFORMED (missing both MSSQL and PostgreSQL results)
+Deployment Ready: NO (requires successful Stage 1-4 completion)
+
+Next Step: Fix AWS region configuration and re-run from Stage 1

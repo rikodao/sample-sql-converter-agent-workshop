@@ -1,0 +1,29 @@
+================================================================================
+STAGE 1: PREREQUISITE CHECK
+================================================================================
+Object: TRIGGER dbo.trg_v_employee_full_update
+Timestamp: Stage 1 execution attempt
+Status: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Tool: run_mssql_sql
+Error: "You must specify a region."
+
+This is a connectivity/configuration error preventing access to the source 
+RDS for SQL Server instance. 
+
+IMPACT:
+-------
+- Cannot verify trigger existence
+- Cannot retrieve trigger definition (DDL)
+- Cannot identify dependencies
+- Cannot execute test cases
+
+RESULT: PREREQUISITE_FAILED
+
+Stage 1 is ABORTED. No DDL or test files will be generated.
+Downstream stages (2/3/4) must detect this failure and generate NG.txt 
+with appropriate error classification.
+
+================================================================================

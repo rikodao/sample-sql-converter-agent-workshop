@@ -1,0 +1,95 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_calculate_employee_bonus
+Test Cases: 0 total (comparison not performed)
+
+================================================================================
+COMPARISON STATUS: NOT PERFORMED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Required Files Missing:
+-----------------------
+❌ mssql_test.txt
+   Status: Does not exist
+   Reason: Stage 1 failed (AWS connection error)
+   Impact: No baseline "Expected" results available
+
+❌ postgres.sql
+   Status: Does not exist
+   Reason: Stage 3 blocked (no source DDL from Stage 1)
+   Impact: No PL/pgSQL code to deploy
+
+❌ postgres_test.txt
+   Status: Cannot be created
+   Reason: No postgres.sql to deploy and test
+   Impact: No "Actual" results available
+
+================================================================================
+WHY COMPARISON IS IMPOSSIBLE
+================================================================================
+
+A valid comparison requires:
+1. mssql_test.txt (Expected) - from Stage 1 execution on SQL Server
+2. postgres_test.txt (Actual) - from Stage 4 execution on Aurora PostgreSQL
+
+Current State:
+- Expected: MISSING (Stage 1 did not complete)
+- Actual: MISSING (Stage 3 did not produce postgres.sql)
+
+Without both files, there is nothing to compare.
+
+================================================================================
+ANTI-FABRICATION POLICY
+================================================================================
+
+This comparison_result.txt does NOT contain:
+❌ Mock test cases with "assumed" results
+❌ "Expected" results inferred from code reading
+❌ "Actual" results fabricated without DB execution
+❌ False "✓ EXACT MATCH" claims
+
+Per Stage 4 Protocol:
+"接続失敗または前提条件不足の場合は comparison_result.txt に
+「比較不能の理由」を記録し、OK.txt は絶対に作成しない"
+
+This file fulfills that requirement.
+
+================================================================================
+RESOLUTION PATH
+================================================================================
+
+To enable comparison:
+
+1. Fix Stage 1 Prerequisites
+   - Resolve AWS region configuration error
+   - Extract DDL from source SQL Server
+   - Generate mssql_test.txt with actual execution results
+
+2. Complete Stage 3 Conversion
+   - Convert T-SQL to PL/pgSQL
+   - Generate postgres.sql
+   - Validate syntax
+
+3. Re-run Stage 4
+   - Deploy postgres.sql to Aurora PostgreSQL
+   - Execute postgres_test.sql
+   - Generate postgres_test.txt
+   - Perform actual comparison
+
+Only then can a valid comparison_result.txt be generated.
+
+================================================================================
+VERDICT
+================================================================================
+
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0
+Total Pass: 0/0 (No tests executed)
+
+Status: COMPARISON_NOT_PERFORMED
+Reason: PREREQUISITE_FAILED
+Next Action: Fix Stage 1 and retry entire pipeline
+
+================================================================================
+END OF COMPARISON REPORT
+================================================================================

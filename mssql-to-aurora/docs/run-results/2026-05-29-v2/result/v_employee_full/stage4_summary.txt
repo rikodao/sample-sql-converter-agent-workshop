@@ -1,0 +1,160 @@
+================================================================================
+STAGE 4: FINAL VALIDATION - EXECUTION SUMMARY
+================================================================================
+Object: VIEW dbo.v_employee_full
+Timestamp: 2025-01-XX
+Agent: MSSQL → Aurora PostgreSQL Native Conversion Final Validator
+
+================================================================================
+EXECUTION OVERVIEW
+================================================================================
+
+Stage 4 was invoked to perform final validation of the converted VIEW, but
+detected that prerequisite files from earlier stages do not exist.
+
+Expected Input Files:
+  - mssql_test.sql ................ NOT FOUND ❌
+  - mssql_test.txt ................ NOT FOUND ❌
+  - postgres.sql .................. NOT FOUND ❌
+
+Root Cause:
+  Stage 1 failed with AWS region configuration error, preventing extraction
+  of the source VIEW definition and test baseline. Stage 3 was subsequently
+  blocked due to missing Stage 1 artifacts.
+
+================================================================================
+ACTIONS TAKEN
+================================================================================
+
+✅ Verified prerequisite file status (all missing)
+✅ Reviewed Stage 1 prerequisites.txt (PREREQUISITE_FAILED)
+✅ Reviewed Stage 2 babelfish_attempt.txt (CONNECTION_ERROR)
+✅ Reviewed Stage 3 postgres_blocked.txt (MISSING_INPUT)
+✅ Created NG.txt with PREREQUISITE_FAILED reason
+✅ Created comparison_result.txt documenting why comparison was not performed
+✅ Did NOT create OK.txt (would be fraudulent)
+✅ Did NOT create postgres_test.sql (no source to convert)
+✅ Did NOT create postgres_test.txt (no tests executed)
+✅ Did NOT fabricate any validation results
+
+================================================================================
+COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Stage 4 specification requires that when prerequisite files are missing:
+
+  ✅ MUST create NG.txt with PREREQUISITE_FAILED reason
+  ✅ MUST NOT create OK.txt under any circumstances
+  ✅ MUST NOT fabricate test results or comparison data
+  ✅ MUST document the failure clearly for human review
+
+All requirements have been met.
+
+================================================================================
+FILES CREATED
+================================================================================
+
+✅ NG.txt
+   - Status: Conversion Result: NG
+   - Failed At: Stage 1
+   - NG Reason: PREREQUISITE_FAILED
+   - Contains detailed explanation and remediation steps
+
+✅ comparison_result.txt
+   - Documents why comparison was not performed
+   - Lists missing prerequisite files
+   - Provides remediation guidance
+
+✅ stage4_summary.txt (this file)
+   - Execution log for Stage 4
+   - Compliance verification
+   - Next steps
+
+================================================================================
+FILES NOT CREATED (CORRECTLY)
+================================================================================
+
+❌ OK.txt
+   Reason: Cannot validate without test baseline and converted DDL
+
+❌ postgres_test.sql
+   Reason: No mssql_test.sql to convert
+
+❌ postgres_test.txt
+   Reason: No tests executed (no postgres.sql to deploy)
+
+❌ retry_log.txt
+   Reason: No conversion attempts were made (nothing to retry)
+
+================================================================================
+VALIDATION STATISTICS
+================================================================================
+
+Test Cases Executed: 0
+Test Cases Passed: 0
+Test Cases Failed: 0
+Match Levels:
+  - EXACT: 0
+  - SEMANTIC: 0
+  - STRUCTURAL: 0
+  - MISMATCH: 0
+
+Retry Attempts: 0 (no conversion to retry)
+
+Final Result: NG (PREREQUISITE_FAILED)
+
+================================================================================
+RECOMMENDED NEXT STEPS
+================================================================================
+
+1. **Immediate Action**
+   - Fix AWS region configuration for Source RDS for SQL Server
+   - Verify database connectivity and credentials
+   - Test connection: aws rds describe-db-instances
+
+2. **Re-run Pipeline**
+   - Execute Stage 1: Extract VIEW dbo.v_employee_full from MSSQL
+   - Execute Stage 2: Verify Babelfish compatibility (optional)
+   - Execute Stage 3: Convert VIEW to PostgreSQL
+   - Execute Stage 4: Validate conversion with test comparison
+
+3. **Verification**
+   - Confirm mssql.sql, mssql_test.sql, mssql_test.txt exist after Stage 1
+   - Confirm postgres.sql exists after Stage 3
+   - Confirm OK.txt or NG.txt is created after Stage 4 with actual test results
+
+================================================================================
+HISTORICAL CONTEXT
+================================================================================
+
+This failure mode is consistent with the 2026-05-29 bulk run incident where
+connection failures led to false-positive OK.txt files. The current error
+handling correctly prevents such hallucination by:
+
+  ✅ Detecting missing prerequisite files early
+  ✅ Refusing to proceed with validation
+  ✅ Creating NG.txt instead of fabricating OK.txt
+  ✅ Documenting the failure clearly
+
+This is the correct behavior per the Stage 4 specification.
+
+================================================================================
+CONCLUSION
+================================================================================
+
+Stage 4 has correctly identified that validation cannot be performed due to
+missing prerequisite files from Stage 1 and Stage 3. An NG.txt file has been
+created with PREREQUISITE_FAILED reason, and no fraudulent validation results
+have been generated.
+
+This is NOT a conversion failure - it is an infrastructure/environment issue
+that prevents validation from being attempted. Once the environment is fixed,
+the VIEW may convert successfully.
+
+Status: TERMINATED (prerequisite check failed)
+Result: NG.txt created
+Next Action: Fix environment and re-run from Stage 1
+
+================================================================================
+END OF STAGE 4 EXECUTION SUMMARY
+================================================================================

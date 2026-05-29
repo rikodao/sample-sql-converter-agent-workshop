@@ -1,0 +1,67 @@
+================================================================================
+STAGE 2: BABELFISH COMPATIBILITY VERIFICATION
+================================================================================
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Timestamp: 2025-01-10 (Stage 2 execution)
+
+================================================================================
+SECTION 1: CONNECTION TEST
+================================================================================
+
+Attempting to connect to Babelfish via run_babelfish_tsql...
+
+SQL: SELECT @@VERSION
+
+Result: CONNECTION_FAILED
+
+Error Details:
+  Error executing tool run_babelfish_tsql: You must specify a region.
+
+Analysis:
+  - Babelfish connection tool requires AWS region configuration
+  - Connection cannot be established without proper region specification
+  - This is an infrastructure/configuration issue, not a SQL compatibility issue
+
+================================================================================
+SECTION 2: PREREQUISITE CHECK
+================================================================================
+
+Checking for Stage 1 artifacts...
+
+Required files:
+  [MISSING] ./result/usp_recursive_org_chart/mssql.sql
+  [MISSING] ./result/usp_recursive_org_chart/mssql_test.sql
+  [MISSING] ./result/usp_recursive_org_chart/mssql_test.txt
+
+Analysis:
+  - Stage 1 has not been executed or did not produce output files
+  - Cannot proceed with DDL deployment without source SQL
+  - Cannot proceed with test execution without test scripts
+
+================================================================================
+SECTION 3: STAGE 2 TERMINATION
+================================================================================
+
+Stage 2 cannot proceed due to:
+  1. Babelfish connection failure (region not specified)
+  2. Missing Stage 1 artifacts (DDL and test files)
+
+Per workflow specification:
+  - CONNECTION_ERROR takes precedence
+  - BABELFISH_OK.txt will NOT be created
+  - babelfish_test.sql will NOT be created
+  - babelfish_test.txt will NOT be created
+  - Stage 2 terminates immediately
+
+Recommendation:
+  1. Configure AWS region for Babelfish connection
+  2. Execute Stage 1 to generate mssql.sql and test files
+  3. Re-run Stage 2 after prerequisites are met
+
+================================================================================
+RESULT: CONNECTION_ERROR
+================================================================================
+
+Stage 2 Status: FAILED - Cannot establish Babelfish connection
+Babelfish Compatibility: UNDETERMINED
+Next Action: Fix connection configuration and ensure Stage 1 completion

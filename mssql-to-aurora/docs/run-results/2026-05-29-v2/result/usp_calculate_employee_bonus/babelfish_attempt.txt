@@ -1,0 +1,104 @@
+================================================================================
+STAGE 2: BABELFISH COMPATIBILITY VERIFICATION
+================================================================================
+Object: PROCEDURE dbo.usp_calculate_employee_bonus
+Timestamp: 2025-01-10 (Stage 2 execution)
+
+================================================================================
+SECTION 1: PRE-FLIGHT CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+❌ mssql.sql: NOT FOUND
+   Path: ./result/usp_calculate_employee_bonus/mssql.sql
+   Error: No files found matching pattern(s)
+
+❌ mssql_test.sql: NOT FOUND
+   Path: ./result/usp_calculate_employee_bonus/mssql_test.sql
+   Error: No files found matching pattern(s)
+
+❌ mssql_test.txt: NOT FOUND
+   Path: ./result/usp_calculate_employee_bonus/mssql_test.txt
+   Error: No files found matching pattern(s)
+
+1.2 Babelfish Connection Check
+-------------------------------
+❌ CONNECTION FAILED
+   Tool: run_babelfish_tsql
+   Query: SELECT @@VERSION
+   Error: "You must specify a region."
+
+Root Cause Analysis:
+- Stage 1 did not complete successfully (no artifacts generated)
+- Babelfish connection tool is not properly configured (missing region parameter)
+- Cannot proceed with DDL deployment or test execution
+
+================================================================================
+SECTION 2: FAILURE CLASSIFICATION
+================================================================================
+
+Category: INFRASTRUCTURE_ERROR
+Severity: CRITICAL
+Impact: Stage 2 cannot proceed
+
+Details:
+1. Stage 1 Prerequisites Not Met
+   - The MSSQL extraction phase (Stage 1) did not produce the required files
+   - Without mssql.sql, there is no DDL to deploy to Babelfish
+   - Without mssql_test.sql and mssql_test.txt, there is no test baseline
+
+2. Babelfish Connection Unavailable
+   - The run_babelfish_tsql tool failed with a configuration error
+   - This is an infrastructure/environment issue, not a compatibility issue
+   - Even if Stage 1 artifacts existed, DDL deployment would fail
+
+================================================================================
+SECTION 3: PROTOCOL COMPLIANCE
+================================================================================
+
+Per Stage 2 Protocol - Error Policy:
+✓ Do NOT fabricate BABELFISH_OK.txt when connection fails
+✓ Do NOT create empty or mock test result files
+✓ Do NOT assume "would probably work" without actual execution
+✓ Record CONNECTION_ERROR and terminate Stage 2 immediately
+
+Actions Taken:
+- Created this babelfish_attempt.txt with full error details
+- Did NOT create BABELFISH_OK.txt (would be fraudulent)
+- Did NOT create babelfish_test.sql (no source to convert)
+- Did NOT create babelfish_test.txt (no tests executed)
+- Terminating Stage 2 with CONNECTION_ERROR status
+
+================================================================================
+SECTION 4: RECOMMENDATIONS
+================================================================================
+
+To Resolve This Issue:
+
+1. Fix Stage 1 Execution
+   - Verify that Stage 1 agent has access to source MSSQL database
+   - Ensure object "dbo.usp_calculate_employee_bonus" exists in source
+   - Check Stage 1 logs for extraction errors
+   - Re-run Stage 1 to generate mssql.sql and test files
+
+2. Fix Babelfish Connection
+   - Configure AWS region for Babelfish RDS instance
+   - Verify network connectivity to Babelfish endpoint
+   - Check credentials and security group rules
+   - Test connection with: run_babelfish_tsql("SELECT 1")
+
+3. Re-run Stage 2
+   - Only after both Stage 1 artifacts exist AND Babelfish is reachable
+   - Stage 2 will then perform actual compatibility verification
+
+================================================================================
+RESULT: CONNECTION_ERROR
+================================================================================
+
+Stage 2 Status: FAILED (Infrastructure)
+Babelfish Compatibility: UNKNOWN (Could not test)
+Next Action: Fix prerequisites and retry from Stage 1
+
+Note: This is NOT a Babelfish compatibility failure. The object may be fully
+compatible, but we cannot verify without proper infrastructure setup.

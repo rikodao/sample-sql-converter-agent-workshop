@@ -1,0 +1,143 @@
+================================================================================
+STAGE 3: T-SQL → PL/pgSQL CONVERSION (Aurora PostgreSQL Native)
+================================================================================
+Object: PROCEDURE dbo.usp_dynamic_count_with_output
+Timestamp: 2025-01-10 (Stage 3 execution)
+
+================================================================================
+SECTION 1: PREREQUISITE CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+Required files:
+  - mssql.sql: ❌ NOT FOUND
+
+File path checked: ./result/usp_dynamic_count_with_output/mssql.sql
+
+Analysis:
+- Stage 1 が正常に完了していないか、ファイルパスが異なります
+- DDL 定義が無いため、T-SQL → PL/pgSQL 変換は不可能です
+- 元のオブジェクト定義を読み取れないため、変換作業を開始できません
+
+1.2 Stage 2 Context Review
+---------------------------
+File: babelfish_attempt.txt
+Status: ✅ FOUND
+
+Key findings from Stage 2:
+- Babelfish 接続失敗 (AWS リージョン設定エラー)
+- Stage 1 成果物 (mssql.sql, mssql_test.sql, mssql_test.txt) が全て不在
+- Babelfish 互換性判定は実行されず (正しい挙動)
+
+Stage 2 Result: BLOCKED (CONNECTION_ERROR + PREREQUISITE_MISSING)
+
+================================================================================
+SECTION 2: STAGE 3 IMPACT ASSESSMENT
+================================================================================
+
+Due to missing mssql.sql, the following Stage 3 tasks CANNOT be executed:
+
+❌ T-SQL Analysis
+   - Cannot read source procedure definition
+   - Cannot identify conversion patterns (cursors, TRY-CATCH, dynamic SQL, etc.)
+   - Cannot extract parameter signatures
+   
+❌ PL/pgSQL Conversion
+   - Cannot apply conversion rules (no source to convert)
+   - Cannot generate postgres.sql
+   - Cannot preserve original behavior (unknown what behavior is)
+   
+❌ Syntax Validation on Aurora PostgreSQL
+   - No postgres.sql to deploy
+   - Cannot verify CREATE PROCEDURE succeeds
+   - Cannot iterate on syntax errors
+
+❌ Equivalence Verification
+   - Cannot ensure converted code matches original semantics
+   - Cannot validate OUTPUT parameter handling
+   - Cannot test dynamic SQL translation
+
+================================================================================
+SECTION 3: COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 3 instructions (🚫 絶対禁止事項):
+
+✅ NO fabrication of postgres.sql with speculative code
+✅ NO "this might work" placeholder implementations
+✅ NO assumptions about object structure based on name alone
+✅ Accurate recording of actual blocker (missing mssql.sql)
+✅ Immediate termination when prerequisites fail
+
+"変換不可能" is infinitely more valuable than a fabricated postgres.sql
+that claims to be equivalent without seeing the original T-SQL.
+
+================================================================================
+SECTION 4: HYPOTHETICAL CONVERSION STRATEGY (FOR REFERENCE ONLY)
+================================================================================
+
+IF mssql.sql were available, based on object name "usp_dynamic_count_with_output",
+the expected conversion approach would be:
+
+1. **Dynamic SQL (sp_executesql)**
+   T-SQL: EXEC sp_executesql N'SELECT COUNT(*) FROM ...', N'@cnt INT OUTPUT', @cnt OUTPUT
+   PG:    EXECUTE 'SELECT COUNT(*) FROM ...' INTO v_cnt;
+
+2. **OUTPUT Parameters**
+   T-SQL: CREATE PROCEDURE usp_x @out INT OUTPUT AS ...
+   PG:    CREATE PROCEDURE usp_x(INOUT p_out INT) AS $$ ... $$;
+
+3. **COUNT Aggregation**
+   T-SQL: SELECT @cnt = COUNT(*) FROM ...
+   PG:    SELECT COUNT(*) INTO v_cnt FROM ...;
+
+4. **Error Handling**
+   T-SQL: BEGIN TRY ... END TRY BEGIN CATCH ... END CATCH
+   PG:    BEGIN ... EXCEPTION WHEN OTHERS THEN ... END;
+
+5. **Variable Declaration**
+   T-SQL: DECLARE @v INT = 0
+   PG:    DECLARE v INT := 0; (in DECLARE block)
+
+However, WITHOUT actual DDL, these are SPECULATIVE patterns only.
+Actual conversion requires reading the real T-SQL code.
+
+================================================================================
+SECTION 5: REQUIRED ACTIONS
+================================================================================
+
+To proceed with Stage 3, the following must be resolved:
+
+1. **Ensure Stage 1 Completion**
+   - Verify Stage 1 agent successfully extracted DDL from source MSSQL
+   - Confirm mssql.sql exists at expected path
+   - Confirm mssql.sql contains valid CREATE PROCEDURE statement
+   - Verify object exists in source database: dbo.usp_dynamic_count_with_output
+
+2. **Verify File Paths**
+   - Confirm working directory structure matches expected layout
+   - Check for typos in object name or directory name
+   - Ensure file system permissions allow reading mssql.sql
+
+3. **Re-run Stage 3**
+   - Once mssql.sql is available, re-execute this stage
+   - Conversion will follow rules in docs/04-conversion-strategy.md
+   - postgres.sql will be created and validated against Aurora PostgreSQL
+
+================================================================================
+RESULT: PREREQUISITE_MISSING
+================================================================================
+
+Stage 3 cannot proceed due to:
+- Missing Stage 1 artifact: mssql.sql (DDL definition not found)
+
+postgres.sql: NOT CREATED (correct behavior - no source to convert)
+postgres_unsupported.txt: NOT CREATED (cannot assess supportability without DDL)
+
+Stage 3 Status: BLOCKED
+Next Steps: Resolve Stage 1 completion, ensure mssql.sql exists, then retry Stage 3
+
+================================================================================
+END OF STAGE 3 ATTEMPT LOG
+================================================================================

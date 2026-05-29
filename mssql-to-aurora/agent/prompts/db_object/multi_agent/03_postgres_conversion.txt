@@ -28,3 +28,17 @@ Stage 2 で Babelfish が動かなかったオブジェクトを、Aurora Postgr
 - 元 T-SQL に `WITH ENCRYPTION` がある場合は変換不可。`postgres.sql` の代わりに `postgres_unsupported.txt` を作成して理由を記述してください
 - T-SQL 固有の動的 SQL (`sp_executesql`) は `EXECUTE ... USING ...` に変換する
 - 識別子の大文字小文字: PostgreSQL では未引用識別子は小文字に折り畳まれる点を考慮する
+
+## 🚫 絶対禁止事項 — 接続失敗時の捏造禁止
+
+ツール呼び出し (`run_postgres_sql`) が失敗した場合、または Stage 1 の成果物
+(`mssql.sql`) が無い場合、**絶対に以下を行ってはならない**:
+
+- ❌ `mssql.sql` を読めていないのに `postgres.sql` に推測のコードを書く
+- ❌ 「PostgreSQL に投入したらエラーが出るかもしれないが、コードは正しいはず」のような注記付きで postgres.sql を確定させる
+- ❌ Aurora PostgreSQL に CREATE できていないのに `postgres.sql` を完成形として扱う
+
+接続失敗時の正しい挙動:
+1. ステージログ (`postgres_blocked.txt` 等) に `RESULT: CONNECTION_ERROR` と具体的なエラーを記録
+2. `postgres.sql` は作成しない (Stage 4 が後段で前提条件失敗を検知して NG.txt を生成する)
+3. Stage 3 を即座に終了する

@@ -1,0 +1,43 @@
+================================================================================
+STAGE 1: PREREQUISITE CHECK - Source MSSQL Verification
+================================================================================
+Object: dbo.usp_dept_with_cumulative_metrics
+Type: STORED PROCEDURE
+Timestamp: Stage 1 Execution
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Connection to Source RDS for SQL Server failed with error:
+"You must specify a region."
+
+ROOT CAUSE:
+AWS region configuration is missing or invalid. Cannot connect to the source
+MSSQL database to verify object existence, retrieve DDL, or execute tests.
+
+IMPACT:
+-------
+- Cannot verify if object 'dbo.usp_dept_with_cumulative_metrics' exists
+- Cannot retrieve object definition (DDL)
+- Cannot identify dependencies
+- Cannot create or execute test cases
+- Cannot generate baseline results for comparison
+
+REQUIRED ACTION:
+----------------
+1. Verify AWS region configuration for Source RDS for SQL Server
+2. Ensure proper IAM credentials and network connectivity
+3. Re-run Stage 1 after resolving connectivity issues
+
+STAGE 1 RESULT: ABORTED
+================================================================================
+
+⚠️  IMPORTANT NOTICE:
+This file indicates a prerequisite failure. Downstream stages (Stage 2, 3, 4)
+should detect this condition and generate NG.txt with appropriate error status.
+
+NO FABRICATED RESULTS WERE GENERATED.
+All test result files (mssql.sql, mssql_test.sql, mssql_test.txt) are
+intentionally NOT created to prevent false positive validations.
+================================================================================

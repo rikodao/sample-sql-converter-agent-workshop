@@ -1,0 +1,117 @@
+=== Conversion Result: NG ===
+Object: PROCEDURE dbo.usp_bulk_deactivate_employees
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE SUMMARY
+================================================================================
+
+The conversion process could not begin due to missing Stage 1 artifacts.
+Stage 1 (Source MSSQL Verification) encountered a connection error and did not
+produce the required source files.
+
+--- Failed Test Case ---
+Name: N/A (no tests executed)
+Expected (MSSQL):
+  NOT AVAILABLE - mssql_test.txt does not exist
+Actual (PG):
+  NOT AVAILABLE - postgres_test.txt does not exist
+Diff:
+  Cannot compare results because neither baseline (MSSQL) nor target (PostgreSQL)
+  test results exist.
+
+--- Missing Artifacts ---
+The following files are required but missing:
+
+1. mssql.sql
+   - Purpose: Source DDL from SQL Server
+   - Status: NOT CREATED (Stage 1 failed)
+
+2. mssql_test.sql
+   - Purpose: Test cases for MSSQL baseline
+   - Status: NOT CREATED (Stage 1 failed)
+
+3. mssql_test.txt
+   - Purpose: MSSQL test execution results (baseline for comparison)
+   - Status: NOT CREATED (Stage 1 failed)
+
+4. postgres.sql
+   - Purpose: Converted PL/pgSQL DDL
+   - Status: NOT CREATED (Stage 3 blocked due to missing source)
+
+--- Root Cause ---
+Stage 1 Error: "You must specify a region."
+
+This error occurred when attempting to connect to Source RDS for SQL Server
+using the run_mssql_sql tool. The AWS region parameter is missing or not
+properly configured in the tool's environment.
+
+--- Hypothesis ---
+This is an infrastructure/configuration issue, not a SQL conversion issue:
+
+1. AWS region configuration is missing for the Source RDS connection
+2. The run_mssql_sql tool requires explicit region specification
+3. Without database connectivity, Stage 1 cannot:
+   - Verify object existence
+   - Extract DDL
+   - Execute baseline tests
+   - Produce artifacts for downstream stages
+
+This is a legitimate blocking condition. The conversion workflow is designed
+to fail-fast when prerequisites are not met, rather than fabricating results
+or making assumptions about the source object.
+
+--- Recommended Action ---
+
+**Immediate Actions:**
+
+1. Configure AWS Region
+   - Set AWS_REGION environment variable for Source RDS connection
+   - Or update tool configuration to include region parameter
+   - Verify region matches the actual Source RDS for SQL Server location
+
+2. Verify Connectivity
+   - Test connection to Source RDS for SQL Server
+   - Confirm IAM credentials have necessary permissions
+   - Check security groups and network ACLs
+
+3. Confirm Object Existence
+   - Verify 'dbo.usp_bulk_deactivate_employees' exists in source database
+   - Check object type (should be STORED PROCEDURE)
+   - Ensure user has SELECT permission on object metadata
+
+**Re-run Workflow:**
+
+After resolving connectivity issues:
+1. Re-run Stage 1 to extract DDL and execute baseline tests
+2. Re-run Stage 2 (Babelfish compatibility check)
+3. Re-run Stage 3 (PostgreSQL native conversion)
+4. Re-run Stage 4 (this validation stage)
+
+**Review Considerations:**
+
+- This is NOT a conversion failure - the conversion was never attempted
+- No code review is needed at this stage
+- Focus on infrastructure setup and connectivity
+- Once Stage 1 completes, the normal conversion workflow can proceed
+
+================================================================================
+COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+This NG.txt follows the required format and error policy:
+
+✓ NG Reason category: PREREQUISITE_FAILED (correct category)
+✓ No fabricated test results
+✓ No speculative "expected" outputs
+✓ Clear explanation of missing artifacts
+✓ Actionable recommendations for resolution
+✓ Did NOT create OK.txt (prohibited when mssql_test.txt is missing)
+
+This failure is legitimate and properly documented. The conversion cannot
+proceed until Stage 1 completes successfully.
+
+================================================================================
+END OF NG REPORT
+================================================================================

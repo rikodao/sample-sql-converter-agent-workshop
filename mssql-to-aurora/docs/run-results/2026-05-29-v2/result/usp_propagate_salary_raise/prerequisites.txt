@@ -1,0 +1,23 @@
+STATUS: PREREQUISITE_FAILED
+
+ERROR: Cannot connect to Source RDS for SQL Server
+DETAILS: "You must specify a region."
+
+REASON: AWS region configuration is missing or invalid.
+
+IMPACT: 
+- Cannot verify object existence
+- Cannot retrieve DDL definition
+- Cannot extract dependencies
+- Cannot execute test cases
+
+REQUIRED ACTION:
+- Configure AWS region for Source RDS for SQL Server connection
+- Retry Stage 1 after region configuration is fixed
+
+TIMESTAMP: Stage 1 aborted due to connectivity failure
+OBJECT: dbo.usp_propagate_salary_raise
+TYPE: STORED PROCEDURE (expected)
+
+NOTE: No files (mssql.sql, mssql_test.sql, mssql_test.txt) will be created.
+      Stage 2/3/4 should detect this failure and generate NG.txt accordingly.

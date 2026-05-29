@@ -1,0 +1,81 @@
+================================================================================
+STAGE 2: BABELFISH COMPATIBILITY VERIFICATION
+================================================================================
+Object: PROCEDURE dbo.usp_upsert_department
+Timestamp: 2025-01-10 (Stage 2 execution)
+
+================================================================================
+SECTION 1: PRE-FLIGHT CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+❌ mssql.sql: NOT FOUND
+   Error: No files found matching pattern(s): ./result/usp_upsert_department/mssql.sql
+
+❌ mssql_test.sql: NOT FOUND
+   Error: No files found matching pattern(s): ./result/usp_upsert_department/mssql_test.sql
+
+❌ mssql_test.txt: NOT FOUND
+   Error: No files found matching pattern(s): ./result/usp_upsert_department/mssql_test.txt
+
+CONCLUSION: Stage 1 artifacts are missing. Cannot proceed with Babelfish verification.
+
+1.2 Babelfish Connection Check
+-------------------------------
+Attempted: SELECT @@VERSION via run_babelfish_tsql
+
+❌ CONNECTION FAILED
+Error: "Error executing tool run_babelfish_tsql: You must specify a region."
+
+Root Cause Analysis:
+- The Babelfish connection tool requires AWS region configuration
+- This is an infrastructure/configuration issue, not a SQL compatibility issue
+- Without connection, no DDL deployment or test execution is possible
+
+================================================================================
+SECTION 2: IMPACT ASSESSMENT
+================================================================================
+
+Cannot Perform:
+- DDL deployment to Babelfish
+- Test execution on Babelfish
+- Result comparison between MSSQL and Babelfish
+- Compatibility assessment
+
+Blocking Issues:
+1. Stage 1 did not complete successfully (no artifacts generated)
+2. Babelfish connection is not properly configured (region parameter missing)
+
+================================================================================
+SECTION 3: CONCLUSION
+================================================================================
+
+Stage 2 cannot proceed due to:
+1. Missing Stage 1 artifacts (mssql.sql, mssql_test.sql, mssql_test.txt)
+2. Babelfish connection failure (AWS region not specified)
+
+Per workflow policy:
+- BABELFISH_OK.txt will NOT be created
+- babelfish_test.sql will NOT be created
+- babelfish_test.txt will NOT be created
+- Stage 2 terminates immediately
+
+Recommended Actions:
+1. Verify Stage 1 completed successfully for object 'dbo.usp_upsert_department'
+2. Configure AWS region for Babelfish connection
+3. Re-run Stage 2 after resolving above issues
+
+================================================================================
+RESULT: CONNECTION_ERROR
+================================================================================
+
+Error Category: INFRASTRUCTURE
+- Stage 1 artifacts: MISSING
+- Babelfish connection: FAILED (region not specified)
+- DDL deployment: NOT ATTEMPTED
+- Test execution: NOT ATTEMPTED
+- Compatibility status: UNKNOWN
+
+This is NOT a Babelfish compatibility issue - it is a prerequisite failure.
+Stage 3 (PG-native conversion) may proceed independently if connection is restored.

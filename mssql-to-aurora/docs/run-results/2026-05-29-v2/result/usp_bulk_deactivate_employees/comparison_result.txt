@@ -1,0 +1,60 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_bulk_deactivate_employees
+Test Cases: 0 total (comparison not possible)
+
+================================================================================
+COMPARISON STATUS: NOT PERFORMED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Stage 1 (Source MSSQL Verification) did not complete successfully.
+The following required artifacts are missing:
+
+  ❌ mssql.sql          - Source DDL from SQL Server
+  ❌ mssql_test.sql     - MSSQL test cases
+  ❌ mssql_test.txt     - MSSQL test execution results
+
+Stage 3 (PostgreSQL Native Conversion) was blocked due to missing source:
+
+  ❌ postgres.sql       - PostgreSQL converted DDL (not created)
+
+Root Cause:
+-----------
+AWS region configuration error when attempting to connect to Source RDS for 
+SQL Server. Error message: "You must specify a region."
+
+Impact:
+-------
+- Cannot retrieve source object DDL
+- Cannot execute MSSQL baseline tests
+- Cannot perform T-SQL → PL/pgSQL conversion
+- Cannot execute PostgreSQL tests
+- Cannot compare results
+
+================================================================================
+VERDICT
+================================================================================
+
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0
+Total Pass: 0/0 (no tests executed)
+
+Result: ❌ COMPARISON NOT POSSIBLE
+
+This is a legitimate infrastructure/configuration failure, not a conversion 
+failure. The conversion process cannot begin without access to the source 
+SQL Server database.
+
+================================================================================
+REQUIRED ACTIONS
+================================================================================
+
+1. Configure AWS region for Source RDS for SQL Server connection
+2. Verify network connectivity and IAM credentials
+3. Confirm object 'dbo.usp_bulk_deactivate_employees' exists in source database
+4. Re-run Stage 1 to extract DDL and execute baseline tests
+5. Re-run Stages 2, 3, and 4 after Stage 1 completes successfully
+
+================================================================================
+END OF COMPARISON REPORT
+================================================================================

@@ -1,0 +1,85 @@
+================================================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION - BLOCKED
+================================================================================
+Object: PROCEDURE dbo.usp_calculate_employee_bonus
+Timestamp: 2025-01-10 (Stage 3 execution)
+
+================================================================================
+SECTION 1: PREREQUISITE CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts
+---------------------
+❌ mssql.sql: NOT FOUND
+   Path: ./result/usp_calculate_employee_bonus/mssql.sql
+   Status: File does not exist
+
+1.2 Stage 2 Status
+------------------
+✓ babelfish_attempt.txt: EXISTS
+   Status: CONNECTION_ERROR (Infrastructure failure)
+   Root Cause: Stage 1 did not complete + Babelfish connection unavailable
+
+================================================================================
+SECTION 2: BLOCKING REASON
+================================================================================
+
+Category: MISSING_SOURCE_DDL
+Severity: CRITICAL
+Impact: Stage 3 cannot proceed
+
+Details:
+Stage 3 requires the T-SQL source code (mssql.sql) to perform conversion to
+PL/pgSQL. Without this file, there is no input to transform.
+
+This is NOT a conversion difficulty - the object may be perfectly convertible.
+The issue is that the extraction phase (Stage 1) did not complete successfully.
+
+================================================================================
+SECTION 3: PROTOCOL COMPLIANCE
+================================================================================
+
+Per Stage 3 Protocol - Anti-Fabrication Policy:
+✓ Do NOT create postgres.sql with guessed/fabricated code
+✓ Do NOT assume "simple procedure" and write placeholder implementation
+✓ Do NOT mark Stage 3 as complete when source DDL is missing
+✓ Record MISSING_SOURCE_DDL and terminate immediately
+
+Actions Taken:
+- Created this postgres_blocked.txt with error details
+- Did NOT create postgres.sql (would be fraudulent)
+- Did NOT attempt Aurora PostgreSQL deployment (no code to deploy)
+- Terminating Stage 3 with MISSING_SOURCE_DDL status
+
+================================================================================
+SECTION 4: RESOLUTION PATH
+================================================================================
+
+To Resolve This Issue:
+
+1. Fix Stage 1 Execution
+   - Verify source MSSQL database connectivity
+   - Confirm object "dbo.usp_calculate_employee_bonus" exists
+   - Check Stage 1 agent logs for extraction errors
+   - Re-run Stage 1 to generate mssql.sql
+
+2. Verify Stage 1 Output
+   - Ensure mssql.sql contains valid T-SQL DDL
+   - Ensure mssql_test.sql contains test queries
+   - Ensure mssql_test.txt contains baseline results
+
+3. Re-run Stage 3
+   - Only after mssql.sql exists and contains valid DDL
+   - Stage 3 will then perform T-SQL → PL/pgSQL conversion
+   - Conversion will be validated against Aurora PostgreSQL
+
+================================================================================
+RESULT: MISSING_SOURCE_DDL
+================================================================================
+
+Stage 3 Status: BLOCKED (Cannot proceed)
+PostgreSQL Conversion: NOT ATTEMPTED (No source code)
+Next Action: Fix Stage 1 and retry from beginning
+
+Note: This is NOT a PostgreSQL compatibility issue. The procedure may be fully
+convertible to PL/pgSQL, but we cannot perform conversion without the source.

@@ -1,0 +1,87 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_validate_and_create_dept
+Status: COMPARISON NOT POSSIBLE
+
+================================================================================
+PREREQUISITE CHECK
+================================================================================
+
+Required Artifacts:
+  [❌] mssql_test.txt     - NOT FOUND (Stage 1 output)
+  [❌] postgres_test.txt  - NOT FOUND (Stage 4 output)
+  [❌] postgres.sql       - NOT FOUND (Stage 3 output)
+  [❌] mssql_test.sql     - NOT FOUND (Stage 1 output)
+
+Result: Cannot perform comparison without baseline and actual test results.
+
+================================================================================
+ROOT CAUSE
+================================================================================
+
+Stage 1 Failure:
+  - Error: "You must specify a region."
+  - Tool: run_mssql_sql
+  - Impact: No connection to Source RDS for SQL Server
+  - Result: No DDL extraction, no test generation, no baseline results
+
+Stage 3 Blocked:
+  - Reason: Missing mssql.sql from Stage 1
+  - Impact: Cannot convert T-SQL to PL/pgSQL
+  - Result: No postgres.sql generated
+
+Stage 4 Cannot Proceed:
+  - Reason: Missing postgres.sql and mssql_test.sql
+  - Impact: Cannot create postgres_test.sql or execute tests
+  - Result: No postgres_test.txt generated
+
+================================================================================
+COMPARISON ANALYSIS
+================================================================================
+
+Test Cases: 0 total (no tests defined)
+
+--- Summary ---
+EXACT:       0
+SEMANTIC:    0
+STRUCTURAL:  0
+MISMATCH:    0
+NOT_TESTED:  N/A (prerequisites missing)
+
+Total Pass: 0/0
+Total Fail: 0/0
+
+================================================================================
+VERDICT
+================================================================================
+
+Comparison Status: NOT EXECUTED
+Reason: PREREQUISITE_FAILED
+
+This is NOT a conversion quality issue.
+This is an environment configuration issue preventing pipeline execution.
+
+To enable comparison:
+1. Fix AWS region configuration for database connections
+2. Re-run Stage 1 to generate mssql.sql, mssql_test.sql, mssql_test.txt
+3. Re-run Stage 3 to generate postgres.sql
+4. Re-run Stage 4 to execute tests and generate postgres_test.txt
+5. Comparison will then be performed automatically
+
+================================================================================
+COMPLIANCE NOTE
+================================================================================
+
+Per Stage 4 specification:
+  "接続失敗または前提条件不足の場合の正しい挙動:
+   1. NG.txt を NG Reason: PREREQUISITE_FAILED で生成
+   2. comparison_result.txt に「比較不能の理由」を記録
+   3. OK.txt は絶対に作成しない"
+
+This file fulfills requirement #2.
+NG.txt has been created with PREREQUISITE_FAILED reason (requirement #1).
+OK.txt has NOT been created (requirement #3).
+
+No fabricated or assumed results have been recorded.
+All status indicators accurately reflect the actual pipeline state.
+
+================================================================================

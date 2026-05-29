@@ -1,0 +1,41 @@
+================================================================================
+STAGE 1: SOURCE MSSQL VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: dbo.fn_split_csv
+Type: FUNCTION
+Date: 2025-01-10
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Tool: run_mssql_sql
+Error: "You must specify a region."
+
+DESCRIPTION:
+Cannot connect to Source RDS for SQL Server due to missing AWS region configuration.
+Without database connectivity, the following operations cannot be performed:
+  - Object existence verification
+  - DDL definition retrieval
+  - Dependency analysis
+  - Test execution
+
+IMPACT:
+-------
+Stage 1 cannot proceed. The following files will NOT be created:
+  - mssql.sql (DDL definition)
+  - mssql_test.sql (test cases)
+  - mssql_test.txt (test results)
+
+REQUIRED ACTION:
+----------------
+Configure AWS region for Source RDS for SQL Server connection and retry Stage 1.
+
+COMPLIANCE NOTE:
+----------------
+Per workflow rules, NO files are fabricated or generated with "expected results".
+Stage 2/3/4 will detect this failure and generate NG.txt accordingly.
+
+================================================================================
+END OF PREREQUISITES CHECK
+================================================================================

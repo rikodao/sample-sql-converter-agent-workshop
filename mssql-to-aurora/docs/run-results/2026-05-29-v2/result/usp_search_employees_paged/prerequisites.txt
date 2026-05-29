@@ -1,0 +1,42 @@
+================================================================================
+STAGE 1: PREREQUISITE CHECK - FAILED
+================================================================================
+Object: dbo.usp_search_employees_paged
+Type: STORED PROCEDURE
+Timestamp: Stage 1 execution
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Cannot connect to Source RDS for SQL Server.
+Error message: "You must specify a region."
+
+ROOT CAUSE:
+-----------
+AWS region configuration is missing or not properly set for the run_mssql_sql tool.
+This is an infrastructure/configuration issue, not an object-specific issue.
+
+IMPACT:
+-------
+- Cannot verify object existence
+- Cannot retrieve DDL definition
+- Cannot extract dependencies
+- Cannot execute test cases
+- Cannot generate baseline results
+
+REQUIRED ACTION:
+----------------
+1. Configure AWS region for Source RDS for SQL Server connection
+2. Verify network connectivity and authentication
+3. Re-run Stage 1 after configuration is fixed
+
+STAGE 1 RESULT: ABORTED
+================================================================================
+
+⚠️  IMPORTANT: No mssql.sql, mssql_test.sql, or mssql_test.txt files were created.
+    This is intentional to prevent fabrication of "expected results" without
+    actual database connectivity.
+    
+    Stage 2/3/4 should detect this failure and generate NG.txt accordingly.
+================================================================================

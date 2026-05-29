@@ -1,0 +1,92 @@
+================================================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION - BLOCKED
+================================================================================
+Object: PROCEDURE dbo.usp_bulk_deactivate_employees
+Timestamp: 2025-01-10 (Stage 3 execution)
+
+================================================================================
+SECTION 1: PRE-FLIGHT CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+- mssql.sql: NOT FOUND ❌
+
+ERROR: Stage 1 did not produce the required mssql.sql file.
+Cannot proceed with T-SQL → PL/pgSQL conversion without source DDL.
+
+1.2 Stage 2 Status Check
+-------------------------
+- babelfish_attempt.txt: FOUND ✓
+- Status: CONNECTION_ERROR (Stage 1 artifacts missing + Babelfish connection failure)
+
+================================================================================
+SECTION 2: FAILURE ANALYSIS
+================================================================================
+
+Root Cause:
+-----------
+Stage 1 (MSSQL DDL extraction) did not complete successfully.
+The required source file 'mssql.sql' is missing.
+
+Possible reasons:
+1. Stage 1 agent was not executed for this object
+2. MSSQL source database connection failed
+3. Object 'dbo.usp_bulk_deactivate_employees' does not exist in source database
+4. Stage 1 encountered an error and did not produce output files
+
+Impact:
+-------
+- Cannot read T-SQL source code
+- Cannot perform T-SQL → PL/pgSQL conversion
+- Cannot generate postgres.sql
+- Cannot test PostgreSQL native compatibility
+
+================================================================================
+SECTION 3: COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 3 workflow requirements:
+- ✓ Did NOT create postgres.sql (prohibited when source is missing)
+- ✓ Did NOT fabricate or guess any PL/pgSQL code
+- ✓ Did NOT assume conversion would succeed
+- ✓ Recording actual error state in postgres_blocked.txt
+
+Absolute prohibitions followed:
+- ❌ NO fabrication of postgres.sql without reading mssql.sql
+- ❌ NO speculative code generation
+- ❌ NO "might work" code with disclaimers
+
+================================================================================
+SECTION 4: RECOMMENDED ACTIONS
+================================================================================
+
+To resolve this issue:
+
+1. Verify Stage 1 prerequisites:
+   - Confirm MSSQL source database is accessible
+   - Verify object 'dbo.usp_bulk_deactivate_employees' exists
+   - Check MSSQL connection credentials and permissions
+
+2. Re-run Stage 1:
+   - Execute Stage 1 agent for this object
+   - Verify mssql.sql is created successfully
+   - Confirm mssql_test.sql and mssql_test.txt are also generated
+
+3. After Stage 1 completes successfully:
+   - Re-run Stage 3 (this stage)
+   - Conversion will proceed with valid source DDL
+
+================================================================================
+RESULT: PREREQUISITE_FAILURE
+================================================================================
+
+Stage 3 cannot proceed due to:
+- Missing Stage 1 artifact: mssql.sql
+
+PostgreSQL native conversion: NOT ATTEMPTED (source unavailable)
+
+This is a legitimate blocking condition. Stage 4 (validation) will detect
+this failure and generate the appropriate NG.txt file.
+
+END OF STAGE 3 REPORT

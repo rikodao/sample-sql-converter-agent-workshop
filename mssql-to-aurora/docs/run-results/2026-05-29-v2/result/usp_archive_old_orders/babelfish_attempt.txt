@@ -1,0 +1,102 @@
+================================================================================
+STAGE 2: BABELFISH COMPATIBILITY VERIFICATION
+================================================================================
+Object: PROCEDURE dbo.usp_archive_old_orders
+Timestamp: 2025-01-10 (automated verification)
+
+================================================================================
+SECTION 1: PRE-FLIGHT CHECK
+================================================================================
+
+1.1 Babelfish Connection Test
+------------------------------
+Command: SELECT @@VERSION
+Status: FAILED
+Error: "Error executing tool run_babelfish_tsql: You must specify a region."
+
+Analysis:
+- Babelfish connection tool is not properly configured
+- Missing AWS region specification for the Babelfish endpoint
+- Cannot proceed with T-SQL compatibility verification
+
+1.2 Stage 1 Artifacts Check
+----------------------------
+Required files:
+  - ./result/usp_archive_old_orders/mssql.sql: NOT FOUND
+  - ./result/usp_archive_old_orders/mssql_test.sql: NOT FOUND
+  - ./result/usp_archive_old_orders/mssql_test.txt: NOT FOUND
+
+Analysis:
+- Stage 1 (MSSQL extraction) has not been completed successfully
+- No DDL available to test against Babelfish
+- No test script or baseline results available for comparison
+
+================================================================================
+SECTION 2: FAILURE CLASSIFICATION
+================================================================================
+
+Root Cause: ENVIRONMENT_ERROR
+
+Details:
+1. Babelfish connection endpoint is not accessible
+   - Tool configuration issue (missing region parameter)
+   - Cannot verify if Babelfish service is running
+   - Cannot test T-SQL compatibility
+
+2. Stage 1 prerequisites not met
+   - Source MSSQL DDL not extracted
+   - Test scripts not generated
+   - Baseline test results not available
+
+Impact:
+- Stage 2 cannot proceed without both:
+  a) Working Babelfish connection
+  b) Stage 1 artifacts (DDL + test scripts)
+
+================================================================================
+SECTION 3: COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 2 specification:
+"接続失敗時は `babelfish_attempt.txt` に詳細を記録、末尾に 
+`RESULT: CONNECTION_ERROR` を書いて Stage 2 を終了"
+
+Actions taken:
+✓ Detailed error information recorded
+✓ No fabricated results generated
+✓ BABELFISH_OK.txt NOT created (correct behavior)
+✓ babelfish_test.sql NOT created (correct behavior)
+✓ babelfish_test.txt NOT created (correct behavior)
+
+Prohibited actions avoided:
+✓ Did NOT create BABELFISH_OK.txt without actual testing
+✓ Did NOT fabricate "expected" test results
+✓ Did NOT assume compatibility without verification
+
+================================================================================
+SECTION 4: RECOMMENDATIONS
+================================================================================
+
+To resolve this issue:
+
+1. Fix Babelfish connection:
+   - Configure AWS region for Babelfish endpoint
+   - Verify Babelfish service is running and accessible
+   - Test connection with: SELECT @@VERSION
+
+2. Complete Stage 1:
+   - Run Stage 1 agent to extract DDL from source MSSQL
+   - Ensure mssql.sql, mssql_test.sql, and mssql_test.txt are generated
+   - Verify Stage 1 completed with MSSQL_OK.txt
+
+3. Re-run Stage 2:
+   - Once both prerequisites are met, Stage 2 can proceed
+   - DDL will be tested against Babelfish
+   - Test results will be compared for compatibility verification
+
+================================================================================
+RESULT: CONNECTION_ERROR
+================================================================================
+
+Stage 2 terminated due to connection failure.
+Babelfish compatibility: UNKNOWN (cannot verify without connection)

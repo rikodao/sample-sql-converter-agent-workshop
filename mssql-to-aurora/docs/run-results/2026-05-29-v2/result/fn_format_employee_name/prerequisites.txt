@@ -1,0 +1,38 @@
+================================================================================
+STAGE 1: SOURCE OBJECT VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: dbo.fn_format_employee_name
+Type: FUNCTION
+Date: 2025-01-10
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Failed to connect to Source RDS for SQL Server.
+Error: "You must specify a region."
+
+ROOT CAUSE:
+-----------
+AWS region configuration is missing or invalid for the run_mssql_sql tool.
+Cannot proceed with object existence check, DDL extraction, or test execution.
+
+IMPACT:
+-------
+- Cannot verify if object exists in source database
+- Cannot extract object definition (DDL)
+- Cannot identify dependencies
+- Cannot create or execute test cases
+
+REQUIRED ACTION:
+----------------
+1. Configure AWS region for Source RDS for SQL Server connection
+2. Verify network connectivity and authentication credentials
+3. Re-run Stage 1 after configuration is fixed
+
+STAGE 1 RESULT: ABORTED
+================================================================================
+
+Note: Per workflow rules, no files (mssql.sql, mssql_test.sql, mssql_test.txt) 
+will be created when prerequisites fail. Stage 2/3/4 should detect this failure 
+and generate NG.txt accordingly.

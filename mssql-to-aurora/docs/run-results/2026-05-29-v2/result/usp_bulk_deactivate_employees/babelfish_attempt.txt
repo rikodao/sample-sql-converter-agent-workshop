@@ -1,0 +1,93 @@
+================================================================================
+STAGE 2: BABELFISH COMPATIBILITY VERIFICATION
+================================================================================
+Object: PROCEDURE dbo.usp_bulk_deactivate_employees
+Timestamp: 2025-01-10 (Stage 2 execution)
+
+================================================================================
+SECTION 1: PRE-FLIGHT CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+- mssql.sql: NOT FOUND
+- mssql_test.sql: NOT FOUND
+- mssql_test.txt: NOT FOUND
+
+ERROR: Stage 1 artifacts are missing. Cannot proceed with Babelfish verification.
+
+1.2 Babelfish Connection Check
+-------------------------------
+Attempted: SELECT @@VERSION via run_babelfish_tsql
+
+ERROR: Connection failed with error:
+"Error executing tool run_babelfish_tsql: You must specify a region."
+
+This indicates a configuration issue with the Babelfish connection tool.
+The tool requires AWS region specification but it was not provided or configured.
+
+================================================================================
+SECTION 2: FAILURE ANALYSIS
+================================================================================
+
+Root Cause:
+-----------
+1. Stage 1 did not complete successfully or did not produce the required artifacts
+   (mssql.sql, mssql_test.sql, mssql_test.txt)
+
+2. Babelfish connection tool is not properly configured (missing AWS region parameter)
+
+Impact:
+-------
+- Cannot extract DDL from MSSQL source
+- Cannot establish connection to Babelfish for compatibility testing
+- Cannot execute any DDL deployment or test execution
+- Cannot perform result comparison
+
+================================================================================
+SECTION 3: COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 2 workflow requirements:
+- ✓ Did NOT create BABELFISH_OK.txt (prohibited when connection fails)
+- ✓ Did NOT create babelfish_test.sql (no test execution possible)
+- ✓ Did NOT create babelfish_test.txt (no test results to record)
+- ✓ Did NOT fabricate or assume any compatibility results
+- ✓ Recording actual error state in babelfish_attempt.txt
+
+================================================================================
+SECTION 4: RECOMMENDED ACTIONS
+================================================================================
+
+To resolve this issue:
+
+1. Verify Stage 1 completed successfully:
+   - Check if Stage 1 agent ran for object 'dbo.usp_bulk_deactivate_employees'
+   - Verify MSSQL source database is accessible
+   - Confirm object exists in source database
+
+2. Fix Babelfish connection configuration:
+   - Ensure AWS region is properly configured for the run_babelfish_tsql tool
+   - Verify Babelfish cluster is running and accessible
+   - Check network connectivity and security group rules
+   - Validate credentials and permissions
+
+3. Re-run Stage 1 if artifacts are missing
+
+4. Re-run Stage 2 after connection issues are resolved
+
+================================================================================
+RESULT: CONNECTION_ERROR
+================================================================================
+
+Stage 2 cannot proceed due to:
+- Missing Stage 1 artifacts (mssql.sql, mssql_test.sql, mssql_test.txt)
+- Babelfish connection failure (AWS region not specified)
+
+Babelfish compatibility: UNKNOWN (verification not possible)
+
+This is a legitimate failure state. Stage 3 (PG-native conversion) may also
+encounter similar connection issues if the underlying infrastructure is not
+properly configured.
+
+END OF STAGE 2 REPORT

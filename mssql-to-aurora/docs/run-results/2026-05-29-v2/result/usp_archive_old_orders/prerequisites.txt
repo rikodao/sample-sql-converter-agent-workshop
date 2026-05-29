@@ -1,0 +1,40 @@
+================================================================================
+STAGE 1: PREREQUISITE CHECK - FAILED
+================================================================================
+Object: dbo.usp_archive_old_orders
+Type: STORED PROCEDURE
+Timestamp: Stage 1 execution
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Cannot connect to Source RDS for SQL Server.
+Error message: "You must specify a region."
+
+ROOT CAUSE:
+AWS region configuration is missing or invalid. The run_mssql_sql tool requires
+proper AWS region configuration to connect to the RDS instance.
+
+IMPACT:
+-------
+- Cannot verify object existence
+- Cannot retrieve DDL definition
+- Cannot extract dependencies
+- Cannot execute test cases
+- Cannot generate baseline results
+
+REQUIRED ACTION:
+----------------
+1. Configure AWS region environment variable or parameter
+2. Verify RDS instance endpoint and credentials
+3. Ensure network connectivity to Source RDS for SQL Server
+4. Re-run Stage 1 after resolving connectivity issues
+
+STAGE 1 RESULT: ABORTED
+================================================================================
+
+⚠️  IMPORTANT: No files (mssql.sql, mssql_test.sql, mssql_test.txt) will be
+    generated. This is intentional to prevent fabrication of expected results.
+    Stage 2/3/4 must detect this failure and generate NG.txt accordingly.
+================================================================================

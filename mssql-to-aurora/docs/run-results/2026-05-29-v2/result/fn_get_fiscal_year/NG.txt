@@ -1,0 +1,107 @@
+=== Conversion Result: NG ===
+Object: FUNCTION dbo.fn_get_fiscal_year
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE SUMMARY
+================================================================================
+
+Stage 1 (Source Object Verification) did not complete due to AWS connectivity
+issues. The following required artifacts were not created:
+- mssql.sql (source DDL)
+- mssql_test.sql (test cases)
+- mssql_test.txt (MSSQL test results)
+
+Without these files, Stage 3 (T-SQL → PL/pgSQL conversion) was blocked, and
+Stage 4 (final validation) cannot proceed.
+
+--- Failed Test Case ---
+Name: N/A (no test cases executed)
+Expected (MSSQL):
+  NOT AVAILABLE - Stage 1 did not execute tests on source MSSQL
+Actual (PG):
+  NOT AVAILABLE - Stage 3 did not generate postgres.sql
+Diff:
+  Cannot compare - both source and target artifacts are missing
+
+================================================================================
+ROOT CAUSE ANALYSIS
+================================================================================
+
+--- Hypothesis ---
+The Stage 1 agent attempted to connect to Source RDS for SQL Server but
+encountered an AWS configuration error:
+
+  Error: "You must specify a region."
+
+This indicates:
+1. AWS region is not configured in the environment
+2. AWS credentials may be missing or invalid
+3. The RDS endpoint configuration is incomplete
+
+As a result:
+- Object existence could not be verified
+- DDL could not be extracted from source database
+- Test cases could not be executed against source MSSQL
+
+Stage 2 (Babelfish compatibility check) also failed with the same region
+configuration error when attempting to connect to Babelfish TDS endpoint.
+
+Stage 3 correctly detected the missing prerequisites and created
+`postgres_blocked.txt` instead of fabricating a conversion.
+
+--- Recommended Action ---
+1. **Verify AWS Configuration**:
+   - Ensure AWS_REGION environment variable is set
+   - Confirm AWS credentials are valid and have RDS access permissions
+   - Check that Source RDS for SQL Server endpoint is correctly configured
+
+2. **Verify Object Existence**:
+   - Manually confirm that FUNCTION dbo.fn_get_fiscal_year exists in source
+   - Check object permissions (user must have VIEW DEFINITION rights)
+
+3. **Re-run Pipeline**:
+   - After resolving connectivity issues, re-execute Stage 1
+   - Verify mssql.sql, mssql_test.sql, and mssql_test.txt are created
+   - Then proceed with Stage 2, 3, and 4
+
+4. **Manual Review**:
+   - If the object does not exist in source, this is expected behavior
+   - If the object exists but cannot be accessed, review database permissions
+   - If connectivity cannot be established, consider manual DDL extraction
+
+================================================================================
+COMPLIANCE WITH RULES
+================================================================================
+
+✅ This NG.txt was created in compliance with the absolute prohibition rules:
+   - Did NOT create OK.txt without real database test results
+   - Did NOT fabricate or assume test outcomes
+   - Did NOT proceed with conversion without verified source DDL
+
+✅ Stage 3 correctly blocked conversion and created postgres_blocked.txt
+
+✅ Stage 4 correctly detected prerequisite failure and generated this NG.txt
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+Priority: HIGH - Resolve AWS connectivity before retrying
+
+Action Items:
+1. Fix AWS region configuration
+2. Verify RDS endpoint accessibility
+3. Re-run Stage 1 to extract DDL and execute tests
+4. Only after Stage 1 succeeds, proceed with Stage 2/3/4
+
+Expected Outcome After Fix:
+- Stage 1 creates mssql.sql, mssql_test.sql, mssql_test.txt
+- Stage 2 attempts Babelfish compatibility check
+- Stage 3 converts T-SQL to PL/pgSQL
+- Stage 4 validates conversion with real database tests
+
+================================================================================
+END OF NG REPORT
+================================================================================

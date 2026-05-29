@@ -1,0 +1,76 @@
+================================================================================
+STAGE 3: T-SQL → PL/pgSQL CONVERSION (BLOCKED)
+================================================================================
+Object: FUNCTION dbo.fn_get_fiscal_year
+Timestamp: Stage 3 Execution
+Agent: T-SQL to PL/pgSQL Converter
+
+================================================================================
+SECTION 1: PREREQUISITE CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+- mssql.sql: NOT FOUND ❌
+
+Status: FAILED - Required input file is missing
+
+1.2 Stage 2 Status Check
+------------------------
+- babelfish_attempt.txt: EXISTS
+- Content indicates: Stage 1 artifacts missing, Babelfish connection failed
+- Stage 2 Result: CONNECTION_ERROR
+
+================================================================================
+SECTION 2: BLOCKING REASON
+================================================================================
+
+Cannot proceed with T-SQL → PL/pgSQL conversion because:
+
+1. **Missing Source DDL**: The file `mssql.sql` does not exist
+   - This file should contain the T-SQL definition from Stage 1
+   - Without it, there is no source code to convert
+
+2. **Stage 1 Incomplete**: Stage 1 did not successfully extract the DDL
+   - Possible reasons:
+     * Object does not exist in source MSSQL database
+     * Connection failure to source MSSQL
+     * Extraction error during Stage 1
+
+================================================================================
+SECTION 3: COMPLIANCE WITH RULES
+================================================================================
+
+Per Stage 3 conversion rules:
+
+🚫 ABSOLUTE PROHIBITION:
+- ❌ Do NOT create `postgres.sql` with guessed/fabricated code
+- ❌ Do NOT write conversion based on object name speculation
+- ❌ Do NOT proceed without verified source DDL
+
+✅ CORRECT BEHAVIOR:
+- ✅ Log the blocking condition in this file
+- ✅ Do NOT create `postgres.sql`
+- ✅ Terminate Stage 3 immediately
+- ✅ Allow Stage 4 to detect prerequisite failure and generate NG.txt
+
+================================================================================
+SECTION 4: CONCLUSION
+================================================================================
+
+RESULT: PREREQUISITE_FAILURE
+
+Stage 3 Status: BLOCKED (cannot start conversion)
+Reason: Missing mssql.sql from Stage 1
+Action Taken: Created postgres_blocked.txt, did NOT create postgres.sql
+
+Next Steps:
+1. Investigate why Stage 1 did not produce mssql.sql
+2. Verify source object exists: FUNCTION dbo.fn_get_fiscal_year
+3. Check MSSQL connection and permissions
+4. Re-run Stage 1 to extract DDL
+5. Only after Stage 1 succeeds, retry Stage 3
+
+================================================================================
+END OF STAGE 3 BLOCKING LOG
+================================================================================

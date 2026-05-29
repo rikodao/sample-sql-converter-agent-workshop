@@ -1,0 +1,56 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_employee_json
+Test Cases: 0 total (comparison not possible)
+
+================================================================================
+COMPARISON STATUS: NOT EXECUTED
+================================================================================
+
+Reason: Stage 1 prerequisite failure
+
+Required Files Status:
+- mssql_test.txt:     NOT FOUND (Stage 1 failed)
+- postgres_test.txt:  NOT CREATED (Stage 4 blocked)
+- postgres.sql:       NOT FOUND (Stage 3 blocked)
+
+Error Chain:
+1. Stage 1: AWS region configuration error → cannot connect to Source MSSQL
+2. Stage 1: Cannot retrieve DDL or execute test cases
+3. Stage 3: Cannot convert T-SQL to PL/pgSQL (no source code)
+4. Stage 4: Cannot create postgres_test.sql (no conversion output)
+5. Stage 4: Cannot execute tests on Aurora PostgreSQL (no test script)
+6. Stage 4: Cannot compare results (no baseline, no actual results)
+
+================================================================================
+COMPARISON RESULT: IMPOSSIBLE
+================================================================================
+
+Per workflow policy (🚫 絶対禁止事項):
+- ❌ MUST NOT fabricate expected results without actual MSSQL execution
+- ❌ MUST NOT create OK.txt based on "logical equivalence" reasoning
+- ❌ MUST NOT proceed with comparison when mssql_test.txt is missing
+- ✅ MUST create NG.txt with NG Reason: PREREQUISITE_FAILED
+
+Verdict:
+- EXACT: 0
+- SEMANTIC: 0
+- STRUCTURAL: 0
+- MISMATCH: 0
+- NOT_COMPARABLE: N/A (no test cases available)
+
+Total Pass: 0/0 (no tests executed)
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Fix AWS region configuration for Source RDS connection
+2. Re-run Stage 1 to generate:
+   - mssql.sql
+   - mssql_test.sql
+   - mssql_test.txt
+3. Re-run Stages 2, 3, 4 in sequence
+4. Return to this comparison after all prerequisites are met
+
+This is a connectivity issue, NOT a conversion failure.
+The object may be fully compatible with PostgreSQL once baseline is established.

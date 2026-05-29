@@ -1,0 +1,144 @@
+================================================================================
+COMPARISON: MSSQL vs PostgreSQL - CANNOT EXECUTE
+================================================================================
+Object: PROCEDURE dbo.usp_search_employees_paged
+Timestamp: 2025-01-10
+Stage: 4 (Final Verification)
+
+================================================================================
+SECTION 1: PREREQUISITE STATUS
+================================================================================
+
+Required Files Status:
+----------------------
+❌ mssql.sql                 - NOT FOUND (Stage 1 artifact)
+❌ mssql_test.sql            - NOT FOUND (Stage 1 artifact)
+❌ mssql_test.txt            - NOT FOUND (Stage 1 baseline results)
+❌ postgres.sql              - NOT FOUND (Stage 3 artifact)
+
+Existing Files:
+---------------
+✓ prerequisites.txt          - Documents Stage 1 failure
+✓ babelfish_attempt.txt      - Documents Stage 2 connection failure
+✓ postgres_blocked.txt       - Documents Stage 3 blocked status
+
+================================================================================
+SECTION 2: ROOT CAUSE ANALYSIS
+================================================================================
+
+Stage 1 Failure:
+----------------
+Status: PREREQUISITE_FAILED
+Error: "You must specify a region."
+Impact: Cannot connect to Source RDS for SQL Server
+Result: No mssql.sql, mssql_test.sql, or mssql_test.txt were created
+
+Stage 2 Status:
+---------------
+Status: CONNECTION_ERROR
+Error: Babelfish connection failed (AWS region not specified)
+Impact: Cannot verify Babelfish compatibility
+Result: No BABELFISH_OK.txt or babelfish_test.txt were created
+
+Stage 3 Status:
+---------------
+Status: PREREQUISITE_MISSING
+Reason: mssql.sql does not exist (Stage 1 not completed)
+Impact: Cannot perform T-SQL → PL/pgSQL conversion
+Result: No postgres.sql was created (intentionally, to prevent fabrication)
+
+Stage 4 Status:
+---------------
+Status: CANNOT EXECUTE
+Reason: No baseline results (mssql_test.txt) and no conversion output (postgres.sql)
+Impact: Cannot perform comparison testing
+
+================================================================================
+SECTION 3: COMPARISON RESULT
+================================================================================
+
+Test Cases Executed: 0
+Test Cases Passed: 0
+Test Cases Failed: 0
+
+Result: ❌ COMPARISON NOT POSSIBLE
+
+Reason:
+-------
+比較を実行するには以下の両方が必要です:
+1. mssql_test.txt (Source MSSQL での実行結果) - ❌ 不在
+2. postgres_test.txt (Target PostgreSQL での実行結果) - ❌ 不在
+
+どちらも存在しないため、結果の比較は不可能です。
+
+================================================================================
+SECTION 4: COMPLIANCE WITH ANTI-FABRICATION RULES
+================================================================================
+
+🚫 Prohibited Actions NOT Taken (as required):
+  ✓ Did NOT create postgres_test.sql without mssql_test.sql
+  ✓ Did NOT create postgres_test.txt with fabricated results
+  ✓ Did NOT create OK.txt based on "logical inference"
+  ✓ Did NOT assume "it would work" without actual execution
+  ✓ Did NOT generate comparison results without real data
+
+✅ Correct Actions Taken:
+  ✓ Detected missing prerequisites from Stage 1
+  ✓ Documented actual error condition
+  ✓ Clearly stated "COMPARISON NOT POSSIBLE"
+  ✓ Will create NG.txt with PREREQUISITE_FAILED reason
+  ✓ Will NOT create OK.txt (preventing hallucination)
+
+Historical Context:
+-------------------
+2026-05-29 バルクラン事例: 接続失敗時に偽 OK.txt が 12 件生成され、
+実際には 1 件も DB に投入されていなかった。このような hallucination は
+本番投入時に重大な事故を引き起こすため、絶対に防止する必要がある。
+
+================================================================================
+SECTION 5: REQUIRED ACTIONS
+================================================================================
+
+To complete the conversion workflow:
+
+1. ✅ Fix AWS Region Configuration
+   - Source RDS for SQL Server の接続設定を修正
+   - AWS region を正しく指定
+
+2. ✅ Execute Stage 1
+   - run_mssql_sql ツールで以下を生成:
+     * mssql.sql (DDL)
+     * mssql_test.sql (テストスクリプト)
+     * mssql_test.txt (MSSQL での実行結果)
+
+3. ✅ Execute Stage 3
+   - mssql.sql を元に postgres.sql を生成
+   - Aurora PostgreSQL に DDL を投入
+
+4. ✅ Re-run Stage 4
+   - postgres_test.sql を生成
+   - run_postgres_sql で実行して postgres_test.txt を取得
+   - mssql_test.txt と比較して OK/NG を判定
+
+================================================================================
+FINAL VERDICT
+================================================================================
+
+Result: ❌ PREREQUISITE_FAILED
+
+Summary:
+  Stage 1 が実行されていないため、変換の基準となる MSSQL の DDL と
+  テスト結果が存在しません。Stage 4 での比較検証は実行不可能です。
+
+Match Levels:
+  EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0
+  (No tests executed)
+
+Next Steps:
+  1. AWS 接続設定を修正
+  2. Stage 1 から順次実行
+  3. 全ステージ完了後に Stage 4 を再実行
+
+================================================================================
+END OF COMPARISON REPORT
+================================================================================

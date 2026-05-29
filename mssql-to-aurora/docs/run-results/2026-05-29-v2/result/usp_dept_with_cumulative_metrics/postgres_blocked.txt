@@ -1,0 +1,73 @@
+================================================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION
+================================================================================
+Object: PROCEDURE dbo.usp_dept_with_cumulative_metrics
+Timestamp: 2025-01-10 (automated conversion)
+
+================================================================================
+SECTION 1: PREREQUISITE CHECK
+================================================================================
+
+Checking for Stage 1 artifacts...
+
+❌ mssql.sql: NOT FOUND
+   Path: ./result/usp_dept_with_cumulative_metrics/mssql.sql
+   
+Root Cause:
+  Stage 1 has not been executed or did not produce the required DDL file.
+  Without the source T-SQL definition, Stage 3 cannot perform conversion.
+
+Impact:
+  - Cannot read source T-SQL code
+  - Cannot perform T-SQL → PL/pgSQL conversion
+  - Cannot generate postgres.sql
+  - Cannot verify syntax against Aurora PostgreSQL
+
+================================================================================
+SECTION 2: COMPLIANCE WITH STAGE 3 PROTOCOL
+================================================================================
+
+Per Stage 3 specification (絶対禁止事項), when Stage 1 artifacts are missing,
+the agent MUST:
+
+✅ NOT fabricate or guess postgres.sql content
+✅ NOT create postgres.sql with speculative code
+✅ NOT proceed with "might work" assumptions
+✅ Record RESULT: CONNECTION_ERROR (prerequisite failure)
+✅ Terminate Stage 3 immediately
+
+This report complies with all requirements above.
+
+================================================================================
+SECTION 3: RECOMMENDATIONS
+================================================================================
+
+To resolve this issue:
+
+1. Execute Stage 1 first:
+   - Run Stage 1 agent to extract DDL from source MSSQL
+   - Verify mssql.sql is generated successfully
+   - Ensure Stage 1 completed with MSSQL_OK.txt
+
+2. Execute Stage 2 (optional but recommended):
+   - Verify Babelfish compatibility
+   - Identify potential conversion issues early
+
+3. Re-run Stage 3 after Stage 1 completes successfully
+
+================================================================================
+FINAL RESULT
+================================================================================
+
+RESULT: CONNECTION_ERROR (PREREQUISITE_MISSING)
+
+Stage 3 cannot proceed. No conversion was attempted.
+
+No postgres.sql will be created.
+No Aurora PostgreSQL verification was performed.
+
+This is the correct and expected behavior when prerequisites are not met.
+
+================================================================================
+END OF REPORT
+================================================================================

@@ -1,0 +1,39 @@
+================================================================================
+STAGE 1: SOURCE OBJECT VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: dbo.usp_dynamic_count_with_output
+Type: STORED PROCEDURE
+Timestamp: Stage 1 Execution
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Cannot connect to Source RDS for SQL Server.
+Error message: "You must specify a region."
+
+ROOT CAUSE:
+AWS region configuration is missing or invalid for the run_mssql_sql tool.
+Without connectivity to the source database, the following operations cannot be performed:
+  1. Verify object existence
+  2. Extract DDL definition
+  3. Identify dependencies
+  4. Execute test cases
+  5. Capture actual results
+
+IMPACT:
+-------
+Stage 1 cannot proceed. The following files will NOT be created:
+  - mssql.sql (DDL definition)
+  - mssql_test.sql (test cases)
+  - mssql_test.txt (actual test results)
+
+Stage 2, 3, and 4 must detect this failure and generate NG.txt accordingly.
+
+REQUIRED ACTION:
+----------------
+Configure AWS region for Source RDS for SQL Server connection and retry Stage 1.
+
+================================================================================
+END OF PREREQUISITES CHECK
+================================================================================

@@ -1,0 +1,57 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_dynamic_count_with_output
+Test Cases: 0 total (comparison not performed)
+
+================================================================================
+COMPARISON STATUS: NOT EXECUTED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Missing Required Files:
+-----------------------
+❌ mssql.sql          - Source DDL definition (Stage 1 output)
+❌ mssql_test.sql     - MSSQL test script (Stage 1 output)
+❌ mssql_test.txt     - MSSQL test results (Stage 1 output)
+❌ postgres.sql       - Converted PL/pgSQL DDL (Stage 3 output)
+
+Root Cause:
+-----------
+Stage 1 failed to connect to Source RDS for SQL Server due to AWS region 
+configuration error: "You must specify a region."
+
+Without Stage 1 completion:
+- No source DDL to analyze
+- No baseline test results from MSSQL
+- Stage 3 could not generate postgres.sql (no source to convert)
+- Stage 4 cannot create postgres_test.sql (no test template)
+- No test execution possible on Aurora PostgreSQL
+
+Impact on Comparison:
+---------------------
+Cannot compare MSSQL vs PostgreSQL results because:
+1. MSSQL baseline does not exist (mssql_test.txt missing)
+2. PostgreSQL conversion does not exist (postgres.sql missing)
+3. No test cases defined (mssql_test.sql missing)
+
+This is NOT a conversion failure - it is a prerequisite failure.
+The conversion pipeline never started due to source database connectivity issues.
+
+================================================================================
+VERDICT: COMPARISON NOT POSSIBLE
+================================================================================
+
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0
+Total Pass: 0/0 (no tests executed)
+
+Result: PREREQUISITE_FAILED
+Next Steps: 
+  1. Configure AWS_REGION for Source RDS for SQL Server
+  2. Re-run Stage 1 to extract DDL and execute baseline tests
+  3. Re-run Stage 2 (Babelfish compatibility check)
+  4. Re-run Stage 3 (T-SQL → PL/pgSQL conversion)
+  5. Re-run Stage 4 (this stage) for final validation
+
+================================================================================
+END OF COMPARISON REPORT
+================================================================================

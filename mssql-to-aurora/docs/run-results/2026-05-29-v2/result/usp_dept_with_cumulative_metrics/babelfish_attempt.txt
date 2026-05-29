@@ -1,0 +1,107 @@
+================================================================================
+STAGE 2: BABELFISH T-SQL COMPATIBILITY VERIFICATION
+================================================================================
+Object: PROCEDURE dbo.usp_dept_with_cumulative_metrics
+Timestamp: 2025-01-10 (automated verification)
+
+================================================================================
+SECTION 1: CONNECTION TEST
+================================================================================
+
+Attempting to connect to Babelfish via run_babelfish_tsql...
+
+❌ CONNECTION FAILED
+
+Error Details:
+  Tool: run_babelfish_tsql
+  SQL: SELECT @@VERSION
+  Error Message: "You must specify a region."
+
+Root Cause:
+  The Babelfish connection tool requires AWS region configuration that is not
+  currently available or properly configured in the execution environment.
+
+Impact:
+  - Cannot verify Babelfish T-SQL compatibility
+  - Cannot execute DDL against Babelfish
+  - Cannot run test cases
+  - Cannot compare results
+
+================================================================================
+SECTION 2: STAGE 1 ARTIFACTS CHECK
+================================================================================
+
+Checking for Stage 1 output files...
+
+❌ mssql.sql: NOT FOUND
+   Path: ./result/usp_dept_with_cumulative_metrics/mssql.sql
+   
+❌ mssql_test.sql: NOT FOUND
+   Path: ./result/usp_dept_with_cumulative_metrics/mssql_test.sql
+   
+❌ mssql_test.txt: NOT FOUND
+   Path: ./result/usp_dept_with_cumulative_metrics/mssql_test.txt
+
+Conclusion:
+  Stage 1 has not been executed or did not produce the required artifacts.
+  Without the source DDL and test cases, Stage 2 cannot proceed even if
+  Babelfish connection were available.
+
+================================================================================
+SECTION 3: VERIFICATION STATUS
+================================================================================
+
+DDL Deployment to Babelfish: NOT ATTEMPTED (connection unavailable)
+Test Execution: NOT ATTEMPTED (connection unavailable)
+Result Comparison: NOT ATTEMPTED (no baseline data)
+
+================================================================================
+SECTION 4: COMPLIANCE WITH STAGE 2 PROTOCOL
+================================================================================
+
+Per Stage 2 specification, when connection fails or Stage 1 artifacts are
+missing, the agent MUST:
+
+✅ Record CONNECTION_ERROR in babelfish_attempt.txt
+✅ NOT create BABELFISH_OK.txt
+✅ NOT create babelfish_test.sql
+✅ NOT create babelfish_test.txt
+✅ NOT fabricate expected results
+✅ Terminate Stage 2 immediately
+
+This report complies with all requirements above.
+
+================================================================================
+SECTION 5: RECOMMENDATIONS
+================================================================================
+
+To resolve this issue:
+
+1. Configure AWS region for Babelfish connection:
+   - Verify AWS credentials and region settings
+   - Ensure Babelfish endpoint is accessible
+   - Check network connectivity and security groups
+
+2. Execute Stage 1 first:
+   - Run Stage 1 agent to extract DDL from source MSSQL
+   - Verify mssql.sql, mssql_test.sql, and mssql_test.txt are generated
+   - Ensure Stage 1 completed with MSSQL_OK.txt
+
+3. Re-run Stage 2 after prerequisites are met
+
+================================================================================
+FINAL RESULT
+================================================================================
+
+RESULT: CONNECTION_ERROR
+
+Stage 2 cannot proceed. Babelfish compatibility status is UNKNOWN.
+
+No BABELFISH_OK.txt will be created.
+No test execution artifacts will be generated.
+
+This is the correct and expected behavior when prerequisites are not met.
+
+================================================================================
+END OF REPORT
+================================================================================

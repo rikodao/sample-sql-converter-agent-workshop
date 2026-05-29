@@ -1,0 +1,38 @@
+================================================================================
+STAGE 1: SOURCE MSSQL VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: dbo.usp_bulk_deactivate_employees
+Type: STORED PROCEDURE
+Timestamp: Stage 1 execution
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Tool: run_mssql_sql
+Error: "You must specify a region."
+
+CAUSE:
+------
+AWS region configuration is missing or invalid. Cannot connect to Source RDS 
+for SQL Server to verify object existence, retrieve DDL, or execute tests.
+
+IMPACT:
+-------
+- Object existence: NOT VERIFIED
+- Dependencies: NOT RETRIEVED
+- DDL (mssql.sql): NOT CREATED
+- Test cases (mssql_test.sql): NOT CREATED
+- Test results (mssql_test.txt): NOT CREATED
+
+NEXT STEPS:
+-----------
+1. Verify AWS region configuration for Source RDS for SQL Server
+2. Ensure proper IAM credentials and network connectivity
+3. Re-run Stage 1 after resolving connectivity issues
+
+Stage 2/3/4 will detect this failure and generate NG.txt accordingly.
+
+================================================================================
+END OF PREREQUISITES CHECK
+================================================================================

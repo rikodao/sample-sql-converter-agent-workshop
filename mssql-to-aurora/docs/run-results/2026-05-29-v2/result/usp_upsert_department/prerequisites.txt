@@ -1,0 +1,36 @@
+================================================================================
+STAGE 1: SOURCE OBJECT VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: dbo.usp_upsert_department
+Type: STORED PROCEDURE
+Timestamp: Stage 1 execution
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Tool: run_mssql_sql
+Error: "You must specify a region."
+Description: Cannot connect to Source RDS for SQL Server due to missing AWS region configuration.
+
+IMPACT:
+-------
+- Cannot verify object existence
+- Cannot retrieve DDL definition from sys.sql_modules
+- Cannot check for WITH ENCRYPTION attribute
+- Cannot identify dependencies via sys.sql_expression_dependencies
+- Cannot execute test cases against source database
+
+RESOLUTION REQUIRED:
+--------------------
+AWS region must be configured in the environment before Stage 1 can proceed.
+Without connectivity to the source MSSQL database, no verification or testing
+can be performed.
+
+STAGE 1 ABORTED: No further files will be generated.
+- mssql.sql: NOT CREATED (DDL unavailable)
+- mssql_test.sql: NOT CREATED (cannot design tests without DDL)
+- mssql_test.txt: NOT CREATED (cannot execute tests)
+
+Stage 2/3/4 should detect this failure and generate NG.txt accordingly.
+================================================================================

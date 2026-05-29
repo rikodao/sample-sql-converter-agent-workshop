@@ -85,3 +85,21 @@ Stage 2 のエージェントは以下の機能を見つけたら、エラーが
 ## 注意
 - 構文を「修正して通す」のは Stage 2 の仕事ではない (Stage 3 で PL/pgSQL 変換として行う)
 - BABELFISH_OK.txt を作成するなら、必ずテスト数と Match Levels の数値を入れる (集計スクリプトが解析する)
+
+## 🚫 絶対禁止事項 — 接続失敗時の捏造禁止
+
+ツール呼び出し (`run_babelfish_tsql`) が失敗した場合、または Stage 1 の成果物
+(`mssql.sql`, `mssql_test.sql`, `mssql_test.txt`) が無い場合、**絶対に以下を行ってはならない**:
+
+- ❌ Babelfish に DDL を投入できていないのに `BABELFISH_OK.txt` を作成する
+- ❌ テスト実行できていないのに「想定では結果が一致するはず」と書く
+- ❌ `babelfish_test.txt` に「期待される出力」を捏造で書く
+
+接続失敗時の正しい挙動:
+1. `babelfish_attempt.txt` に `RESULT: CONNECTION_ERROR` と具体的なエラーメッセージを記録
+2. `BABELFISH_OK.txt` は **絶対に作成しない**
+3. `babelfish_test.sql`, `babelfish_test.txt` は作成しない (空ファイルも作らない)
+4. Stage 2 を即座に終了する (Stage 3 が後段で PG-native 変換を試みる、ただし接続が直っていれば)
+
+「Babelfish 互換性は判断不能」のままにすることが、間違って BABELFISH_OK 判定を出すより
+何百倍も価値がある。

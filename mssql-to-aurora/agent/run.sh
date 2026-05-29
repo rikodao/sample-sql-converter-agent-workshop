@@ -91,6 +91,15 @@ process_one() {
   local idx="$2"
   local total="$3"
   shift 3
+  # xargs/bash -c 並列起動時に親シェルの env を引き継がないケースの保険として、
+  # process_one 冒頭で .env を再 source する (AWS_REGION 等を確実に注入)。
+  # 詳細は docs/run-results/2026-05-29/AUTO_EXTRACT_TEST.md §5.4 を参照。
+  if [[ -f .env ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    . ./.env
+    set +a
+  fi
   local short
   short=$(echo "$item" | tr ' ' '_' | tr '/' '_' | tr -cd '[:alnum:]._-' | cut -c1-80)
   local item_log="$LOG_DIR/run-$TS.$short.log"

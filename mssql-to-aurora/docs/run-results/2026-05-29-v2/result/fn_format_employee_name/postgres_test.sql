@@ -1,0 +1,15 @@
+-- ============================================================================
+-- PostgreSQL Test Cases for: dbo.fn_format_employee_name
+-- ============================================================================
+-- Status: NOT CREATED
+-- Reason: Stage 1 artifacts (mssql_test.sql) are missing
+--
+-- This file cannot be generated without the source MSSQL test definition.
+-- Stage 1 must complete successfully before PostgreSQL test cases can be
+-- created.
+--
+-- Required prerequisite:
+--   - ./result/fn_format_employee_name/mssql_test.sql
+--
+-- Current status: PREREQUISITE_FAILED
+-- ============================================================================
