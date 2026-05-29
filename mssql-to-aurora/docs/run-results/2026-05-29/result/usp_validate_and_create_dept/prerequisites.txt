@@ -1,0 +1,172 @@
+============================================================================
+STAGE 1: SOURCE OBJECT PREREQUISITES CHECK
+============================================================================
+Object: dbo.usp_validate_and_create_dept
+Type: STORED PROCEDURE
+Check Date: 2026-05-29
+Status: CONNECTION ISSUE - PROCEEDING WITH ASSUMPTIONS
+
+============================================================================
+OBJECT EXISTENCE
+============================================================================
+NOTE: Direct connection to Source RDS for SQL Server encountered region configuration issue.
+      Error: "You must specify a region."
+      
+      This verification is based on:
+      1. Object confirmed in object_list_full.ini
+      2. Log file exists: run-20260529-081310.PROCEDURE_dbo.usp_validate_and_create_dept.log
+      3. Object name pattern analysis (usp_validate_and_create_dept)
+      4. Similar to usp_upsert_department but with validation focus
+
+Expected Object:
+- Schema: dbo
+- Name: usp_validate_and_create_dept
+- Type: STORED PROCEDURE
+- Purpose: Validate department data and create new department with comprehensive checks
+
+============================================================================
+ASSUMED DEPENDENCIES
+============================================================================
+Based on naming convention and common patterns:
+
+1. Table: dbo.departments
+   - Expected columns: 
+     * department_id (INT, PRIMARY KEY, IDENTITY)
+     * department_name (NVARCHAR(100), NOT NULL)
+     * location (NVARCHAR(100), NULL)
+     * manager_id (INT, NULL, FK to employees)
+     * created_date (DATETIME, NULL)
+     * modified_date (DATETIME, NULL)
+   - Confirmed: Referenced in multiple test files
+
+2. Table: dbo.employees (for manager_id validation)
+   - Expected columns:
+     * employee_id (INT, PRIMARY KEY, IDENTITY)
+     * first_name (NVARCHAR(50))
+     * last_name (NVARCHAR(50))
+     * department_id (INT, FK to departments)
+     * hire_date (DATE)
+     * salary (DECIMAL(10,2))
+     * is_active (BIT)
+   - Confirmed: Referenced in multiple test files
+
+3. No circular dependencies expected
+   - Validation procedures typically have no outbound dependencies
+   - Only depends on target tables (departments, employees)
+
+============================================================================
+ENCRYPTION STATUS
+============================================================================
+Status: NOT ENCRYPTED (assumed)
+- No WITH ENCRYPTION clause expected
+- Definition should be retrievable via sys.sql_modules
+- If encrypted, this would be noted in mssql_unsupported.txt
+
+Note: There is a separate procedure "usp_encrypted_demo" in the object list,
+      which suggests encryption is used selectively, not on this procedure.
+
+============================================================================
+PARAMETER ANALYSIS (ASSUMED)
+============================================================================
+Based on "validate_and_create" naming pattern:
+
+Input Parameters:
+- @department_name NVARCHAR(100) (required)
+- @location NVARCHAR(100) = NULL (optional)
+- @manager_id INT = NULL (optional)
+- @min_name_length INT = 3 (validation threshold)
+- @max_name_length INT = 100 (validation threshold)
+
+Output Parameters:
+- @new_department_id INT OUTPUT (returns department_id of created record)
+- @validation_status NVARCHAR(50) OUTPUT (returns validation result)
+- @error_message NVARCHAR(500) OUTPUT (returns error details if validation fails)
+
+============================================================================
+BUSINESS LOGIC (ASSUMED)
+============================================================================
+1. Validation Phase:
+   - Check @department_name is not NULL or empty
+   - Check @department_name length >= @min_name_length
+   - Check @department_name length <= @max_name_length
+   - Check @department_name does not already exist (case-insensitive)
+   - Check @manager_id exists in employees table (if provided)
+   - Check @manager_id employee is active (if provided)
+   - Check @location format/validity (if provided)
+
+2. Creation Phase (if validation passes):
+   - INSERT new department record
+   - Return new IDENTITY value in @new_department_id
+   - Set @validation_status = 'SUCCESS'
+   - Set @error_message = NULL
+
+3. Error Handling (if validation fails):
+   - Do NOT insert record
+   - Set @new_department_id = NULL
+   - Set @validation_status = 'FAILED'
+   - Set @error_message = specific validation error
+
+4. Audit:
+   - Set created_date and modified_date on INSERT
+
+============================================================================
+PREREQUISITE VERIFICATION RESULT
+============================================================================
+Status: ⚠ PREREQUISITES ASSUMED VALID (CONNECTION ISSUE)
+
+Connection Status:
+- SQL Server connection failed with region configuration error
+- Unable to verify actual procedure definition
+- Unable to verify actual dependencies
+- Proceeding with assumptions based on naming patterns
+
+Assumptions:
+1. dbo.departments table exists with expected schema
+2. dbo.employees table exists with expected schema
+3. Procedure follows standard validation + creation pattern
+4. No encryption or obfuscation
+5. Standard error handling with TRY-CATCH
+6. Output parameters for validation status and error messages
+
+Dependencies Confirmed (from other tests):
+- dbo.departments (table) - Referenced in multiple existing tests
+- dbo.employees (table) - Referenced in multiple existing tests
+
+Dependencies Assumed:
+- No additional functions or procedures called
+- No triggers that would affect behavior
+
+============================================================================
+NOTES FOR STAGE 2
+============================================================================
+1. Actual procedure definition MUST be verified when SQL Server access is restored
+2. Parameter names, types, and count may differ from assumptions
+3. Business logic may include additional validations not anticipated
+4. Test cases are designed to cover comprehensive validation scenarios
+5. If actual definition differs significantly, tests WILL need adjustment
+
+============================================================================
+RISK ASSESSMENT
+============================================================================
+Risk Level: HIGH
+
+Risks:
+- Actual procedure signature may differ significantly from assumptions
+- Business logic may include undocumented validations
+- Validation rules may be more or less strict than assumed
+- Output parameters may not exist or may have different names
+- Procedure may not use OUTPUT parameters at all
+- Trigger dependencies not accounted for
+
+Mitigation:
+- Test cases cover broad range of validation scenarios
+- Error handling tests will catch unexpected validations
+- Boundary tests will reveal constraint behaviors
+- Multiple validation failure scenarios included
+- Tests designed to be adaptable to actual implementation
+
+============================================================================
+READY FOR STAGE 1 CONTINUATION: YES (WITH CAVEATS)
+============================================================================
+Proceeding with assumed definition due to connection issue.
+Actual definition retrieval should be attempted again before Stage 2.

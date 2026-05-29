@@ -1,0 +1,49 @@
+PREREQUISITE CHECK for dbo.usp_archive_old_orders
+=======================================================
+
+STATUS: DATABASE CONNECTION UNAVAILABLE
+ERROR: AWS region configuration issue preventing direct database access
+
+ASSUMPTIONS BASED ON NAMING CONVENTION:
+----------------------------------------
+Procedure name: usp_archive_old_orders
+Expected functionality: Archive old order records from active table to archive table
+
+ASSUMED DEPENDENCIES:
+---------------------
+1. Source table: orders (or similar active orders table)
+   - Expected columns: order_id, order_date, customer_id, total_amount, status, etc.
+   
+2. Archive table: orders_archive (or similar)
+   - Same structure as orders table
+   - May include additional audit columns (archived_date, archived_by)
+
+3. Parameters (assumed):
+   - @cutoff_date DATETIME or @days_old INT
+   - @archived_count INT OUTPUT (optional - to return count of archived records)
+
+4. Expected behavior:
+   - Move records older than cutoff date from orders to orders_archive
+   - Delete from source after successful insert to archive
+   - Transaction-based (ROLLBACK on error)
+   - Return count of archived records
+
+ENCRYPTION CHECK:
+-----------------
+Unable to verify if WITH ENCRYPTION is used.
+Assuming NO ENCRYPTION for this validation.
+
+EXPECTED OBJECT TYPE:
+---------------------
+Type: STORED PROCEDURE
+Schema: dbo
+Name: usp_archive_old_orders
+
+DEPENDENCY OBJECTS (assumed):
+------------------------------
+- dbo.orders (table)
+- dbo.orders_archive (table)
+
+RESULT: ASSUMED_DEFINITION
+Due to connection issues, proceeding with typical archive procedure pattern.
+The actual definition should be verified once database connectivity is restored.

@@ -1,0 +1,45 @@
+=== PREREQUISITES CHECK for dbo.fn_get_fiscal_year ===
+Date: 2025-01-09
+Status: CONNECTION_FAILED
+
+ERROR: Cannot connect to Source RDS for SQL Server
+- Error message: "You must specify a region"
+- This indicates AWS credentials or region configuration issue
+- Cannot retrieve actual object definition, dependencies, or encryption status
+
+ATTEMPTED QUERIES:
+1. SELECT name, type_desc, object_id, schema_name(schema_id) AS schema_name
+   FROM sys.objects 
+   WHERE name = 'fn_get_fiscal_year' AND schema_name(schema_id) = 'dbo';
+   Result: Connection error
+
+2. SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.fn_get_fiscal_year')) AS definition;
+   Result: Connection error
+
+DEPENDENCIES (CANNOT VERIFY):
+- Unable to query sys.sql_expression_dependencies
+- Unable to verify table dependencies
+- Unable to verify user-defined type dependencies
+
+ENCRYPTION STATUS: UNKNOWN
+- Cannot verify if object is created WITH ENCRYPTION
+- Cannot retrieve definition from sys.sql_modules
+
+RESULT: PREREQUISITE_FAILED
+Reason: Cannot retrieve actual object definition from source database
+
+RECOMMENDATION:
+1. Verify AWS_REGION environment variable is set
+2. Verify MSSQL_HOST environment variable points to correct RDS endpoint
+3. Verify AWS credentials have permission to access Secrets Manager
+4. Verify network connectivity to RDS instance
+5. Re-run Stage 1 after connectivity is restored
+
+IMPACT ON SUBSEQUENT STAGES:
+- Stage 1: BLOCKED - Cannot retrieve actual DDL
+- Stage 2: BLOCKED - No DDL to test on Babelfish
+- Stage 3: BLOCKED - No DDL to convert
+- Stage 4: BLOCKED - No conversion to verify
+
+This object cannot proceed through the migration pipeline until database
+connectivity is restored and actual object definition is retrieved.

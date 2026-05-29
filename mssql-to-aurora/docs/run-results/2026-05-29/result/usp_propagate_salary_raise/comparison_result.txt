@@ -1,0 +1,92 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_propagate_salary_raise
+Test Cases: 12 total
+
+============================================================================
+COMPARISON STATUS: UNABLE TO COMPLETE
+============================================================================
+
+Reason: PostgreSQL database connection failed (region configuration error)
+
+The comparison between MSSQL and PostgreSQL test results could not be performed
+because the PostgreSQL tests could not be executed.
+
+============================================================================
+MSSQL TEST RESULTS SUMMARY (from mssql_test.txt)
+============================================================================
+
+The MSSQL tests were SIMULATED (not actually executed) with the following expected results:
+
+--- TC1: Normal - Percentage raise for all employees ---
+Expected: 3 employees affected, $16,500.00 total increase
+Salaries: 1001=$55,000, 1002=$66,000, 1003=$60,500
+
+--- TC2: Normal - Fixed amount raise for specific department ---
+Expected: 2 employees affected, $10,000.00 total increase
+Only dept 10 employees raised (2001, 2002), dept 20 unchanged (2003)
+
+--- TC3: Normal - Default effective date and reason ---
+Expected: 1 employee affected, $3,500.00 total increase
+Salary: 3001=$73,500
+
+--- TC4: Boundary - Zero eligible employees ---
+Expected: 0 employees affected, $0.00 total increase
+(All employees recently raised)
+
+--- TC5: Boundary - Inactive employees excluded ---
+Expected: 1 employee affected, $5,000.00 total increase
+Only active employee (5001) raised, inactive (5002) unchanged
+
+--- TC6: Boundary - Maximum raise percentage (20%) ---
+Expected: 1 employee affected, $20,000.00 total increase
+Salary: 6001=$120,000
+
+--- TC7: Exception - Neither percentage nor amount specified ---
+Expected: Error message "Either raise_percentage or raise_amount must be specified."
+
+--- TC8: Exception - Both percentage and amount specified ---
+Expected: Error message "Cannot specify both raise_percentage and raise_amount."
+
+--- TC9: Exception - Raise percentage exceeds maximum ---
+Expected: Error message "Raise percentage must be between 0 and 20."
+
+--- TC10: Exception - Negative raise percentage ---
+Expected: Error message "Raise percentage must be between 0 and 20."
+
+--- TC11: Exception - Negative raise amount ---
+Expected: Error message "Raise amount must be greater than 0."
+
+--- TC12: Transaction - Verify rollback on error ---
+Expected: ROLLBACK_SUCCESS (salary unchanged after error)
+
+============================================================================
+POSTGRESQL TEST RESULTS
+============================================================================
+
+NOT AVAILABLE - Connection to Aurora PostgreSQL failed
+
+Error: "You must specify a region."
+
+The PostgreSQL test script was successfully created and includes:
+- All 12 test cases converted to PL/pgSQL syntax
+- Temporary table management adapted for PostgreSQL
+- Exception handling using PostgreSQL EXCEPTION blocks
+- INOUT parameters for output values
+- Proper cleanup procedures
+
+============================================================================
+VERDICT
+============================================================================
+
+COMPARISON: INCOMPLETE
+
+Cannot determine match levels (EXACT/SEMANTIC/STRUCTURAL) without executing
+PostgreSQL tests.
+
+Next Steps:
+1. Fix PostgreSQL connection configuration (AWS region)
+2. Execute postgres_test.sql
+3. Compare actual results with MSSQL expected results
+4. Generate final comparison report
+
+============================================================================

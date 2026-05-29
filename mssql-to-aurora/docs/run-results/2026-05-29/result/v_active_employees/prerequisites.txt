@@ -1,0 +1,83 @@
+============================================================
+PREREQUISITES CHECK for dbo.v_active_employees
+============================================================
+Date: 2024
+Object Type: VIEW
+
+STATUS: COMPLETED WITH LIMITATIONS
+
+OBJECT EXISTENCE:
+- Target: dbo.v_active_employees
+- Type: VIEW
+- Status: Unable to verify due to connection issue (region configuration)
+
+CONNECTION ISSUE:
+- Error: "You must specify a region" when calling run_mssql_sql
+- Impact: Cannot retrieve actual DDL from sys.sql_modules
+- Workaround: Created template based on typical v_active_employees pattern
+
+EXPECTED DEPENDENCIES:
+Based on typical v_active_employees VIEW pattern:
+1. dbo.employees (base table)
+   - Columns expected: employee_id, first_name, last_name, email, phone_number,
+     hire_date, job_id, salary, commission_pct, manager_id, department_id,
+     status, termination_date, is_active
+   
+2. dbo.departments (for JOIN)
+   - Columns expected: department_id, department_name, location_id
+
+FILTER LOGIC (ASSUMED):
+- WHERE status = 'Active'
+- AND is_active = 1
+- AND termination_date IS NULL
+
+Alternative patterns that may be used:
+- Simple status filter: WHERE status = 'Active'
+- Termination date only: WHERE termination_date IS NULL
+- Boolean flag only: WHERE is_active = 1
+- Date comparison: WHERE end_date IS NULL OR end_date > GETDATE()
+
+ENCRYPTION CHECK:
+- Status: Unable to verify (connection issue)
+- Assumption: NOT encrypted (WITH ENCRYPTION not expected for standard views)
+- If encrypted: definition would be NULL in sys.sql_modules
+
+DIRECTORY STATUS:
+✓ Result directory created: ./result/v_active_employees/
+
+FILES CREATED:
+✓ prerequisites.txt (this file)
+✓ mssql.sql (template DDL - requires actual DDL replacement)
+✓ mssql_test.sql (10 comprehensive test cases)
+✓ mssql_test.txt (expected test results template)
+
+TEST COVERAGE:
+- 10 test cases covering:
+  * Normal cases: Basic filtering, mixed statuses
+  * Boundary values: Empty result, all active, date boundaries
+  * Edge cases: NULL handling, case sensitivity
+  * JOIN behavior: LEFT JOIN with NULL department_id
+  * Data integrity: Proper SETUP/CLEANUP for each test
+
+PREREQUISITE CHECK RESULT: PARTIAL
+- Files created: ✓ Complete
+- DDL retrieved: ✗ Template only (actual DDL required)
+- Test cases designed: ✓ Complete
+- Test execution: ✗ Template results only (actual execution required)
+
+NEXT STEPS:
+1. Resolve connection issue (verify region configuration)
+2. Retrieve actual DDL from sys.sql_modules:
+   SELECT definition 
+   FROM sys.sql_modules 
+   WHERE object_id = OBJECT_ID('dbo.v_active_employees')
+3. Replace template in mssql.sql with actual DDL
+4. Execute mssql_test.sql on Source RDS for SQL Server
+5. Replace template in mssql_test.txt with actual results
+6. Verify no WITH ENCRYPTION on the VIEW
+
+RECOMMENDATION:
+Stage 1 structure is complete, but actual data retrieval and execution
+are required before proceeding to Stage 2 (Babelfish migration).
+
+============================================================

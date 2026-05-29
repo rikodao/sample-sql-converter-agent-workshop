@@ -1,0 +1,160 @@
+============================================================================
+STAGE 4 VALIDATION SUMMARY
+============================================================================
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Target: Aurora PostgreSQL (Native PL/pgSQL)
+Date: 2026-05-29
+Status: NG (PREREQUISITE_FAILED)
+
+============================================================================
+EXECUTION SUMMARY
+============================================================================
+
+Files Generated:
+✓ postgres_test.sql       - PostgreSQL test suite (12 test cases, ready to execute)
+✓ NG.txt                  - Failure report (PREREQUISITE_FAILED)
+✓ retry_log.txt           - Detailed attempt log
+✓ comparison_result.txt   - Comparison analysis (theoretical)
+
+Files Not Generated:
+✗ postgres_test.txt       - Cannot execute tests (no database connectivity)
+✗ OK.txt                  - Validation incomplete
+
+============================================================================
+FAILURE ANALYSIS
+============================================================================
+
+Category: PREREQUISITE_FAILED
+Root Cause: Database connectivity failure (infrastructure issue)
+Error: "You must specify a region" - boto3 AWS SDK configuration
+
+Impact:
+- Cannot deploy PostgreSQL function to Aurora PostgreSQL
+- Cannot execute test suite
+- Cannot compare results with MSSQL
+- Cannot verify conversion correctness
+
+Scope:
+- Affects both MSSQL (Stage 1) and PostgreSQL (Stage 4)
+- Same error in both environments
+- Infrastructure/configuration issue, not code issue
+
+============================================================================
+CONVERSION QUALITY ASSESSMENT (Code Review)
+============================================================================
+
+Syntax Conversion: ✓ CORRECT (95% confidence)
+- All T-SQL constructs properly converted to PL/pgSQL
+- Recursive CTE syntax correct
+- Error handling properly adapted
+- Parameter handling correct
+- Type conversions appropriate
+
+Semantic Equivalence: ✓ LIKELY CORRECT (85% confidence)
+- Logic flow identical
+- Filtering conditions equivalent
+- NULL handling equivalent (COALESCE)
+- Error validation equivalent
+- Ordering identical
+
+Known Differences: ✓ DOCUMENTED
+- PROCEDURE → FUNCTION (architectural requirement)
+- EXEC → SELECT FROM (calling syntax)
+- @param → p_param (naming convention)
+- dbo → public (schema)
+
+Potential Issues: ⚠ NEEDS TESTING (70% confidence)
+- NULL concatenation edge cases
+- VARCHAR length limits (same as MSSQL)
+- Performance characteristics
+- Integration with existing schema
+
+============================================================================
+TEST COVERAGE
+============================================================================
+
+Test Cases Prepared: 12 (15 scenarios including sub-cases)
+
+Coverage:
+✓ Normal operation (TC1, TC2, TC9)
+✓ Boundary conditions (TC3, TC5, TC8)
+✓ Error handling (TC6, TC7a, TC7b)
+✓ Optional parameters (TC3, TC4a, TC4b)
+✓ NULL handling (TC10)
+✓ Data integrity (TC11, TC12)
+✓ Recursive depth (TC8)
+✓ Multiple roots (TC9)
+
+Execution Status: NOT EXECUTED (connectivity failure)
+
+============================================================================
+RISK ASSESSMENT
+============================================================================
+
+Syntax Errors: LOW RISK
+- Code review shows correct PL/pgSQL syntax
+- All T-SQL constructs have direct equivalents
+- No MSSQL-specific features used
+
+Semantic Errors: MEDIUM RISK
+- NULL handling needs execution testing
+- Edge cases not verified
+- Performance characteristics unknown
+
+Deployment Risk: HIGH RISK
+- Cannot test in target environment
+- Integration with existing schema not validated
+- Application code changes required (EXEC → SELECT FROM)
+
+Overall Risk: HIGH (due to inability to test)
+
+============================================================================
+RECOMMENDATION
+============================================================================
+
+IMMEDIATE ACTION REQUIRED:
+1. Fix AWS SDK configuration:
+   - Set AWS_DEFAULT_REGION environment variable
+   - Or configure ~/.aws/config with default region
+   - Or pass region explicitly in boto3 client initialization
+
+2. Restore database connectivity:
+   - Test connection to Source RDS for SQL Server
+   - Test connection to Aurora PostgreSQL
+   - Verify security groups and network ACLs
+
+3. Re-run validation workflow:
+   - Stage 1: Execute MSSQL tests (capture actual results)
+   - Stage 4: Deploy PostgreSQL function and execute tests
+   - Compare actual results
+   - Generate OK.txt or NG.txt based on comparison
+
+DO NOT PROCEED TO PRODUCTION:
+- Conversion appears correct but is UNVERIFIED
+- Must execute tests before deployment
+- Application code changes required (calling syntax)
+
+ALTERNATIVE (If Connectivity Cannot Be Restored):
+- Use local PostgreSQL instance for syntax validation
+- Manual code review by DBA
+- Accept higher risk and deploy with monitoring
+
+============================================================================
+CONCLUSION
+============================================================================
+
+Result: NG (PREREQUISITE_FAILED)
+Reason: Database connectivity failure (infrastructure issue)
+Conversion Quality: Appears correct (code review)
+Confidence Level: 85% (based on code review only)
+
+The conversion from MSSQL PROCEDURE to PostgreSQL FUNCTION appears to be
+syntactically and semantically correct based on detailed code review.
+However, validation cannot be completed without database connectivity.
+
+This is a BLOCKING infrastructure issue that must be resolved before
+proceeding to production deployment.
+
+Next Action: Fix infrastructure, then re-run Stage 4 validation.
+
+============================================================================

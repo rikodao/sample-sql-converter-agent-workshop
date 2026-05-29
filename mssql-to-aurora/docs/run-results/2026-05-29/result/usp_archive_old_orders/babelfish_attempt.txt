@@ -1,0 +1,58 @@
+============================================================================
+Babelfish Compatibility Verification - Stage 2
+============================================================================
+Object: PROCEDURE dbo.usp_archive_old_orders
+Timestamp: 2025-01-XX (automated test)
+============================================================================
+
+PHASE 1: CONNECTION TEST
+============================================================================
+Attempted: SELECT @@VERSION via run_babelfish_tsql
+Result: CONNECTION_ERROR
+
+Error Details:
+--------------
+Error Message: "You must specify a region."
+Error Type: Configuration/Environment Error
+Tool: run_babelfish_tsql
+
+Root Cause Analysis:
+--------------------
+The Babelfish T-SQL endpoint (TDS port 1433) is not accessible due to missing
+AWS region configuration in the execution environment. This is an infrastructure
+issue, not a SQL Server/Babelfish compatibility issue.
+
+Required Configuration:
+- AWS Region must be specified in environment variables or AWS config
+- Babelfish endpoint must be accessible from current execution context
+- Network connectivity to Babelfish cluster required
+
+Impact:
+-------
+Cannot proceed with DDL deployment or test execution against Babelfish.
+Stage 2 verification cannot be completed without database connectivity.
+
+============================================================================
+CONCLUSION
+============================================================================
+Status: ABORTED
+Reason: CONNECTION_ERROR - Missing AWS region configuration
+
+Next Steps:
+1. Configure AWS region in execution environment
+2. Verify Babelfish endpoint accessibility
+3. Retry Stage 2 verification once connectivity is restored
+
+Note: The MSSQL DDL (mssql.sql) appears syntactically valid for Babelfish
+      based on static analysis:
+      - Uses standard T-SQL constructs (BEGIN/END, TRY/CATCH, TRANSACTION)
+      - No CLR, Service Broker, or Linked Server dependencies detected
+      - OUTPUT parameter usage is standard
+      - RAISERROR, @@ROWCOUNT, @@TRANCOUNT are Babelfish-supported
+      - No obvious compatibility blockers identified
+
+However, actual runtime verification requires database connectivity.
+
+============================================================================
+RESULT: CONNECTION_ERROR
+============================================================================

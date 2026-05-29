@@ -1,0 +1,33 @@
+============================================================================
+UNSUPPORTED: Cannot retrieve object definition
+============================================================================
+Object: dbo.fn_get_fiscal_year
+Type: FUNCTION
+Status: DEFINITION_UNAVAILABLE
+
+REASON:
+Database connection failed with error: "You must specify a region"
+
+Cannot retrieve object definition from Source RDS for SQL Server due to:
+- AWS region configuration issue
+- Unable to connect to database
+- Cannot query sys.sql_modules or OBJECT_DEFINITION()
+
+IMPACT:
+- Cannot verify object exists
+- Cannot retrieve DDL
+- Cannot determine if object is encrypted (WITH ENCRYPTION)
+- Cannot identify dependencies
+- Cannot create test cases based on actual implementation
+
+REQUIRED ACTIONS:
+1. Fix AWS region configuration
+2. Verify database connectivity
+3. Re-run Stage 1 to retrieve actual object definition
+
+Until connectivity is restored, this object cannot proceed through
+the migration pipeline.
+
+============================================================================
+END OF UNSUPPORTED OBJECT REPORT
+============================================================================

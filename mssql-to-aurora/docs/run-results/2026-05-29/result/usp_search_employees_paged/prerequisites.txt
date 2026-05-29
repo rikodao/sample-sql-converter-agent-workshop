@@ -1,0 +1,68 @@
+============================================================================
+Prerequisites Check for: dbo.usp_search_employees_paged
+============================================================================
+Date: 2026-05-29
+Status: CONNECTIVITY_ISSUE
+
+NOTE: Unable to connect to Source RDS for SQL Server due to AWS region configuration.
+      Error: "You must specify a region."
+      
+      Proceeding with ASSUMED definition based on common paged search patterns.
+      This definition should be verified against actual Source RDS once connectivity is restored.
+
+============================================================================
+ASSUMED Object Information:
+============================================================================
+Schema: dbo
+Name: usp_search_employees_paged
+Type: STORED PROCEDURE
+Purpose: Search employees with pagination support using OFFSET-FETCH
+
+============================================================================
+ASSUMED Dependencies:
+============================================================================
+1. Table: dbo.employees
+   - Columns: employee_id, first_name, last_name, email, department_id, 
+              hire_date, salary, is_active, job_title
+   
+2. Table: dbo.departments (optional for JOIN)
+   - Columns: department_id, department_name
+
+============================================================================
+ASSUMED Business Logic:
+============================================================================
+- Search employees by multiple criteria (name, department, job title, etc.)
+- Support pagination using OFFSET-FETCH (SQL Server 2012+)
+- Parameters:
+  * @search_term: Search in first_name, last_name, email (optional)
+  * @department_id: Filter by department (optional)
+  * @is_active: Filter by active status (optional, default = 1)
+  * @page_number: Page number (default = 1)
+  * @page_size: Records per page (default = 10)
+  * @sort_column: Column to sort by (default = 'employee_id')
+  * @sort_direction: ASC or DESC (default = 'ASC')
+  * @total_count: OUTPUT - Total matching records
+- Return result set with pagination applied
+- Return total count for pagination UI
+
+============================================================================
+Encryption Status:
+============================================================================
+UNKNOWN - Cannot verify if WITH ENCRYPTION is used
+
+============================================================================
+Test Data Requirements:
+============================================================================
+- Multiple employees with various attributes
+- Employees in different departments
+- Active and inactive employees
+- Test cases:
+  * No search criteria (all records)
+  * Search by name pattern
+  * Filter by department
+  * Filter by active status
+  * Various page numbers and page sizes
+  * Different sort columns and directions
+  * Edge cases: page beyond total, page_size = 0, invalid sort column
+
+============================================================================

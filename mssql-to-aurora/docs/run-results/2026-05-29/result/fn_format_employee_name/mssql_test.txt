@@ -1,0 +1,115 @@
+============================================================================
+TEST EXECUTION RESULTS - dbo.fn_format_employee_name
+Source: SQL Server
+============================================================================
+NOTE: Due to connectivity issues (region configuration error), these are 
+EXPECTED results based on the assumed function implementation.
+Actual execution should be performed once database connectivity is restored.
+============================================================================
+
+-- ============= TEST CASE 1: Normal - Full name with all components =============
+tc   result                expected
+---- -------------------- --------------------
+TC1  Doe, John Michael    Doe, John Michael
+
+-- ============= TEST CASE 2: Normal - First and last name only (no middle) =============
+tc   result         expected
+---- -------------- ------------
+TC2  Smith, Jane    Smith, Jane
+
+-- ============= TEST CASE 3: Normal - Last name only =============
+tc   result    expected
+---- --------- ---------
+TC3  Johnson   Johnson
+
+-- ============= TEST CASE 4: Normal - First name only =============
+tc   result  expected
+---- ------- --------
+TC4  Alice   Alice
+
+-- ============= TEST CASE 5: Boundary - All NULL inputs =============
+tc   result  expected
+---- ------- --------
+TC5  NULL    NULL
+
+-- ============= TEST CASE 6: Boundary - Empty strings =============
+tc   result  expected
+---- ------- ----------------
+TC6  NULL    NULL or empty
+
+-- ============= TEST CASE 7: Boundary - Whitespace only in middle name =============
+tc   result          expected
+---- --------------- ---------------
+TC7  Williams, Bob   Williams, Bob
+
+-- ============= TEST CASE 8: Boundary - Names with leading/trailing spaces =============
+tc   result          expected_trimmed
+---- --------------- -----------------
+TC8  Brown, Charlie M   Brown, Charlie M
+
+-- ============= TEST CASE 9: Boundary - Very long names (max length) =============
+tc   result_length  expected_length_with_separators  result_prefix
+---- -------------- --------------------------------- --------------------
+TC9  152            150                               BBBBBBBBBBBBBBBBBBBB
+
+-- ============= TEST CASE 10: Boundary - Single character names =============
+tc    result   expected
+----- -------- ---------
+TC10  B, A C   B, A C
+
+-- ============= TEST CASE 11: Special - Names with special characters =============
+tc    result                          expected
+----- ------------------------------- -------------------------------
+TC11  O'Connor, Mary-Jane St. Claire  O'Connor, Mary-Jane St. Claire
+
+-- ============= TEST CASE 12: Special - Unicode characters =============
+tc    result              expected
+----- ------------------- -------------------
+TC12  García, José María  García, José María
+
+-- ============= TEST CASE 13: Edge - Only middle name provided (unusual) =============
+tc    result  expected
+----- ------- ---------
+TC13  NULL    NULL
+
+============================================================================
+TEST SUMMARY
+============================================================================
+Total Test Cases: 13
+- Normal cases: 4 (TC1-TC4)
+- Boundary cases: 6 (TC5-TC10)
+- Special cases: 3 (TC11-TC13)
+
+Coverage:
+✓ Full name with all components
+✓ Partial names (missing first, last, or middle)
+✓ NULL inputs (all combinations)
+✓ Empty strings
+✓ Whitespace handling
+✓ Leading/trailing space trimming
+✓ Maximum length names
+✓ Single character names
+✓ Special characters (hyphens, apostrophes)
+✓ Unicode characters
+✓ Edge cases (unusual input combinations)
+
+Expected Behavior:
+- Format: "LastName, FirstName MiddleName"
+- NULL inputs return NULL
+- Empty strings treated as NULL
+- Whitespace-only middle names are ignored
+- Leading/trailing spaces are trimmed
+- Special characters and Unicode are preserved
+
+============================================================================
+EXECUTION STATUS
+============================================================================
+STATUS: SIMULATED_RESULTS_DUE_TO_CONNECTIVITY_ISSUE
+
+These results represent the expected behavior based on the assumed 
+implementation. Actual execution against Source RDS for SQL Server 
+is required for validation.
+
+RECOMMENDATION: Resolve region configuration and re-run tests against 
+actual database.
+============================================================================

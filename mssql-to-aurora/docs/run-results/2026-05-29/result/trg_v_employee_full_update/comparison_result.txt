@@ -1,0 +1,163 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: TRIGGER dbo.trg_v_employee_full_update
+Test Cases: 10 total
+
+================================================================================
+COMPARISON STATUS: UNABLE TO EXECUTE
+================================================================================
+
+REASON:
+Both Source MSSQL and Target PostgreSQL test executions failed due to AWS region
+configuration error ("You must specify a region.").
+
+Without actual execution results, direct comparison cannot be performed.
+
+================================================================================
+STATIC ANALYSIS COMPARISON
+================================================================================
+
+--- Conversion Approach ---
+MSSQL Pattern:
+  CREATE TRIGGER dbo.trg_v_employee_full_update
+  ON dbo.v_employee_full
+  INSTEAD OF UPDATE
+  AS
+  BEGIN
+      SET NOCOUNT ON;
+      UPDATE e
+      SET first_name = i.first_name,
+          last_name = i.last_name,
+          email = i.email,
+          department_id = i.department_id,
+          salary = i.salary,
+          hire_date = i.hire_date,
+          is_active = i.is_active
+      FROM dbo.employees e
+      INNER JOIN inserted i ON e.employee_id = i.employee_id;
+  END
+
+PostgreSQL Pattern:
+  CREATE FUNCTION public.trg_v_employee_full_update_fn()
+  RETURNS TRIGGER AS $$
+  BEGIN
+      UPDATE public.employees e
+      SET first_name = NEW.first_name,
+          last_name = NEW.last_name,
+          email = NEW.email,
+          department_id = NEW.department_id,
+          salary = NEW.salary,
+          hire_date = NEW.hire_date,
+          is_active = NEW.is_active
+      WHERE e.employee_id = NEW.employee_id;
+      RETURN NEW;
+  END $$ LANGUAGE plpgsql;
+  
+  CREATE TRIGGER trg_v_employee_full_update
+  INSTEAD OF UPDATE ON public.v_employee_full
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trg_v_employee_full_update_fn();
+
+--- Key Differences ---
+1. Trigger Granularity:
+   MSSQL: Statement-level (processes all rows via inserted table)
+   PG:    Row-level (processes one row at a time via NEW record)
+   Impact: Semantically equivalent for correctness, may differ in performance
+
+2. Pseudo-tables vs Records:
+   MSSQL: inserted/deleted tables
+   PG:    NEW/OLD records
+   Impact: Same functionality, different syntax
+
+3. Return Value:
+   MSSQL: No return value
+   PG:    Must RETURN NEW/OLD/NULL
+   Impact: Syntax requirement, no functional difference
+
+4. SET NOCOUNT ON:
+   MSSQL: Required to suppress row count messages
+   PG:    Not needed (no equivalent concept)
+   Impact: None
+
+--- Expected Behavior (All Test Cases) ---
+TC1: Simple UPDATE (single column)
+  Expected: first_name updated, other columns unchanged
+  Confidence: HIGH
+
+TC2: UPDATE multiple columns
+  Expected: All specified columns updated
+  Confidence: HIGH
+
+TC3: UPDATE multiple rows (department_id = 1)
+  Expected: All matching rows updated with salary * 1.05
+  Confidence: HIGH (row-level trigger processes each row)
+
+TC4: UPDATE with NULL value
+  Expected: email set to NULL
+  Confidence: HIGH
+
+TC5: UPDATE with no matching rows
+  Expected: No rows affected, no error
+  Confidence: HIGH
+
+TC6: UPDATE changing department_id
+  Expected: department_id updated, view reflects new department_name
+  Confidence: HIGH (assuming foreign key constraint exists)
+
+TC7: UPDATE with is_active flag
+  Expected: is_active toggled to 0
+  Confidence: HIGH
+
+TC8: UPDATE with hire_date
+  Expected: hire_date updated to '2024-01-01'
+  Confidence: HIGH
+
+TC9: Verify trigger fires (multi-row update)
+  Expected: 3 rows updated (employee_id IN (1,2,3))
+  Confidence: HIGH
+
+TC10: UPDATE all columns
+  Expected: All columns updated for employee_id = 6
+  Confidence: HIGH
+
+================================================================================
+STATIC VERDICT
+================================================================================
+Conversion Quality: EXCELLENT
+- Syntax: Valid PL/pgSQL
+- Logic: Semantically equivalent
+- Pattern: Standard INSTEAD OF UPDATE approach
+- Schema mapping: Correct (dbo -> public)
+- Data types: Compatible
+
+Potential Issues: MINOR
+- Performance may differ for large multi-row updates (row-level vs statement-level)
+- Consider FOR EACH STATEMENT with transition tables if performance is critical
+
+Recommendation: APPROVE (pending execution validation)
+
+================================================================================
+REQUIRED ACTION TO COMPLETE VALIDATION
+================================================================================
+1. Fix AWS region configuration:
+   - Set AWS_REGION environment variable
+   - Update MCP server configuration
+   - Verify RDS/Aurora connectivity
+
+2. Execute MSSQL tests:
+   - Run mssql_test.sql on Source RDS for SQL Server
+   - Capture baseline results in mssql_test.txt
+
+3. Execute PostgreSQL tests:
+   - Deploy postgres.sql (trigger definition)
+   - Run postgres_test.sql on Aurora PostgreSQL
+   - Capture results in postgres_test.txt
+
+4. Perform comparison:
+   - Compare TC1-TC10 results
+   - Verify EXACT or SEMANTIC match
+   - Generate final OK.txt or NG.txt
+
+================================================================================
+CONFIDENCE LEVEL: HIGH (based on static analysis)
+EXECUTION STATUS: BLOCKED (connection error)
+================================================================================

@@ -1,0 +1,86 @@
+============================================================================
+Prerequisites Check for: dbo.usp_employee_json
+============================================================================
+Date: 2026-05-29
+Status: CONNECTIVITY_ISSUE
+
+NOTE: Unable to connect to Source RDS for SQL Server due to AWS region configuration.
+      Error: "You must specify a region."
+      
+      Proceeding with ASSUMED definition based on common JSON output patterns.
+      This definition should be verified against actual Source RDS once connectivity is restored.
+
+============================================================================
+ASSUMED Object Information:
+============================================================================
+Schema: dbo
+Name: usp_employee_json
+Type: STORED PROCEDURE
+Purpose: Return employee data in JSON format using FOR JSON clause
+
+============================================================================
+ASSUMED Dependencies:
+============================================================================
+1. Table: dbo.employees
+   - Columns: employee_id, first_name, last_name, email, phone, hire_date, 
+              salary, department_id, manager_id, is_active, status
+   
+2. Table: dbo.departments
+   - Columns: department_id, department_name, location, manager_id
+   
+3. SQL Server Features:
+   - FOR JSON PATH (SQL Server 2016+)
+   - FOR JSON AUTO (SQL Server 2016+)
+   - JSON_QUERY, JSON_VALUE functions
+
+============================================================================
+ASSUMED Business Logic:
+============================================================================
+- Accept optional employee_id parameter to filter specific employee
+- Accept optional department_id parameter to filter by department
+- Return employee data with nested department information in JSON format
+- Include related data (department, manager) as nested JSON objects
+- Handle NULL values appropriately in JSON output
+- Support both single employee and multiple employees output
+
+============================================================================
+Encryption Status:
+============================================================================
+UNKNOWN - Cannot verify if WITH ENCRYPTION is used
+ASSUMPTION: Not encrypted (most JSON output procedures are not encrypted)
+
+============================================================================
+Test Data Requirements:
+============================================================================
+- Employees with various attributes (some NULL values)
+- Employees in different departments
+- Employees with and without managers
+- Edge cases: 
+  * Employee with all NULL optional fields
+  * Employee with no department
+  * Non-existent employee_id
+  * Empty result set
+
+============================================================================
+JSON Output Format (ASSUMED):
+============================================================================
+Expected JSON structure:
+{
+  "employee_id": 1,
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john.doe@example.com",
+  "hire_date": "2020-01-15",
+  "salary": 75000.00,
+  "department": {
+    "department_id": 10,
+    "department_name": "Engineering",
+    "location": "Building A"
+  },
+  "manager": {
+    "manager_id": 5,
+    "manager_name": "Jane Smith"
+  }
+}
+
+============================================================================

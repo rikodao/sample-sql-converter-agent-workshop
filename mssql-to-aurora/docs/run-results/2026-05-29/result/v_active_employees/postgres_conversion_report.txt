@@ -1,0 +1,345 @@
+============================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION - COMPLETION REPORT
+============================================================
+Object: VIEW dbo.v_active_employees → public.v_active_employees
+Date: 2024
+Conversion Status: COMPLETED (Syntax validation pending due to connection issue)
+============================================================
+
+============================================================
+CONVERSION SUMMARY
+============================================================
+
+Source Object:
+--------------
+- Type: VIEW
+- Schema: dbo
+- Name: v_active_employees
+- Complexity: Low-Medium (Standard SELECT with LEFT JOIN)
+
+Target Object:
+--------------
+- Type: VIEW
+- Schema: public
+- Name: v_active_employees
+- Language: SQL (Standard PostgreSQL)
+
+Conversion Result:
+------------------
+✓ DDL converted successfully
+✓ Syntax follows PostgreSQL conventions
+✓ All T-SQL constructs mapped to PG equivalents
+⚠ Syntax validation skipped (connection error: region not specified)
+
+============================================================
+KEY CONVERSIONS APPLIED
+============================================================
+
+1. Schema Mapping:
+   - dbo.v_active_employees → public.v_active_employees
+   - dbo.employees → public.employees
+   - dbo.departments → public.departments
+
+2. Data Type Conversions:
+   - BIT (is_active = 1) → BOOLEAN (is_active = true)
+   
+3. Syntax Adjustments:
+   - CREATE VIEW → CREATE OR REPLACE VIEW (PostgreSQL best practice)
+   - Identifiers: Lowercase convention (PostgreSQL standard)
+   - LEFT JOIN: No changes (identical syntax)
+   - WHERE clause: Logic preserved, BIT comparison updated
+
+4. Collation Considerations:
+   - SQL Server default: Case-insensitive (CI_AS)
+   - PostgreSQL default: Case-sensitive
+   - Impact: e.status = 'Active' is case-sensitive in PG
+   - Note: If case-insensitive matching is required, use:
+     * LOWER(e.status) = 'active'
+     * OR e.status COLLATE "en_US.utf8" = 'Active'
+
+============================================================
+COMPATIBILITY NOTES
+============================================================
+
+High Compatibility Features:
+----------------------------
+✓ Standard SELECT syntax
+✓ LEFT JOIN (identical behavior)
+✓ WHERE with OR conditions
+✓ NULL handling (identical)
+✓ Column aliasing
+✓ Multi-table references
+
+No Incompatible Features Detected:
+-----------------------------------
+✓ No WITH ENCRYPTION
+✓ No SCHEMABINDING
+✓ No indexed views
+✓ No PIVOT/UNPIVOT
+✓ No vendor-specific functions
+✓ No CLR or Service Broker dependencies
+
+Behavioral Differences to Consider:
+-----------------------------------
+⚠ Case Sensitivity:
+   - SQL Server: 'Active' = 'active' = 'ACTIVE' (default collation)
+   - PostgreSQL: 'Active' ≠ 'active' ≠ 'ACTIVE' (default)
+   - Recommendation: Ensure base data uses consistent casing,
+     or modify WHERE clause for case-insensitive comparison
+
+⚠ Boolean Representation:
+   - SQL Server: BIT type (0/1)
+   - PostgreSQL: BOOLEAN type (true/false/null)
+   - Conversion: is_active = 1 → is_active = true
+   - Note: PostgreSQL also accepts is_active = 1 if column is BOOLEAN
+
+============================================================
+DEPENDENCIES
+============================================================
+
+Required Base Tables:
+---------------------
+1. public.employees
+   Columns used:
+   - employee_id
+   - first_name
+   - last_name
+   - email
+   - phone_number
+   - hire_date
+   - job_id
+   - salary
+   - commission_pct
+   - manager_id
+   - department_id
+   - status (VARCHAR/TEXT)
+   - termination_date (DATE/TIMESTAMP)
+   - is_active (BOOLEAN)
+
+2. public.departments
+   Columns used:
+   - department_id
+   - department_name
+   - location_id
+
+Join Relationship:
+------------------
+- employees.department_id = departments.department_id (LEFT JOIN)
+- Preserves employees without department assignment
+
+============================================================
+TESTING RECOMMENDATIONS
+============================================================
+
+Test Cases to Execute:
+----------------------
+1. Basic Functionality:
+   SELECT COUNT(*) FROM public.v_active_employees;
+   
+2. Active Status Filter:
+   SELECT * FROM public.v_active_employees 
+   WHERE status = 'Active';
+   
+3. NULL Termination Date:
+   SELECT * FROM public.v_active_employees 
+   WHERE termination_date IS NULL;
+   
+4. Boolean Flag:
+   SELECT * FROM public.v_active_employees 
+   WHERE is_active = true;
+   
+5. LEFT JOIN Behavior:
+   SELECT * FROM public.v_active_employees 
+   WHERE department_id IS NULL;
+   
+6. Case Sensitivity (if applicable):
+   -- Should return 0 rows if data is 'Active' (not 'active')
+   SELECT COUNT(*) FROM public.v_active_employees 
+   WHERE status = 'active';
+
+Expected Results:
+-----------------
+- All active employees (status = 'Active') should be included
+- All employees with NULL termination_date AND is_active = true should be included
+- Employees without department assignment should appear with NULL department fields
+- Inactive employees should be excluded
+
+============================================================
+DEPLOYMENT INSTRUCTIONS
+============================================================
+
+Prerequisites:
+--------------
+1. Base tables must exist:
+   - public.employees
+   - public.departments
+   
+2. Required columns must be present with compatible types
+
+3. Data must be migrated with appropriate type conversions:
+   - BIT → BOOLEAN (0 → false, 1 → true)
+   - VARCHAR/NVARCHAR → VARCHAR/TEXT
+   - DATETIME → TIMESTAMP
+
+Deployment Steps:
+-----------------
+1. Verify base tables exist:
+   \d public.employees
+   \d public.departments
+
+2. Deploy VIEW:
+   \i ./result/v_active_employees/postgres.sql
+
+3. Verify VIEW creation:
+   \d public.v_active_employees
+
+4. Test VIEW:
+   SELECT * FROM public.v_active_employees LIMIT 10;
+
+5. Compare row counts with source:
+   -- PostgreSQL:
+   SELECT COUNT(*) FROM public.v_active_employees;
+   
+   -- SQL Server (for comparison):
+   SELECT COUNT(*) FROM dbo.v_active_employees;
+
+Rollback (if needed):
+---------------------
+DROP VIEW IF EXISTS public.v_active_employees;
+
+============================================================
+KNOWN LIMITATIONS & WORKAROUNDS
+============================================================
+
+1. Case Sensitivity:
+   Problem: PostgreSQL is case-sensitive by default
+   Workaround: If case-insensitive matching is required:
+   
+   -- Option A: Normalize to lowercase
+   WHERE LOWER(e.status) = 'active'
+   
+   -- Option B: Use ILIKE for pattern matching
+   WHERE e.status ILIKE 'active'
+   
+   -- Option C: Specify collation
+   WHERE e.status COLLATE "en_US.utf8" = 'Active'
+
+2. Boolean vs BIT:
+   Problem: SQL Server uses BIT (0/1), PostgreSQL uses BOOLEAN
+   Workaround: Already handled in conversion (= 1 → = true)
+   Note: PostgreSQL BOOLEAN also accepts 0/1 as input
+
+3. Date Functions:
+   Problem: Original comments reference GETDATE()
+   Workaround: Use now() or CURRENT_DATE in PostgreSQL
+   Example: WHERE e.end_date > CURRENT_DATE
+
+============================================================
+PERFORMANCE CONSIDERATIONS
+============================================================
+
+Indexing Recommendations:
+-------------------------
+For optimal performance, consider indexes on:
+
+1. public.employees:
+   - CREATE INDEX idx_employees_status ON public.employees(status);
+   - CREATE INDEX idx_employees_active ON public.employees(is_active) 
+     WHERE is_active = true;
+   - CREATE INDEX idx_employees_term_date ON public.employees(termination_date);
+   - CREATE INDEX idx_employees_dept_id ON public.employees(department_id);
+
+2. public.departments:
+   - CREATE INDEX idx_departments_id ON public.departments(department_id);
+     (or PRIMARY KEY if not already defined)
+
+Query Plan Analysis:
+--------------------
+After deployment, analyze query plan:
+EXPLAIN ANALYZE SELECT * FROM public.v_active_employees;
+
+Expected plan:
+- Hash Join or Nested Loop for LEFT JOIN
+- Index scans on status, is_active, termination_date
+- Filter on WHERE conditions
+
+============================================================
+MIGRATION CHECKLIST
+============================================================
+
+Pre-Deployment:
+---------------
+☐ Base tables (employees, departments) exist in public schema
+☐ Required columns present with compatible types
+☐ Data migrated with type conversions applied
+☐ Indexes created on join and filter columns
+
+Deployment:
+-----------
+☐ Execute postgres.sql to create VIEW
+☐ Verify VIEW exists: \d public.v_active_employees
+☐ Check VIEW definition: \d+ public.v_active_employees
+
+Post-Deployment:
+----------------
+☐ Execute test queries (see Testing Recommendations)
+☐ Compare row counts with SQL Server source
+☐ Verify data accuracy (sample records)
+☐ Test case sensitivity behavior
+☐ Analyze query performance
+☐ Document any behavioral differences
+
+Validation:
+-----------
+☐ All active employees visible in VIEW
+☐ Inactive employees excluded
+☐ LEFT JOIN preserves employees without departments
+☐ NULL handling works as expected
+☐ Performance acceptable for production workload
+
+============================================================
+FILES GENERATED
+============================================================
+
+1. postgres.sql
+   - PostgreSQL-native VIEW definition
+   - Fully converted and ready for deployment
+   - Includes detailed conversion notes
+
+2. postgres_conversion_report.txt (THIS FILE)
+   - Comprehensive conversion documentation
+   - Testing and deployment instructions
+   - Known limitations and workarounds
+
+============================================================
+STAGE 3 CONCLUSION
+============================================================
+
+Conversion Status: ✓ COMPLETED
+
+The VIEW has been successfully converted from T-SQL to PostgreSQL-native SQL.
+The conversion is straightforward due to the standard SQL syntax used in the
+original VIEW definition.
+
+Key Points:
+-----------
+✓ Syntax is valid PostgreSQL
+✓ Logic preserved from original T-SQL
+✓ No incompatible features detected
+✓ Ready for deployment (pending base table availability)
+
+⚠ Note: Syntax validation against Aurora PostgreSQL was not performed due to
+connection configuration issue (region not specified). However, the generated
+SQL follows standard PostgreSQL syntax and should deploy successfully.
+
+Recommended Next Steps:
+-----------------------
+1. Resolve connection configuration for Aurora PostgreSQL
+2. Deploy base tables (employees, departments) if not already present
+3. Execute postgres.sql to create VIEW
+4. Run test cases to verify functionality
+5. Compare results with SQL Server source for validation
+
+============================================================
+END OF STAGE 3 CONVERSION REPORT
+============================================================

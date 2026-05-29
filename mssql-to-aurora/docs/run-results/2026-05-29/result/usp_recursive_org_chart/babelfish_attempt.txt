@@ -1,0 +1,230 @@
+============================================================================
+STAGE 2: BABELFISH COMPATIBILITY VERIFICATION
+============================================================================
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Date: 2026-05-29
+Agent: Stage 2 - Babelfish T-SQL Compatibility Validator
+
+============================================================================
+STEP 1: BABELFISH CONNECTION TEST
+============================================================================
+
+Attempted: SELECT @@VERSION via run_babelfish_tsql
+
+Result: CONNECTION FAILED
+
+Error Details:
+--------------
+Error Type: boto3 Configuration Error
+Error Message: "You must specify a region."
+Tool: run_babelfish_tsql
+
+Root Cause Analysis:
+--------------------
+The Babelfish connection tool (run_babelfish_tsql) requires AWS region 
+configuration to establish a connection to the Babelfish endpoint.
+This is a prerequisite configuration issue that prevents any T-SQL 
+execution against Babelfish.
+
+Impact:
+-------
+- Cannot verify Babelfish connectivity
+- Cannot execute DDL (CREATE PROCEDURE) against Babelfish
+- Cannot run test cases against Babelfish
+- Cannot perform result comparison with MSSQL
+
+============================================================================
+STAGE 2 TERMINATION
+============================================================================
+
+Status: ABORTED - CONNECTION_ERROR
+
+Reason: Unable to establish connection to Babelfish for Aurora PostgreSQL.
+        The AWS region configuration is missing or incorrect.
+
+Next Steps Required:
+--------------------
+1. Configure AWS region for Babelfish connection
+   - Set AWS_DEFAULT_REGION environment variable, or
+   - Configure boto3 default region in ~/.aws/config, or
+   - Pass region parameter to connection tool
+
+2. Verify Babelfish endpoint accessibility
+   - Confirm Babelfish cluster is running
+   - Verify network connectivity (security groups, VPC, etc.)
+   - Confirm TDS port 1433 is accessible
+
+3. Re-run Stage 2 after configuration is corrected
+
+============================================================================
+OBJECT ANALYSIS (Pre-execution)
+============================================================================
+
+Based on the mssql.sql file, the procedure contains the following features
+that would need to be tested against Babelfish:
+
+T-SQL Features Used:
+--------------------
+✓ Recursive CTE (WITH ... UNION ALL)
+✓ SET NOCOUNT ON
+✓ DECLARE variables (NVARCHAR, INT, BIT)
+✓ BEGIN TRY / END TRY / BEGIN CATCH / END CATCH
+✓ RAISERROR with parameters
+✓ ISNULL() function
+✓ CAST() for type conversion
+✓ String concatenation with +
+✓ Subquery in SELECT list (correlated subquery for direct_report_count)
+✓ LEFT JOIN
+✓ ORDER BY with computed column (sort_path)
+✓ EXISTS clause
+✓ Multiple optional parameters with defaults
+
+Babelfish Compatibility Assessment (Theoretical):
+--------------------------------------------------
+HIGH RISK:
+- RAISERROR: Babelfish supports RAISERROR but error message formatting 
+  may differ slightly from SQL Server
+- String concatenation in recursive CTE: VARCHAR(1000) and NVARCHAR(1000)
+  casts may behave differently in terms of truncation warnings
+
+MEDIUM RISK:
+- Recursive CTE depth: Babelfish should support this, but performance
+  characteristics may differ
+- Correlated subquery in SELECT: Should work but may have performance
+  implications
+- ISNULL() vs COALESCE: Babelfish supports ISNULL but COALESCE is more
+  standard
+
+LOW RISK:
+- SET NOCOUNT ON: Supported
+- TRY-CATCH: Supported
+- Basic joins and filtering: Supported
+- Parameter defaults: Supported
+
+EXPECTED COMPATIBILITY: MEDIUM-HIGH
+- Core logic should work
+- Error handling may need adjustment
+- Performance tuning may be required for deep hierarchies
+
+============================================================================
+TEST SUITE ANALYSIS (Pre-execution)
+============================================================================
+
+The mssql_test.sql file contains 12 test cases covering:
+
+Test Coverage:
+--------------
+TC1:  Basic hierarchy from top (no parameters)
+TC2:  Hierarchy from specific employee (mid-level manager)
+TC3:  Max depth limit (depth = 1)
+TC4:  Include inactive employees (2 sub-cases)
+TC5:  Leaf node employee (no direct reports)
+TC6:  Non-existent employee ID (error case)
+TC7:  Invalid max_depth (2 sub-cases: zero and negative)
+TC8:  Deep hierarchy (5+ levels)
+TC9:  Multiple top-level employees
+TC10: NULL values in employee data
+TC11: Path and sort_path verification
+TC12: Direct report count accuracy
+
+Babelfish Test Execution Concerns:
+-----------------------------------
+1. Temporary table creation (#test_employees, #test_departments):
+   - Babelfish supports temp tables with # prefix
+   - Should work as-is
+
+2. SET IDENTITY_INSERT ON/OFF:
+   - Babelfish has limited support for IDENTITY_INSERT
+   - May cause test failures in TC1 and other setup sections
+   - Alternative: Use OVERRIDING SYSTEM VALUE in INSERT (PG syntax)
+
+3. TRY-CATCH error message comparison:
+   - Error messages may differ between SQL Server and Babelfish
+   - TC6, TC7 may show semantic match but not exact match
+
+4. Subquery execution in test assertions:
+   - Some test cases attempt to re-execute the procedure within a subquery
+   - This is not valid T-SQL syntax and will fail on both platforms
+   - Tests need to be restructured to capture results into temp tables
+
+Test Suite Quality:
+-------------------
+⚠️  ISSUE DETECTED: Several test cases have invalid syntax
+    - TC1 ASSERT section attempts: SELECT ... FROM (EXEC ...) AS results
+    - This is not valid in T-SQL or Babelfish
+    - Tests would fail on MSSQL as well
+
+Recommendation:
+---------------
+Before running on Babelfish, the test suite needs to be corrected:
+- Replace "SELECT FROM (EXEC ...)" with temp table pattern:
+  
+  CREATE TABLE #results (...);
+  INSERT INTO #results EXEC dbo.usp_recursive_org_chart;
+  SELECT 'TC1' AS test_case, COUNT(*) FROM #results;
+  DROP TABLE #results;
+
+============================================================================
+MSSQL TEST RESULTS ANALYSIS
+============================================================================
+
+From mssql_test.txt:
+--------------------
+Status: ❌ UNABLE TO EXECUTE - Connection failure
+Reason: "You must specify a region" - boto3 SecretsManager configuration
+
+The MSSQL tests were also not executed due to the same connection issue.
+This means:
+- No baseline results exist for comparison
+- Cannot perform result matching
+- Cannot validate expected vs actual behavior
+
+This is a BLOCKING issue for Stage 2:
+- Even if Babelfish connection were available, there are no MSSQL results
+  to compare against
+- Stage 2 requires both MSSQL and Babelfish results for comparison
+
+============================================================================
+CONCLUSION
+============================================================================
+
+Stage 2 Status: FAILED - CONNECTION_ERROR
+
+Blocking Issues:
+----------------
+1. ❌ Babelfish connection unavailable (region configuration)
+2. ❌ MSSQL baseline results unavailable (same connection issue)
+3. ⚠️  Test suite contains invalid syntax (would fail on both platforms)
+
+Cannot Proceed Because:
+-----------------------
+- No Babelfish connectivity to execute DDL
+- No MSSQL baseline to compare against
+- Test suite needs correction before execution
+
+Required Actions Before Retry:
+-------------------------------
+1. CRITICAL: Fix AWS region configuration for both MSSQL and Babelfish
+2. CRITICAL: Execute Stage 1 successfully to get valid MSSQL baseline
+3. HIGH: Correct test suite syntax issues (EXEC in subquery)
+4. MEDIUM: Review IDENTITY_INSERT usage for Babelfish compatibility
+
+Estimated Babelfish Compatibility (Theoretical):
+-------------------------------------------------
+Based on code analysis alone (without execution):
+- DDL Compatibility: 85% (likely to succeed with minor adjustments)
+- Runtime Compatibility: 75% (recursive CTE should work, error handling may differ)
+- Result Accuracy: 70% (string formatting, error messages may differ)
+
+Overall Assessment: MEDIUM-HIGH compatibility expected, but CANNOT VERIFY
+                    without actual execution.
+
+============================================================================
+RESULT: CONNECTION_ERROR
+============================================================================
+
+Stage 2 cannot proceed. Please resolve connection issues and re-run.
+
+============================================================================
+END OF REPORT
+============================================================================

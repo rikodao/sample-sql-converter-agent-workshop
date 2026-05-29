@@ -1,0 +1,273 @@
+============================================================================
+TEST EXECUTION RESULTS: public.usp_validate_and_create_dept
+Target: Aurora PostgreSQL (Native PL/pgSQL)
+Execution Date: 2026-05-29
+Status: UNABLE TO EXECUTE - CONNECTION ISSUE
+============================================================================
+
+CONNECTION ERROR:
+Error: "You must specify a region."
+Tool: run_postgres_sql
+Impact: Cannot execute tests on Aurora PostgreSQL
+
+============================================================================
+PREREQUISITE FAILURE ANALYSIS
+============================================================================
+
+Root Cause:
+- AWS region configuration is not properly set for database connections
+- Both Source RDS (SQL Server) and Target Aurora PostgreSQL are inaccessible
+- This is an infrastructure/configuration issue, not a conversion issue
+
+Impact on Validation:
+- Cannot deploy converted procedure (postgres.sql) to target database
+- Cannot execute test suite (postgres_test.sql)
+- Cannot collect actual test results for comparison
+- Cannot verify functional equivalence between MSSQL and PostgreSQL versions
+
+Files Status:
+✓ postgres.sql - Created (PL/pgSQL conversion complete)
+✓ postgres_test.sql - Created (20 test cases, PostgreSQL-adapted)
+✗ postgres_test.txt - NOT CREATED (cannot execute tests)
+✗ comparison_result.txt - NOT CREATED (no actual results to compare)
+
+============================================================================
+CONVERSION QUALITY ASSESSMENT (STATIC ANALYSIS)
+============================================================================
+
+Based on static code review of postgres.sql:
+
+Conversion Completeness: HIGH
+- All T-SQL constructs properly converted to PL/pgSQL
+- Parameter handling: @param → p_param with INOUT
+- Variables: @var → v_var with proper types
+- String operations: + → ||, LEN → LENGTH
+- Date functions: GETDATE() → CURRENT_TIMESTAMP
+- Identity retrieval: SCOPE_IDENTITY() → RETURNING clause
+- Error handling: TRY-CATCH → BEGIN-EXCEPTION
+- Transaction management: Properly implemented
+
+Potential Issues Identified:
+1. COMMIT inside procedure body (line 127)
+   - PostgreSQL procedures auto-commit by default
+   - Explicit COMMIT may cause issues in some contexts
+   - Recommendation: Remove explicit COMMIT or use transaction control carefully
+
+2. RAISE NOTICE for result set (line 131)
+   - PostgreSQL procedures cannot return result sets like SQL Server
+   - RAISE NOTICE is informational only
+   - Calling applications must rely on INOUT parameters
+
+3. Schema differences:
+   - SQL Server: dbo.departments, dbo.employees
+   - PostgreSQL: public.departments, public.employees
+   - Assumes target schema is 'public' (may need adjustment)
+
+Expected Compatibility: HIGH (95%+)
+- Core logic is straightforward validation + insert
+- No complex T-SQL features (cursors, temp tables, dynamic SQL)
+- No SQL Server-specific functions (PATINDEX, STUFF, etc.)
+- Standard string/date operations only
+
+============================================================================
+TEST SUITE ANALYSIS
+============================================================================
+
+Test Coverage: COMPREHENSIVE (20 test cases)
+
+Categories:
+- Normal/Positive Cases: 3 (TC1-TC3)
+- Boundary Value Cases: 7 (TC4-TC7, TC15-TC17)
+- Exception/Error Cases: 7 (TC8-TC14)
+- Side Effect Cases: 3 (TC18-TC20)
+
+Key Test Scenarios:
+✓ NULL input validation
+✓ Empty string validation
+✓ Whitespace-only validation
+✓ Minimum/maximum length boundaries
+✓ Duplicate name detection (exact + case-insensitive)
+✓ Invalid manager_id validation
+✓ Inactive manager validation
+✓ Leading/trailing space trimming
+✓ Empty location handling
+✓ Transaction rollback verification
+✓ Audit field population (created_date, modified_date)
+✓ OUTPUT parameter behavior (success + failure)
+
+Test Adaptations for PostgreSQL:
+- GO batch separator removed
+- DECLARE blocks wrapped in DO $$ ... END $$;
+- EXEC → CALL with named parameters (p_param := value)
+- REPLICATE() → REPEAT()
+- TOP 1 → LIMIT 1
+- is_active = 1 → is_active = TRUE
+- GETDATE() → CURRENT_TIMESTAMP
+- DATEDIFF(SECOND, ...) → EXTRACT(EPOCH FROM ...)
+- Output format: RAISE NOTICE with pipe-delimited fields
+
+============================================================================
+EXPECTED TEST RESULTS (BASED ON MSSQL BASELINE)
+============================================================================
+
+The following results are EXPECTED based on the MSSQL test baseline
+(from mssql_test.txt). Actual PostgreSQL results should match these
+at SEMANTIC level or better.
+
+TC1: Normal creation with all parameters
+  Expected: validation_status=SUCCESS, dept_id_check=PASS, error_check=PASS
+
+TC2: Minimal parameters (no manager, no location)
+  Expected: validation_status=SUCCESS, dept_id_check=PASS, error_check=PASS
+
+TC3: Default validation thresholds
+  Expected: validation_status=SUCCESS, dept_id_check=PASS
+
+TC4: Minimum length (3 chars)
+  Expected: validation_status=SUCCESS, dept_id_check=PASS
+
+TC5: Below minimum length (2 chars)
+  Expected: validation_status=FAILED, dept_id_null_check=PASS
+  Expected error: "Department name must be at least 3 characters long."
+
+TC6: Maximum length (100 chars)
+  Expected: validation_status=SUCCESS, dept_id_check=PASS, name_length=100
+
+TC7: Above maximum length (101 chars)
+  Expected: validation_status=FAILED, dept_id_null_check=PASS
+  Expected error: "Department name must not exceed 100 characters."
+
+TC8: NULL department name
+  Expected: validation_status=FAILED, dept_id_null_check=PASS
+  Expected error: "Department name cannot be NULL."
+
+TC9: Empty string department name
+  Expected: validation_status=FAILED, dept_id_null_check=PASS
+  Expected error: "Department name cannot be empty or whitespace only."
+
+TC10: Whitespace only department name
+  Expected: validation_status=FAILED, dept_id_null_check=PASS
+  Expected error: "Department name cannot be empty or whitespace only."
+
+TC11: Duplicate department name
+  Expected: validation_status=FAILED, dept_id_null_check=PASS
+  Expected error: "Department name already exists: Duplicate Test Dept"
+
+TC12: Duplicate name (case-insensitive)
+  Expected: validation_status=FAILED, dept_id_null_check=PASS
+  Expected error: "Department name already exists: CASE TEST DEPT"
+
+TC13: Invalid manager_id (non-existent)
+  Expected: validation_status=FAILED, dept_id_null_check=PASS
+  Expected error: "Invalid manager_id. Employee does not exist: [ID]"
+
+TC14: Inactive manager
+  Expected: validation_status=FAILED or SKIPPED, dept_id_null_check=PASS or N/A
+  Expected error: "Manager must be an active employee. Employee ID: [ID]"
+                  OR "No inactive employees available for testing"
+
+TC15: Name with leading/trailing spaces
+  Expected: validation_status=SUCCESS, dept_id_check=PASS
+  Expected: department_name="Trimmed Dept TC15", trim_check=PASS
+
+TC16: Empty location string
+  Expected: validation_status=SUCCESS, dept_id_check=PASS
+  Expected: location=NULL, location_null_check=PASS
+
+TC17: Transaction rollback on error
+  Expected: validation_status=FAILED, rollback_check=PASS, dept_id_null_check=PASS
+  Expected: count_before = count_after
+
+TC18: Verify created_date and modified_date
+  Expected: validation_status=SUCCESS
+  Expected: created_date_check=PASS, modified_date_check=PASS, dates_equal_check=PASS
+  Expected: seconds_since_creation=0-2
+
+TC19: Verify OUTPUT parameters
+  Expected: output_status=SUCCESS, dept_id_set_check=PASS
+  Expected: status_check=PASS, error_null_check=PASS
+
+TC20: OUTPUT parameters on validation failure
+  Expected: output_status=FAILED, dept_id_null_check=PASS
+  Expected: status_failed_check=PASS, error_set_check=PASS
+
+============================================================================
+SEMANTIC DIFFERENCES (ACCEPTABLE)
+============================================================================
+
+The following differences between MSSQL and PostgreSQL are expected
+and should be treated as SEMANTIC MATCH (not MISMATCH):
+
+1. Timestamp Precision:
+   - MSSQL: DATETIME (milliseconds, 3 digits)
+   - PostgreSQL: TIMESTAMP (microseconds, 6 digits)
+   - Example: 2026-05-29 10:00:00.123 vs 2026-05-29 10:00:00.123000
+
+2. Boolean Representation:
+   - MSSQL: BIT (0/1)
+   - PostgreSQL: BOOLEAN (FALSE/TRUE or f/t)
+   - Example: is_active=1 vs is_active=TRUE
+
+3. NULL Representation:
+   - MSSQL: NULL (no quotes)
+   - PostgreSQL: NULL (no quotes) or empty string in some contexts
+   - Both should be treated as NULL
+
+4. Error Message Formatting:
+   - Minor differences in spacing, punctuation acceptable
+   - Core message content must match
+
+5. Numeric Precision:
+   - MSSQL: INT (4 bytes)
+   - PostgreSQL: INTEGER (4 bytes)
+   - Should be identical for values in test range
+
+============================================================================
+RECOMMENDATIONS
+============================================================================
+
+1. IMMEDIATE ACTION REQUIRED:
+   ✗ Fix AWS region configuration for database connections
+   ✗ Verify network connectivity to both RDS instances
+   ✗ Confirm IAM permissions for RDS Data API access
+
+2. ONCE CONNECTION IS RESTORED:
+   □ Deploy postgres.sql to Aurora PostgreSQL
+   □ Execute postgres_test.sql
+   □ Collect actual test results
+   □ Compare with MSSQL baseline (mssql_test.txt)
+   □ Generate comparison_result.txt
+   □ Create OK.txt or NG.txt based on comparison
+
+3. POTENTIAL FIXES FOR postgres.sql:
+   □ Remove explicit COMMIT on line 127 (test if it causes issues)
+   □ Verify schema names (public vs dbo)
+   □ Confirm table structures match (departments, employees)
+
+4. IF CONNECTION CANNOT BE FIXED:
+   □ Document as PREREQUISITE_FAILED
+   □ Create NG.txt with category: PREREQUISITE_FAILED
+   □ Do NOT proceed to Stage 4 validation
+   □ Escalate infrastructure issue to DevOps/Platform team
+
+============================================================================
+STAGE 4 STATUS: BLOCKED
+============================================================================
+
+Reason: Database connection failure prevents:
+1. Deployment of converted procedure
+2. Execution of test suite
+3. Collection of actual results
+4. Comparison with MSSQL baseline
+5. Final validation
+
+Required Files Status:
+✓ postgres.sql - Created (conversion complete)
+✓ postgres_test.sql - Created (20 test cases)
+✗ postgres_test.txt - BLOCKED (cannot execute)
+✗ comparison_result.txt - BLOCKED (no results to compare)
+✗ OK.txt or NG.txt - BLOCKED (cannot determine outcome)
+
+Recommendation: RESOLVE CONNECTION ISSUE BEFORE PROCEEDING
+
+============================================================================

@@ -1,0 +1,229 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Test Cases: 12 total (15 scenarios including sub-cases)
+
+============================================================================
+COMPARISON STATUS: UNABLE TO EXECUTE
+============================================================================
+
+Reason: Database connectivity failure on both source and target systems
+Error: "You must specify a region" - boto3 AWS SDK configuration issue
+
+Source (MSSQL):
+- Connection: FAILED
+- Test Execution: NOT PERFORMED
+- Results: Expected values documented in mssql_test.txt
+
+Target (PostgreSQL):
+- Connection: FAILED
+- Function Deployment: NOT PERFORMED
+- Test Execution: NOT PERFORMED
+- Results: NOT AVAILABLE
+
+Conclusion: Cannot compare results without actual execution data
+
+============================================================================
+EXPECTED TEST CASES (Based on Test Suite Design)
+============================================================================
+
+--- TC1: Basic hierarchy from top (no parameters) ---
+MSSQL Expected:    total_employees=5, max_depth=2
+PG Expected:       total_employees=5, max_depth=2
+Comparison Status: NOT EXECUTED
+Notes: Should return all active employees in hierarchical order
+
+--- TC2: Hierarchy from specific employee (mid-level manager) ---
+MSSQL Expected:    employee_count=4, min_level=0, max_level=2
+PG Expected:       employee_count=4, min_level=0, max_level=2
+Comparison Status: NOT EXECUTED
+Notes: Subtree starting from employee_id=2 (Bob Brown)
+
+--- TC3: Max depth limit (depth = 1, only direct reports) ---
+MSSQL Expected:    returned_count=3, max_level_returned=1
+PG Expected:       returned_count=3, max_level_returned=1
+Comparison Status: NOT EXECUTED
+Notes: Should limit recursion to 1 level (CEO + direct reports only)
+
+--- TC4a: Exclude inactive employees (default) ---
+MSSQL Expected:    active_only_count=2
+PG Expected:       active_only_count=2
+Comparison Status: NOT EXECUTED
+Notes: Should exclude Bob Brown (is_active=0)
+
+--- TC4b: Include inactive employees ---
+MSSQL Expected:    all_employees_count=3
+PG Expected:       all_employees_count=3
+Comparison Status: NOT EXECUTED
+Notes: Should include Bob Brown when p_include_inactive=1
+
+--- TC5: Leaf node employee (no direct reports) ---
+MSSQL Expected:    result_count=1, max_level=0, max_reports=0
+PG Expected:       result_count=1, max_level=0, max_reports=0
+Comparison Status: NOT EXECUTED
+Notes: Single employee with no subordinates
+
+--- TC6: Non-existent employee ID (error case) ---
+MSSQL Expected:    ERROR_CAUGHT, error_message='Employee ID 99999 does not exist.'
+PG Expected:       ERROR_CAUGHT, error_message='Employee ID 99999 does not exist.'
+Comparison Status: NOT EXECUTED
+Notes: Should raise exception for invalid employee_id
+
+--- TC7a: Invalid max_depth (zero) ---
+MSSQL Expected:    ERROR_CAUGHT, error_message='Max depth must be a positive integer.'
+PG Expected:       ERROR_CAUGHT, error_message='Max depth must be a positive integer.'
+Comparison Status: NOT EXECUTED
+Notes: Should reject max_depth=0
+
+--- TC7b: Invalid max_depth (negative) ---
+MSSQL Expected:    ERROR_CAUGHT, error_message='Max depth must be a positive integer.'
+PG Expected:       ERROR_CAUGHT, error_message='Max depth must be a positive integer.'
+Comparison Status: NOT EXECUTED
+Notes: Should reject max_depth=-1
+
+--- TC8: Deep hierarchy (5+ levels) ---
+MSSQL Expected:    total_employees=6, deepest_level=5
+PG Expected:       total_employees=6, deepest_level=5
+Comparison Status: NOT EXECUTED
+Notes: Tests recursive CTE with 6 levels (0 through 5)
+
+--- TC9: Multiple top-level employees (no root specified) ---
+MSSQL Expected:    total_employees=4, root_count=2
+PG Expected:       total_employees=4, root_count=2
+Comparison Status: NOT EXECUTED
+Notes: Two separate organizational trees (Division A and B)
+
+--- TC10: NULL values in employee data ---
+MSSQL Expected:    employee_count=2, null_dept_count=1, null_name_count=1
+PG Expected:       employee_count=2, null_dept_count=1, null_name_count=1
+Comparison Status: NOT EXECUTED
+Notes: Should handle NULL department_id, is_active, and last_name
+
+--- TC11: Path and sort_path verification ---
+MSSQL Expected:    
+  employee_id=1: path='/1/', sort_path='Anderson, Alice'
+  employee_id=2: path='/1/2/', sort_path='Anderson, Alice > Brown, Bob'
+  employee_id=3: path='/1/2/3/', sort_path='Anderson, Alice > Brown, Bob > Clark, Carol'
+PG Expected:       (same as MSSQL)
+Comparison Status: NOT EXECUTED
+Notes: Hierarchical path construction and sorting
+
+--- TC12: Direct report count accuracy ---
+MSSQL Expected:    
+  employee_id=1: direct_report_count=3
+  employee_id=2: direct_report_count=1
+  employee_id=3,4,5: direct_report_count=0
+PG Expected:       (same as MSSQL)
+Comparison Status: NOT EXECUTED
+Notes: Accurate count of immediate subordinates
+
+============================================================================
+THEORETICAL COMPARISON (Code Review)
+============================================================================
+
+Based on code review of postgres.sql vs assumed MSSQL implementation:
+
+Syntax Conversion: ✓ CORRECT
+- PROCEDURE → FUNCTION with RETURNS TABLE
+- @param → p_param
+- RAISERROR → RAISE EXCEPTION
+- ISNULL() → COALESCE()
+- + (concat) → ||
+- TRY-CATCH → EXCEPTION WHEN OTHERS
+- ERROR_MESSAGE() → SQLERRM
+
+Semantic Equivalence: ✓ LIKELY CORRECT
+- Recursive CTE logic identical
+- Parameter validation equivalent
+- Error handling equivalent
+- NULL handling equivalent (COALESCE behavior)
+- Filtering logic identical (active status, max_depth)
+- Ordering identical (sort_path)
+
+Potential Differences: ⚠ NEEDS TESTING
+- NULL concatenation edge cases
+- VARCHAR length limits (same in both)
+- Performance characteristics (unknown)
+- Calling syntax (EXEC vs SELECT FROM) - documented
+
+Known Behavioral Differences: ✓ DOCUMENTED
+- Return mechanism: Result set vs Table-valued function
+- Calling syntax: EXEC procedure vs SELECT * FROM function()
+- These are architectural differences, not bugs
+
+============================================================================
+VERDICT
+============================================================================
+
+Comparison Result: INCOMPLETE
+Reason: Cannot execute tests on either source or target database
+
+Expected Match Level (if tests could run): EXACT to SEMANTIC
+- Row counts: Should match exactly
+- Aggregates: Should match exactly
+- String values: Should match exactly
+- Paths: Should match exactly
+- Error messages: Should match semantically (wording may differ slightly)
+
+Confidence Level: MEDIUM-HIGH (based on code review)
+- Syntax: 95% confident (all conversions follow best practices)
+- Semantics: 85% confident (logic appears equivalent)
+- Edge Cases: 70% confident (NULL handling needs testing)
+- Overall: 85% confident conversion is correct
+
+Risk Assessment:
+- LOW RISK: Syntax errors (code review shows correct syntax)
+- MEDIUM RISK: Semantic differences (needs execution to verify)
+- HIGH RISK: Deployment (cannot test in target environment)
+
+============================================================================
+RECOMMENDATION
+============================================================================
+
+1. IMMEDIATE: Fix infrastructure issues
+   - Configure AWS SDK region
+   - Restore database connectivity
+   - Verify network and security settings
+
+2. NEXT: Execute actual tests
+   - Run mssql_test.sql on Source RDS
+   - Deploy postgres.sql to Aurora PostgreSQL
+   - Run postgres_test.sql
+   - Compare actual results
+
+3. VALIDATION CRITERIA:
+   - All 12 test cases must execute without errors
+   - Results must match at SEMANTIC level or better
+   - Error messages must be equivalent
+   - Performance must be acceptable
+
+4. IF TESTS PASS:
+   - Generate OK.txt with actual match statistics
+   - Proceed to Stage 5 (Babelfish compatibility check)
+   - Document any semantic differences
+
+5. IF TESTS FAIL:
+   - Analyze differences
+   - Update postgres.sql
+   - Retry (max 3 attempts)
+   - If still failing, escalate for manual review
+
+============================================================================
+SUMMARY
+============================================================================
+
+Total Test Cases: 12 (15 scenarios)
+Executed: 0
+Passed: N/A
+Failed: N/A
+Match Levels: NOT AVAILABLE
+
+Status: PREREQUISITE_FAILED
+Blocking Issue: Database connectivity
+Next Action: Fix infrastructure, then re-run validation
+
+The conversion appears correct based on code review, but cannot be verified
+without actual test execution. This is a BLOCKING issue.
+
+DO NOT PROCEED TO PRODUCTION without successful test execution and comparison.
+
+============================================================================

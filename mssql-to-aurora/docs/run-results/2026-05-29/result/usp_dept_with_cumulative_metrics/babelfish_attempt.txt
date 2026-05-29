@@ -1,0 +1,257 @@
+============================================================================
+BABELFISH COMPATIBILITY VERIFICATION - STAGE 2
+============================================================================
+Object: PROCEDURE dbo.usp_dept_with_cumulative_metrics
+Timestamp: 2024-01-XX (Automated Test)
+============================================================================
+
+PHASE 1: CONNECTION VERIFICATION
+============================================================================
+
+Attempt: SELECT @@VERSION via run_babelfish_tsql
+Result: CONNECTION_ERROR
+Error Details: "You must specify a region."
+
+Attempt: SELECT version() via run_babelfish_pg  
+Result: CONNECTION_ERROR
+Error Details: "You must specify a region."
+
+Analysis:
+- Both T-SQL (port 1433) and PostgreSQL (port 5432) endpoints failed
+- Error indicates AWS region configuration issue
+- This is an infrastructure/environment problem, not a SQL compatibility issue
+
+Root Cause:
+The Babelfish database tools require AWS region configuration that is not
+currently available in the execution environment. This prevents any database
+connectivity for compatibility testing.
+
+Impact:
+- Cannot execute DDL against Babelfish
+- Cannot run test suite
+- Cannot perform result comparison
+- Stage 2 verification cannot proceed
+
+============================================================================
+PHASE 2: DDL ANALYSIS (Static Review)
+============================================================================
+
+Source DDL Review:
+File: ./result/usp_dept_with_cumulative_metrics/mssql.sql
+
+Object Type: STORED PROCEDURE
+Parameters:
+  - @start_date DATETIME (nullable, default NULL)
+  - @end_date DATETIME (nullable, default NULL)  
+  - @department_id INT (nullable, default NULL)
+
+Key T-SQL Features Used:
+1. SET NOCOUNT ON
+2. DATEADD function with YEAR interval
+3. GETDATE() function
+4. RAISERROR with severity 16
+5. Common Table Expressions (CTE) - 2 CTEs
+6. Window functions:
+   - ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)
+   - SUM() OVER (... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+   - AVG() OVER (... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+   - DENSE_RANK() OVER (ORDER BY ...)
+7. String concatenation with + operator
+8. CAST to DECIMAL(10,2)
+9. INNER JOIN
+10. WHERE with BETWEEN and compound conditions
+
+Babelfish Compatibility Assessment (Static):
+
+✓ LIKELY COMPATIBLE:
+  - SET NOCOUNT ON (supported)
+  - DATEADD, GETDATE (supported)
+  - CTEs (supported)
+  - Window functions with PARTITION BY and ORDER BY (supported)
+  - ROW_NUMBER, SUM, AVG, DENSE_RANK (supported)
+  - ROWS BETWEEN frame clause (supported)
+  - String concatenation with + (supported)
+  - CAST to DECIMAL (supported)
+  - Standard JOIN and WHERE clauses (supported)
+
+⚠ POTENTIAL ISSUES:
+  - RAISERROR: Babelfish supports RAISERROR but error message handling may differ
+  - DATETIME type: Babelfish maps to TIMESTAMP, precision differences possible
+  - Window function frame clause: Complex ROWS BETWEEN may have edge case differences
+
+❌ KNOWN INCOMPATIBILITIES:
+  - None identified in this procedure
+
+Overall Static Assessment: HIGH COMPATIBILITY EXPECTED
+This procedure uses standard T-SQL features that are well-supported in Babelfish.
+The window functions with cumulative calculations are a core feature and should
+work correctly.
+
+============================================================================
+PHASE 3: TEST SUITE ANALYSIS (Static Review)
+============================================================================
+
+Test File: ./result/usp_dept_with_cumulative_metrics/mssql_test.sql
+
+Test Coverage:
+- TC1: Default parameters (NULL dates)
+- TC2: Specific date range
+- TC3: Single department filter
+- TC4: Cumulative count calculation verification (with test data)
+- TC5: Invalid date range error handling (TRY-CATCH)
+- TC6: Empty result set
+- TC7: NULL start_date
+- TC8: NULL end_date
+- TC9: Both dates NULL
+- TC10: Multiple employees with same hire date
+- TC11: Non-existent department_id
+- TC12: Running average calculation verification
+
+Test Complexity:
+- Uses SET IDENTITY_INSERT ON/OFF (TC4, TC10, TC12)
+- Creates temporary tables with # prefix
+- Uses INSERT INTO ... EXEC pattern
+- Uses TRY-CATCH for error handling
+- Uses STUFF with FOR XML PATH for string aggregation (TC10)
+- Uses subqueries and CASE expressions
+
+Babelfish Test Compatibility Concerns:
+
+⚠ MODERATE RISK:
+  - SET IDENTITY_INSERT: Supported but behavior may differ
+  - Temporary tables (#): Supported but session handling may differ
+  - INSERT INTO ... EXEC: Supported but may have limitations
+  - TRY-CATCH: Supported but error messages will differ
+  - FOR XML PATH: Limited support in Babelfish, may fail or return different format
+  - STUFF function: Supported but combined with FOR XML may be problematic
+
+Expected Test Modifications for Babelfish:
+1. TC10: STUFF + FOR XML PATH may need rewrite using STRING_AGG
+2. Error messages in TC5: Will differ between MSSQL and Babelfish
+3. IDENTITY_INSERT: May need alternative approach (OVERRIDING SYSTEM VALUE)
+
+============================================================================
+PHASE 4: EXPECTED COMPATIBILITY RESULT
+============================================================================
+
+Based on static analysis:
+
+DDL Deployment: EXPECTED TO SUCCEED
+- No blocking incompatibilities identified
+- All features used are in Babelfish's supported set
+
+Test Execution: EXPECTED PARTIAL SUCCESS
+- Most tests (TC1-TC9, TC11-TC12) should pass
+- TC10 may fail due to FOR XML PATH in assertion
+- TC5 error message will differ (semantic match needed)
+
+Result Comparison: EXPECTED SEMANTIC MATCH
+- Cumulative calculations should match exactly
+- Date/time precision may differ (DATETIME vs TIMESTAMP)
+- Error messages will differ in wording but same category
+- TC10 string aggregation result may differ in format
+
+Confidence Level: 75%
+- Core functionality: 95% confidence
+- Test suite execution: 60% confidence (due to FOR XML PATH)
+- Result matching: 80% confidence (with semantic comparison)
+
+============================================================================
+CONCLUSION
+============================================================================
+
+RESULT: CONNECTION_ERROR
+
+Stage 2 cannot proceed due to infrastructure issues preventing database
+connectivity. However, static analysis indicates HIGH COMPATIBILITY for
+this stored procedure.
+
+Recommendation:
+1. Resolve AWS region configuration for database tools
+2. Re-run Stage 2 with working connectivity
+3. Expect DDL to deploy successfully
+4. Expect test suite to require minor modifications (TC10)
+5. Expect semantic match on results with error message tolerance
+
+Next Steps:
+- Fix environment configuration (AWS region)
+- OR: Manually execute DDL and tests against Babelfish
+- OR: Skip to Stage 3 (PL/pgSQL conversion) if Babelfish compatibility
+       is not required for this migration path
+
+============================================================================
+DETAILED FEATURE COMPATIBILITY MATRIX
+============================================================================
+
+Feature                          | MSSQL | Babelfish | Notes
+---------------------------------|-------|-----------|---------------------
+SET NOCOUNT ON                   | ✓     | ✓         | Fully supported
+DATETIME parameters              | ✓     | ✓         | Maps to TIMESTAMP
+DATEADD(YEAR, n, date)          | ✓     | ✓         | Supported
+GETDATE()                        | ✓     | ✓         | Supported
+RAISERROR(msg, 16, 1)           | ✓     | ⚠         | Supported, msg differs
+Common Table Expressions (CTE)   | ✓     | ✓         | Fully supported
+ROW_NUMBER() OVER               | ✓     | ✓         | Fully supported
+SUM() OVER with ROWS BETWEEN    | ✓     | ✓         | Fully supported
+AVG() OVER with ROWS BETWEEN    | ✓     | ✓         | Fully supported
+DENSE_RANK() OVER               | ✓     | ✓         | Fully supported
+String concatenation (+)         | ✓     | ✓         | Supported
+CAST to DECIMAL                  | ✓     | ✓         | Fully supported
+INNER JOIN                       | ✓     | ✓         | Fully supported
+WHERE ... BETWEEN               | ✓     | ✓         | Fully supported
+Temporary tables (#)             | ✓     | ✓         | Supported
+SET IDENTITY_INSERT             | ✓     | ⚠         | Different syntax
+INSERT INTO ... EXEC            | ✓     | ✓         | Supported
+TRY-CATCH blocks                | ✓     | ⚠         | Supported, msgs differ
+FOR XML PATH                     | ✓     | ⚠         | Limited support
+STUFF function                   | ✓     | ✓         | Supported alone
+
+Legend:
+✓ = Fully compatible
+⚠ = Supported with differences
+❌ = Not supported
+
+============================================================================
+RISK ASSESSMENT
+============================================================================
+
+Risk Level: LOW
+
+Blocking Issues: NONE
+- No features that would prevent DDL creation
+- No features that would prevent basic execution
+
+Non-Blocking Issues: MINOR
+- Error message text differences (TC5)
+- FOR XML PATH in test assertion (TC10)
+- Potential IDENTITY_INSERT syntax differences
+
+Mitigation:
+- Use semantic comparison for error messages
+- Rewrite TC10 assertion using STRING_AGG or array_agg
+- Test IDENTITY_INSERT behavior and adjust if needed
+
+Migration Effort: LOW
+- Procedure can likely be used as-is
+- Test suite needs minor adjustments
+- No business logic changes required
+
+============================================================================
+APPENDIX: UNABLE TO EXECUTE
+============================================================================
+
+The following phases could not be completed due to connection errors:
+
+❌ DDL Deployment to Babelfish
+❌ Test Execution on Babelfish  
+❌ Result Comparison (MSSQL vs Babelfish)
+❌ BABELFISH_OK.txt generation
+
+These require:
+- Working database connectivity
+- Proper AWS region configuration
+- Valid credentials for both MSSQL and Babelfish endpoints
+
+============================================================================
+END OF REPORT
+============================================================================

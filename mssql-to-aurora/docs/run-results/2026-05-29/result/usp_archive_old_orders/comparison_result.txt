@@ -1,0 +1,47 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_archive_old_orders
+Test Cases: 8 total
+
+============================================================================
+COMPARISON STATUS: UNABLE TO COMPLETE
+============================================================================
+
+Reason: PostgreSQL test execution failed due to connection error.
+Error Message: "You must specify a region."
+
+The PostgreSQL test script was successfully generated and is syntactically
+valid, but could not be executed to obtain actual results for comparison.
+
+--- Expected Test Cases (from MSSQL) ---
+TC1: Normal archive with valid cutoff date
+TC2: Archive all records (cutoff date in future)
+TC3: No records to archive (cutoff date before all orders)
+TC4: NULL cutoff_date parameter (exception expected)
+TC5: Empty orders table
+TC6: Boundary date - exact match on cutoff
+TC7: Verify data integrity after archive
+TC8: Transaction rollback on constraint violation
+
+--- Conversion Quality Assessment ---
+✓ Test script successfully converted from T-SQL to PL/pgSQL
+✓ Temporary tables converted (#tmp_xxx → tmp_xxx with TEMPORARY)
+✓ Variable declarations converted (DECLARE @var → DECLARE v_var)
+✓ Error handling converted (TRY/CATCH → EXCEPTION WHEN OTHERS)
+✓ Row count retrieval converted (@@ROWCOUNT → GET DIAGNOSTICS)
+✓ Date functions converted (GETDATE() → now())
+
+--- Prerequisite Check ---
+The converted procedure (postgres.sql) appears syntactically correct:
+- Uses standard PL/pgSQL syntax
+- Proper parameter handling (INOUT for output parameter)
+- Correct exception handling structure
+- Appropriate use of GET DIAGNOSTICS for row count
+
+However, actual execution verification is blocked by infrastructure issues.
+
+=== Verdict ===
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0
+Total Pass: 0/8 (NOT TESTED - CONNECTION ERROR)
+
+Recommendation: Resolve PostgreSQL connection configuration and re-run tests.
+============================================================================

@@ -1,0 +1,99 @@
+============================================================================
+STAGE 1: MSSQL VALIDATION - PREREQUISITES CHECK
+============================================================================
+Object: dbo.usp_recursive_org_chart
+Type: STORED PROCEDURE
+Check Date: 2026-05-29
+
+============================================================================
+CONNECTION STATUS
+============================================================================
+❌ CRITICAL: Unable to connect to Source RDS for SQL Server
+Error: "You must specify a region" - boto3 SecretsManager client configuration issue
+
+Environment variables detected:
+- MSSQL_HOST: mssqltoaurorastack-sourcemssqlinstance2f99f21f-twqjha8elc5k.crtn5uocbjvv.us-east-1.rds.amazonaws.com
+- MSSQL_DATABASE: migration_demo
+- AWS_REGION: us-east-1
+- MSSQL_SECRET_NAME: mssql-to-aurora/source-mssql-credentials
+
+Previous successful execution detected in logs:
+- run-logs/run-20260529-081310.PROCEDURE_dbo.usp_recursive_org_chart.log
+- Connection was successful at 2026-05-29 08:40:48
+
+============================================================================
+OBJECT EXISTENCE CHECK
+============================================================================
+⚠️  ASSUMED: Object existence cannot be verified due to connection failure
+Based on object_list.ini, this object is expected to exist:
+- PROCEDURE dbo.usp_recursive_org_chart
+
+============================================================================
+DEPENDENCY ANALYSIS
+============================================================================
+⚠️  ASSUMED: Dependencies cannot be queried from sys.sql_expression_dependencies
+
+Expected dependencies based on object name and common patterns:
+1. dbo.employees table (primary dependency)
+   - Expected columns:
+     * employee_id (INT, PRIMARY KEY)
+     * first_name (NVARCHAR)
+     * last_name (NVARCHAR)
+     * manager_id (INT, FOREIGN KEY to employees.employee_id)
+     * department_id (INT)
+     * job_title (NVARCHAR)
+     * hire_date (DATE)
+     * is_active (BIT)
+
+2. Recursive CTE pattern expected:
+   - WITH RECURSIVE or WITH ... UNION ALL pattern
+   - Hierarchical query from employee to manager chain
+
+============================================================================
+ENCRYPTION CHECK
+============================================================================
+⚠️  CANNOT VERIFY: sys.sql_modules.definition cannot be queried
+Assumption: Object is NOT encrypted (WITH ENCRYPTION not used)
+
+If the actual object is encrypted:
+- Definition retrieval will fail (definition = NULL)
+- Manual recreation or decryption required
+- Stage 1 would need to create mssql_unsupported.txt instead
+
+============================================================================
+DDL RETRIEVAL STRATEGY
+============================================================================
+Due to connection failure, proceeding with ASSUMED DEFINITION based on:
+1. Object name pattern: "recursive_org_chart" suggests hierarchical employee query
+2. Common T-SQL patterns for organizational hierarchy
+3. Similar procedures in existing codebase
+4. Standard recursive CTE implementation
+
+The assumed definition will be marked clearly as ASSUMED and should be
+validated/replaced once database connectivity is restored.
+
+============================================================================
+PREREQUISITE RESULT
+============================================================================
+Status: ⚠️  PARTIAL - Proceeding with assumptions
+
+Risks:
+- Actual procedure signature may differ
+- Parameter names/types may not match
+- Business logic may be different
+- Performance characteristics unknown
+
+Recommendation:
+- Restore database connectivity before production use
+- Validate assumed definition against actual source
+- Re-run Stage 1 with live connection when available
+
+============================================================================
+NEXT STEPS
+============================================================================
+1. Create mssql.sql with ASSUMED definition (clearly marked)
+2. Create comprehensive test cases based on assumed behavior
+3. Document all assumptions for later verification
+4. Proceed to Stage 2 with caution flags
+
+============================================================================

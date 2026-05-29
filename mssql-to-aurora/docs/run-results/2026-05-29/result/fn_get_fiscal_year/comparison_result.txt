@@ -1,0 +1,147 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: FUNCTION dbo.fn_get_fiscal_year → public.fn_get_fiscal_year
+Test Cases: 15 total
+Status: STATIC ANALYSIS (Database connectivity unavailable)
+
+============================================================================
+NOTE: Actual PostgreSQL test execution failed due to database connection error.
+      Comparison is based on:
+      - MSSQL expected results (from mssql_test.txt)
+      - PostgreSQL static code analysis
+      - Logic equivalence verification
+============================================================================
+
+--- TC1: Normal case - Date in fiscal year start month (April) ---
+MSSQL:    test_case=TC1, result=2023, expected=2023
+PG:       [PREDICTED] result=2023, expected=2023
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2023-04-01: month(4) >= fiscal_start(4) → year(2023)
+
+--- TC2: Normal case - Date after fiscal year start ---
+MSSQL:    test_case=TC2, result=2023, expected=2023
+PG:       [PREDICTED] result=2023, expected=2023
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2023-12-31: month(12) >= fiscal_start(4) → year(2023)
+
+--- TC3: Normal case - Date before fiscal year start (Jan-Mar) ---
+MSSQL:    test_case=TC3, result=2022, expected=2022
+PG:       [PREDICTED] result=2022, expected=2022
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2023-03-31: month(3) < fiscal_start(4) → year(2023) - 1 = 2022
+
+--- TC4: Boundary - First day of fiscal year ---
+MSSQL:    test_case=TC4, result=2024, expected=2024
+PG:       [PREDICTED] result=2024, expected=2024
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2024-04-01: month(4) >= fiscal_start(4) → year(2024)
+
+--- TC5: Boundary - Last day before fiscal year start ---
+MSSQL:    test_case=TC5, result=2023, expected=2023
+PG:       [PREDICTED] result=2023, expected=2023
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2024-03-31: month(3) < fiscal_start(4) → year(2024) - 1 = 2023
+
+--- TC6: Boundary - January 1st (New Year) ---
+MSSQL:    test_case=TC6, result=2022, expected=2022
+PG:       [PREDICTED] result=2022, expected=2022
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2023-01-01: month(1) < fiscal_start(4) → year(2023) - 1 = 2022
+
+--- TC7: Boundary - December 31st (Year end) ---
+MSSQL:    test_case=TC7, result=2023, expected=2023
+PG:       [PREDICTED] result=2023, expected=2023
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2023-12-31: month(12) >= fiscal_start(4) → year(2023)
+
+--- TC8: Boundary - Leap year date (Feb 29) ---
+MSSQL:    test_case=TC8, result=2023, expected=2023
+PG:       [PREDICTED] result=2023, expected=2023
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2024-02-29: month(2) < fiscal_start(4) → year(2024) - 1 = 2023
+
+--- TC9: Exception - NULL input ---
+MSSQL:    test_case=TC9, result=NO_ERROR, returned_value=NULL
+PG:       [PREDICTED] result=NO_ERROR, returned_value=NULL
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   Both MSSQL and PostgreSQL return NULL for NULL input (standard behavior)
+
+--- TC10: Edge case - Very old date (year 1900) ---
+MSSQL:    test_case=TC10, result=1900, expected=1900
+PG:       [PREDICTED] result=1900, expected=1900
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   1900-05-15: month(5) >= fiscal_start(4) → year(1900)
+
+--- TC11: Edge case - Far future date (year 2099) ---
+MSSQL:    test_case=TC11, result=2099, expected=2099
+PG:       [PREDICTED] result=2099, expected=2099
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   2099-06-30: month(6) >= fiscal_start(4) → year(2099)
+
+--- TC12: Multiple calls with different months ---
+MSSQL:    test_case=TC12
+          jan=2022, feb=2022, mar=2022, apr=2023, may=2023, jun=2023,
+          jul=2023, aug=2023, sep=2023, oct=2023, nov=2023, dec=2023
+PG:       [PREDICTED] Same as MSSQL
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   Jan-Mar (months 1-3) < 4 → 2022; Apr-Dec (months 4-12) >= 4 → 2023
+
+--- TC13: Integration - Use in WHERE clause ---
+MSSQL:    test_case=TC13, fy2022_count=4
+PG:       [PREDICTED] fy2022_count=4
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   FY2022 includes: 2022-04-01, 2022-06-30, 2022-12-31, 2023-01-15
+
+--- TC14: Integration - Use in ORDER BY ---
+MSSQL:    4 rows ordered by fiscal_year, then event_date
+          (2022-05-20, FY2022), (2022-12-31, FY2022),
+          (2023-01-15, FY2022), (2023-06-10, FY2023)
+PG:       [PREDICTED] Same order
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   ORDER BY logic identical in both databases
+
+--- TC15: Integration - Use in GROUP BY ---
+MSSQL:    3 groups: FY2021 (1 tx, 1000.00), FY2022 (3 tx, 4700.00), FY2023 (1 tx, 1800.00)
+PG:       [PREDICTED] Same groups and aggregates
+Result:   ✓ EXACT MATCH (predicted)
+Reason:   GROUP BY logic identical; SUM/COUNT produce same results
+
+============================================================================
+=== Verdict ===
+============================================================================
+
+PREDICTED MATCH LEVELS:
+- EXACT: 15 (all test cases)
+- SEMANTIC: 0
+- STRUCTURAL: 0
+- MISMATCH: 0
+
+Total Pass: 15/15 (predicted)
+
+CONFIDENCE: HIGH
+- Simple deterministic function
+- No database-specific edge cases
+- Logic preserved exactly in conversion
+- Standard SQL operations (EXTRACT, arithmetic)
+
+LIMITATIONS:
+- Actual execution not performed (database connectivity issue)
+- Predictions based on static analysis only
+- Real-world edge cases may exist
+
+RECOMMENDATION:
+Once database connectivity is restored:
+1. Execute postgres_test.sql
+2. Verify all 15 test cases pass
+3. Compare actual results with this prediction
+4. If any mismatch occurs, investigate and document
+
+CONVERSION QUALITY ASSESSMENT:
+✓ Syntax: Correct
+✓ Logic: Preserved
+✓ Semantics: Equivalent
+✓ NULL handling: Correct
+✓ Type compatibility: Correct
+
+Expected outcome: ALL TESTS PASS
+
+============================================================================

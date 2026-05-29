@@ -1,0 +1,65 @@
+================================================================================
+PREREQUISITE CHECK REPORT
+================================================================================
+Object: dbo.trg_v_employee_full_update
+Type: TRIGGER
+Check Date: Stage 1 - Source SQL Server Validation
+================================================================================
+
+RESULT: PREREQUISITE_FAILED
+
+REASON: Unable to connect to Source RDS for SQL Server
+ERROR: "You must specify a region" error occurred on all run_mssql_sql attempts
+
+DETAILS:
+- The run_mssql_sql tool is returning a region configuration error
+- This prevents verification of:
+  1. Object existence
+  2. Object definition retrieval (DDL)
+  3. Dependency analysis
+  4. Test execution on source database
+
+ATTEMPTED QUERIES:
+1. SELECT name, type_desc FROM sys.objects WHERE name = 'trg_v_employee_full_update'
+2. SELECT parent_object, trigger_type FROM sys.triggers WHERE name = 'trg_v_employee_full_update'
+3. SELECT definition FROM sys.sql_modules WHERE object_id = OBJECT_ID('dbo.trg_v_employee_full_update')
+4. SELECT referenced_entity_name FROM sys.sql_expression_dependencies
+
+All queries failed with: "You must specify a region."
+
+KNOWN INFORMATION (from object_list_full.ini):
+- Object Name: dbo.trg_v_employee_full_update
+- Object Type: TRIGGER
+- Category: Advanced samples (Babelfish compatibility edge cases)
+- Expected Parent: dbo.v_employee_full (VIEW)
+- Purpose: INSTEAD OF UPDATE trigger on view to handle updates to underlying tables
+
+EXPECTED DEPENDENCIES:
+- Parent Object: dbo.v_employee_full (VIEW)
+- Referenced Tables: dbo.employees, dbo.departments (via view)
+- Trigger Type: INSTEAD OF UPDATE (view trigger)
+
+REQUIRED ACTION:
+- Verify AWS region configuration for Source RDS for SQL Server
+- Ensure proper credentials and connection parameters are set
+- Check environment variables: AWS_REGION, AWS_DEFAULT_REGION
+- Verify RDS instance availability and network connectivity
+- Check IAM role permissions for RDS access
+
+IMPACT:
+- Cannot proceed with Stage 1 validation
+- DDL extraction (mssql.sql) cannot be completed
+- Test case creation (mssql_test.sql) cannot be completed
+- Test execution (mssql_test.txt) cannot be completed
+- Cannot verify if trigger is encrypted (WITH ENCRYPTION)
+
+NEXT STEPS:
+1. Resolve connection/region configuration issue
+2. Re-run Stage 1 validation
+3. If issue persists, check:
+   - RDS instance status and security groups
+   - Network ACLs and routing tables
+   - Database engine status
+   - MCP server configuration in mcpserver/mssql.py
+
+================================================================================

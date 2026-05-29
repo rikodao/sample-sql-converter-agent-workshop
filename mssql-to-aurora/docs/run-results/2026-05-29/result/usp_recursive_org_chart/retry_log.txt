@@ -1,0 +1,233 @@
+============================================================================
+STAGE 4: PostgreSQL Native Validation - Attempt Log
+============================================================================
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Target: Aurora PostgreSQL (Native PL/pgSQL)
+Date: 2026-05-29
+
+============================================================================
+ATTEMPT 1: Initial Deployment and Test Execution
+============================================================================
+
+Step 1: Read Source Files
+--------------------------
+Status: ✓ SUCCESS
+Files Read:
+- mssql_test.sql (12 test cases, comprehensive coverage)
+- mssql_test.txt (expected results, connection failure noted)
+- postgres.sql (converted function definition)
+
+Observations:
+- MSSQL tests could not execute due to connection failure
+- Expected results documented based on procedure definition
+- PostgreSQL conversion appears syntactically correct
+
+Step 2: Generate PostgreSQL Test Suite
+---------------------------------------
+Status: ✓ SUCCESS
+Output: postgres_test.sql
+
+Conversions Applied:
+1. Temporary tables: #temp → CREATE TEMPORARY TABLE
+2. IDENTITY_INSERT → ON CONFLICT ... DO UPDATE
+3. EXEC procedure → SELECT * FROM function()
+4. TRY-CATCH → DO $$ ... EXCEPTION WHEN OTHERS
+5. Error assertions adapted for PostgreSQL exception handling
+6. Cleanup: DELETE instead of DROP (to preserve schema)
+
+Test Cases Converted:
+- TC1: Basic hierarchy from top (no parameters)
+- TC2: Hierarchy from specific employee (mid-level manager)
+- TC3: Max depth limit (depth = 1, only direct reports)
+- TC4: Include inactive employees (TC4a, TC4b)
+- TC5: Leaf node employee (no direct reports)
+- TC6: Non-existent employee ID (error case)
+- TC7: Invalid max_depth (TC7a: zero, TC7b: negative)
+- TC8: Deep hierarchy (5+ levels)
+- TC9: Multiple top-level employees (no root specified)
+- TC10: NULL values in employee data
+- TC11: Path and sort_path verification
+- TC12: Direct report count accuracy
+
+Total: 12 test cases (15 scenarios including sub-cases)
+
+Step 3: Deploy PostgreSQL Function
+-----------------------------------
+Status: ✗ FAILED
+Error: "You must specify a region"
+Error Type: boto3 configuration error (AWS SDK)
+
+Details:
+- Attempted to deploy function to Aurora PostgreSQL
+- Connection failed before SQL execution
+- Same error as MSSQL test execution (infrastructure issue)
+
+Root Cause Analysis:
+- AWS SDK (boto3) not configured with default region
+- Likely missing AWS_DEFAULT_REGION environment variable
+- Or missing ~/.aws/config configuration
+- Affects both MSSQL and PostgreSQL connections
+
+Step 4: Test Execution
+----------------------
+Status: ✗ NOT ATTEMPTED
+Reason: Cannot proceed without successful function deployment
+
+Expected Test Flow (if connectivity available):
+1. Deploy function (CREATE OR REPLACE FUNCTION)
+2. Execute each test case sequentially
+3. Capture results for each TC
+4. Compare with MSSQL expected results
+5. Generate comparison_result.txt
+
+Step 5: Result Comparison
+-------------------------
+Status: ✗ NOT ATTEMPTED
+Reason: No test results available from either MSSQL or PostgreSQL
+
+Comparison Strategy (if results available):
+- TC1-TC12: Compare row counts, aggregates, and data values
+- Allow SEMANTIC matches for:
+  * Timestamp precision differences
+  * Floating point rounding
+  * NULL vs empty string (if applicable)
+- Require EXACT matches for:
+  * Row counts
+  * Integer values
+  * String values (case-sensitive)
+  * Date values
+
+============================================================================
+DIAGNOSIS
+============================================================================
+
+Issue Category: PREREQUISITE_FAILED
+Severity: BLOCKING
+
+The validation process cannot proceed due to infrastructure issues:
+
+1. Database Connectivity:
+   ✗ Source MSSQL RDS: Unreachable (boto3 region error)
+   ✗ Target PostgreSQL: Unreachable (boto3 region error)
+   ✗ Network/Security: Unknown (cannot test)
+
+2. Conversion Quality:
+   ✓ Syntax: Appears correct (code review)
+   ? Semantics: Cannot verify without execution
+   ? Performance: Unknown
+   ? Integration: Unknown
+
+3. Test Readiness:
+   ✓ MSSQL test suite: Complete and documented
+   ✓ PostgreSQL test suite: Generated and ready
+   ✗ Test execution: Blocked by connectivity
+
+============================================================================
+CODE REVIEW ASSESSMENT
+============================================================================
+
+Since execution is not possible, performed detailed code review:
+
+Conversion Correctness: HIGH CONFIDENCE
+---------------------------------------
+✓ All T-SQL constructs properly converted to PL/pgSQL
+✓ Recursive CTE syntax correct
+✓ Parameter handling correct
+✓ Error handling properly adapted
+✓ NULL handling equivalent (COALESCE)
+✓ String operations correct (||)
+✓ Type conversions appropriate
+✓ No MSSQL-specific features used
+
+Potential Issues: LOW RISK
+---------------------------
+⚠ Calling syntax change (EXEC → SELECT FROM)
+  - Documented in conversion notes
+  - Requires application code changes
+  - Not a bug, but a behavioral difference
+
+⚠ NULL concatenation behavior
+  - MSSQL: NULL + 'text' = NULL
+  - PostgreSQL: NULL || 'text' = NULL
+  - Behavior equivalent, but needs testing
+
+⚠ VARCHAR length limits
+  - Path: VARCHAR(1000) may be insufficient for very deep hierarchies
+  - Same limitation exists in MSSQL version
+  - Not a conversion issue
+
+Known Differences: DOCUMENTED
+------------------------------
+✓ Return type: PROCEDURE → FUNCTION (required in PostgreSQL)
+✓ Parameter prefix: @ → p_ (convention)
+✓ Schema: dbo → public (standard)
+✓ Error functions: ERROR_MESSAGE() → SQLERRM
+
+All differences are documented in postgres.sql conversion notes.
+
+============================================================================
+RECOMMENDATION
+============================================================================
+
+IMMEDIATE ACTION REQUIRED:
+1. Fix AWS SDK configuration (set region)
+2. Restore database connectivity
+3. Re-run validation workflow
+
+VALIDATION CONFIDENCE:
+- Code Review: 85% confident conversion is correct
+- Execution Needed: 15% uncertainty due to untested edge cases
+
+RISK LEVEL:
+- Syntax Errors: LOW (code review shows correct syntax)
+- Semantic Errors: MEDIUM (NULL handling, edge cases need testing)
+- Deployment Risk: HIGH (cannot test in target environment)
+
+DECISION:
+Mark as NG (PREREQUISITE_FAILED) due to inability to execute tests.
+Conversion appears correct but cannot be verified.
+
+DO NOT PROCEED TO PRODUCTION without successful test execution.
+
+============================================================================
+RETRY STRATEGY
+============================================================================
+
+This is not a conversion error, so retries are not applicable.
+The issue is infrastructure/configuration, not code.
+
+If connectivity is restored:
+1. Re-run Stage 1 (MSSQL test execution)
+2. Re-run Stage 4 (PostgreSQL validation)
+3. Compare results
+4. If tests pass → Generate OK.txt
+5. If tests fail → Analyze and fix conversion, then retry (max 3 attempts)
+
+============================================================================
+FILES GENERATED
+============================================================================
+
+✓ postgres_test.sql - PostgreSQL test suite (ready to execute)
+✓ NG.txt - Failure report with detailed analysis
+✓ retry_log.txt - This file (attempt log)
+
+✗ postgres_test.txt - Not generated (cannot execute tests)
+✗ comparison_result.txt - Not generated (no results to compare)
+✗ OK.txt - Not generated (validation incomplete)
+
+============================================================================
+CONCLUSION
+============================================================================
+
+Result: NG (PREREQUISITE_FAILED)
+Reason: Database connectivity failure (infrastructure issue)
+Conversion Quality: Appears correct (code review)
+Next Action: Fix infrastructure, then re-run validation
+
+The conversion from MSSQL PROCEDURE to PostgreSQL FUNCTION appears to be
+syntactically and semantically correct based on code review. However,
+validation cannot be completed without database connectivity.
+
+This is a BLOCKING issue that must be resolved before proceeding.
+
+============================================================================

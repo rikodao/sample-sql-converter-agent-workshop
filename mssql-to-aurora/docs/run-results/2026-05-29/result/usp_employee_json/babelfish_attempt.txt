@@ -1,0 +1,221 @@
+============================================================================
+Babelfish T-SQL Compatibility Verification
+============================================================================
+Object: PROCEDURE dbo.usp_employee_json
+Date: 2026-05-29
+Stage: 2 - Babelfish Attempt
+
+============================================================================
+STEP 1: CONNECTION TEST
+============================================================================
+
+Attempting to connect to Babelfish via TDS:1433...
+
+Command: SELECT @@VERSION
+
+Result: CONNECTION_ERROR
+
+Error Details:
+--------------
+Error Message: "You must specify a region."
+Error Type: AWS Configuration Error
+Connection Method: run_babelfish_tsql (TDS:1433)
+
+Root Cause Analysis:
+--------------------
+The Babelfish connection tool requires AWS region configuration to be set.
+This is an infrastructure/configuration issue, not a SQL Server or Babelfish
+compatibility issue.
+
+Impact:
+-------
+- Cannot proceed with DDL deployment to Babelfish
+- Cannot execute test cases against Babelfish
+- Cannot perform result comparison between MSSQL and Babelfish
+
+============================================================================
+STEP 2: DDL ANALYSIS (Pre-flight Check)
+============================================================================
+
+Source DDL File: ./result/usp_employee_json/mssql.sql
+
+DDL Content Summary:
+--------------------
+- Object Type: STORED PROCEDURE
+- Name: dbo.usp_employee_json
+- Parameters: 
+  * @employee_id INT = NULL
+  * @department_id INT = NULL
+  * @include_inactive BIT = 0
+- Key Features:
+  * FOR JSON PATH syntax
+  * Nested subqueries with FOR JSON PATH
+  * WITHOUT_ARRAY_WRAPPER clause
+  * Parameter validation with RAISERROR
+  * SET NOCOUNT ON
+  * Complex filtering logic
+
+============================================================================
+KNOWN BABELFISH COMPATIBILITY CONCERNS
+============================================================================
+
+Based on the DDL analysis, the following features may have compatibility issues:
+
+1. FOR JSON PATH (HIGH RISK)
+   -------------------------
+   Severity: CRITICAL
+   Description: Babelfish has LIMITED support for FOR JSON PATH
+   Impact: Core functionality of this procedure
+   
+   Known Issues:
+   - FOR JSON PATH is partially supported in Babelfish
+   - WITHOUT_ARRAY_WRAPPER may not be supported
+   - Nested subqueries with FOR JSON may fail
+   - Complex JSON generation patterns may not work
+   
+   Evidence from MSSQL Test Results:
+   The test file explicitly notes:
+   "Potential Compatibility Issues:
+    1. FOR JSON PATH - Babelfish may have limited JSON support
+    2. FOR JSON AUTO - Alternative syntax may be needed
+    3. WITHOUT_ARRAY_WRAPPER - May not be supported
+    4. Nested subqueries with FOR JSON - Complex pattern"
+
+2. RAISERROR Syntax (MEDIUM RISK)
+   -------------------------------
+   Severity: MEDIUM
+   Description: RAISERROR is supported but may have behavioral differences
+   Impact: Error handling in validation logic
+   
+   Babelfish Behavior:
+   - Basic RAISERROR is supported
+   - Error number ranges may differ
+   - Error message formatting may vary
+
+3. SET NOCOUNT ON (LOW RISK)
+   --------------------------
+   Severity: LOW
+   Description: Generally supported in Babelfish
+   Impact: Minimal - affects only row count messages
+
+4. BIT Data Type (LOW RISK)
+   -------------------------
+   Severity: LOW
+   Description: BIT type is supported in Babelfish
+   Impact: Minimal - parameter @include_inactive should work
+
+============================================================================
+HYPOTHESIS: EXPECTED OUTCOME
+============================================================================
+
+If connection were available, the expected outcome would be:
+
+DDL Deployment: LIKELY TO FAIL
+-------------------------------
+Reason: FOR JSON PATH with nested subqueries and WITHOUT_ARRAY_WRAPPER
+        is a complex pattern that Babelfish may not fully support.
+
+Expected Error Pattern:
+- Syntax error on FOR JSON PATH
+- OR: Syntax error on WITHOUT_ARRAY_WRAPPER
+- OR: Runtime error when executing nested JSON subqueries
+
+Confidence Level: 85% (SYNTAX_FAILED expected)
+
+Alternative Approaches:
+-----------------------
+If DDL fails, the following approaches would be recommended:
+
+1. Stage 3 Conversion (RECOMMENDED):
+   - Convert to native PostgreSQL PL/pgSQL
+   - Use PostgreSQL's jsonb_build_object() and jsonb_agg()
+   - Leverage PostgreSQL's superior JSON capabilities
+   
+2. Simplified T-SQL Approach:
+   - Remove FOR JSON PATH
+   - Return result set as table
+   - Let application layer handle JSON serialization
+   
+3. Hybrid Approach:
+   - Use Babelfish for basic logic
+   - Call PostgreSQL JSON functions via cross-dialect query
+
+============================================================================
+STEP 3: TEST CASE ANALYSIS
+============================================================================
+
+Source Test File: ./result/usp_employee_json/mssql_test.txt
+
+Test Coverage Summary:
+----------------------
+Total Test Cases: 10
+- Normal cases: 5 (TC1, TC2, TC7, TC8, TC9)
+- Boundary cases: 4 (TC3, TC4, TC7a, TC10)
+- Exception cases: 2 (TC5, TC6)
+
+Key Test Scenarios:
+-------------------
+TC1: Single employee with all data
+TC2: Filter by department (multiple employees)
+TC3: Employee with NULL optional fields
+TC4: Non-existent employee_id (empty result)
+TC5: Invalid employee_id (negative value) - expects error
+TC6: Invalid department_id (negative value) - expects error
+TC7: Include inactive employees flag
+TC8: Employee with manager relationship (nested JSON)
+TC9: All parameters NULL (return all active)
+TC10: Employee with department but no manager
+
+Expected JSON Structure:
+------------------------
+- Array of employee objects
+- Nested "department" object
+- Nested "manager" object
+- NULL values for missing relationships
+- Empty array for no results
+
+Test Execution Status:
+----------------------
+Status: NOT EXECUTED
+Reason: Connection error prevents test execution
+
+============================================================================
+CONCLUSION
+============================================================================
+
+RESULT: CONNECTION_ERROR
+
+Summary:
+--------
+Cannot proceed with Babelfish compatibility verification due to AWS region
+configuration issue. The connection tool requires proper AWS region setup
+to establish TDS:1433 connection to Babelfish.
+
+Technical Assessment:
+---------------------
+Based on DDL analysis, this stored procedure has HIGH RISK of compatibility
+issues with Babelfish due to:
+- Heavy reliance on FOR JSON PATH
+- Nested JSON subqueries
+- WITHOUT_ARRAY_WRAPPER clause
+
+Recommendation:
+---------------
+1. Fix AWS region configuration for Babelfish connection
+2. Retry Stage 2 with proper connectivity
+3. If FOR JSON PATH fails (expected), proceed directly to Stage 3
+4. Stage 3 should use native PostgreSQL JSON functions (jsonb_build_object, 
+   jsonb_agg) which are more powerful and better supported
+
+Next Steps:
+-----------
+- BABELFISH_OK.txt: NOT CREATED (connection failed)
+- babelfish_test.sql: NOT CREATED (cannot proceed without connection)
+- babelfish_test.txt: NOT CREATED (cannot execute tests)
+
+Stage 2 Status: INCOMPLETE - CONNECTION_ERROR
+Proceed to: Infrastructure fix OR Stage 3 (PostgreSQL native conversion)
+
+============================================================================
+END OF REPORT
+============================================================================

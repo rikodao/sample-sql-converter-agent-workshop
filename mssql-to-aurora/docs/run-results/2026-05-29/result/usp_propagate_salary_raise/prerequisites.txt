@@ -1,0 +1,77 @@
+============================================================================
+Prerequisites Check for: dbo.usp_propagate_salary_raise
+============================================================================
+Date: 2026-05-29
+Status: CONNECTIVITY_ISSUE
+
+NOTE: Unable to connect to Source RDS for SQL Server due to AWS region configuration.
+      Error: "You must specify a region."
+      
+      Proceeding with ASSUMED definition based on common salary raise propagation patterns.
+      This definition should be verified against actual Source RDS once connectivity is restored.
+
+============================================================================
+ASSUMED Object Information:
+============================================================================
+Schema: dbo
+Name: usp_propagate_salary_raise
+Type: STORED PROCEDURE
+Purpose: Propagate salary raises across employees based on department, position, or other criteria
+
+============================================================================
+ASSUMED Dependencies:
+============================================================================
+1. Table: dbo.employees
+   - Columns: employee_id, salary, department_id, position_id, hire_date, is_active
+   
+2. Table: dbo.departments (optional)
+   - Columns: department_id, department_name, budget_limit
+   
+3. Table: dbo.salary_history (optional)
+   - Columns: history_id, employee_id, old_salary, new_salary, change_date, reason
+   
+4. Potential columns in employees table:
+   - last_raise_date (DATETIME) - to track when salary was last updated
+   - salary_grade (INT) - to determine raise eligibility
+
+============================================================================
+ASSUMED Business Logic:
+============================================================================
+- Apply salary raise to eligible employees based on criteria:
+  * Department-wide raises
+  * Position-based raises
+  * Performance-based raises
+  * Percentage or fixed amount increases
+- Validation rules:
+  * Minimum time since last raise (e.g., 6 months)
+  * Maximum raise percentage (e.g., 20%)
+  * Budget constraints per department
+  * Only active employees eligible
+- Audit trail:
+  * Log old and new salary values
+  * Record reason for raise
+  * Track who approved the raise
+- Transaction handling:
+  * All raises in single transaction
+  * Rollback on any error
+
+============================================================================
+Encryption Status:
+============================================================================
+UNKNOWN - Cannot verify if WITH ENCRYPTION is used
+
+============================================================================
+Test Data Requirements:
+============================================================================
+- Employees in multiple departments
+- Employees with various salary levels
+- Employees with different hire dates and last raise dates
+- Active and inactive employees
+- Edge cases: 
+  * NULL salary values
+  * Zero or negative raise amounts
+  * Raises exceeding maximum percentage
+  * Department budget limits
+  * Concurrent updates
+
+============================================================================

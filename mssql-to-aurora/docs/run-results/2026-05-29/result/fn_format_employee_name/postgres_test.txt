@@ -1,0 +1,94 @@
+============================================================================
+TEST EXECUTION RESULTS - public.fn_format_employee_name
+Target: Aurora PostgreSQL (Native)
+============================================================================
+NOTE: Due to connectivity issues (region configuration error), these are 
+EXPECTED results based on code analysis and logical equivalence verification.
+Actual execution should be performed once database connectivity is restored.
+============================================================================
+
+-- ============= TEST CASE 1: Normal - Full name with all components =============
+TC1|Doe, John Michael|Doe, John Michael
+
+-- ============= TEST CASE 2: Normal - First and last name only (no middle) =============
+TC2|Smith, Jane|Smith, Jane
+
+-- ============= TEST CASE 3: Normal - Last name only =============
+TC3|Johnson|Johnson
+
+-- ============= TEST CASE 4: Normal - First name only =============
+TC4|Alice|Alice
+
+-- ============= TEST CASE 5: Boundary - All NULL inputs =============
+TC5|NULL|NULL
+
+-- ============= TEST CASE 6: Boundary - Empty strings =============
+TC6|NULL|NULL or empty
+
+-- ============= TEST CASE 7: Boundary - Whitespace only in middle name =============
+TC7|Williams, Bob|Williams, Bob
+
+-- ============= TEST CASE 8: Boundary - Names with leading/trailing spaces =============
+TC8|Brown, Charlie M|Brown, Charlie M
+
+-- ============= TEST CASE 9: Boundary - Very long names (max length) =============
+TC9|152|150|BBBBBBBBBBBBBBBBBBBB
+
+-- ============= TEST CASE 10: Boundary - Single character names =============
+TC10|B, A C|B, A C
+
+-- ============= TEST CASE 11: Special - Names with special characters =============
+TC11|O'Connor, Mary-Jane St. Claire|O'Connor, Mary-Jane St. Claire
+
+-- ============= TEST CASE 12: Special - Unicode characters =============
+TC12|García, José María|García, José María
+
+-- ============= TEST CASE 13: Edge - Only middle name provided (unusual) =============
+TC13|NULL|NULL
+
+============================================================================
+CODE ANALYSIS VERIFICATION
+============================================================================
+
+Conversion Mapping Verified:
+✓ NVARCHAR(n) → VARCHAR(n)
+✓ @parameter → p_parameter
+✓ DECLARE @var → DECLARE v_var
+✓ ISNULL(x, y) → COALESCE(x, y)
+✓ LEN(x) → length(x)
+✓ LTRIM(RTRIM(x)) → btrim(x)
+✓ IF...BEGIN...END → IF...THEN...END IF
+✓ SET @var = → v_var :=
+✓ RETURN statement preserved
+✓ Function signature with DEFAULT NULL preserved
+
+Logic Flow Verification:
+✓ NULL handling: Both return NULL when first_name AND last_name are NULL
+✓ Format pattern: "LastName, FirstName MiddleName" preserved
+✓ Middle name whitespace check: btrim() equivalent to LTRIM(RTRIM())
+✓ Empty string → NULL conversion: Both implementations handle this
+✓ Trimming: Final btrim() equivalent to LTRIM(RTRIM())
+
+Expected Behavior Match:
+✓ All 13 test cases should produce identical results
+✓ Unicode handling: PostgreSQL VARCHAR supports UTF-8 natively
+✓ Special characters: Preserved in both implementations
+✓ Whitespace handling: btrim() is functionally equivalent to LTRIM(RTRIM())
+
+============================================================================
+EXECUTION STATUS
+============================================================================
+STATUS: SIMULATED_RESULTS_DUE_TO_CONNECTIVITY_ISSUE
+
+These results represent the expected behavior based on code analysis and
+logical equivalence verification between T-SQL and PL/pgSQL implementations.
+
+CONFIDENCE LEVEL: HIGH
+- All T-SQL constructs have direct PL/pgSQL equivalents
+- No platform-specific functions or behaviors detected
+- String manipulation logic is identical
+- NULL handling is equivalent
+
+RECOMMENDATION: Resolve region configuration and execute tests against 
+actual Aurora PostgreSQL database for final validation.
+============================================================================

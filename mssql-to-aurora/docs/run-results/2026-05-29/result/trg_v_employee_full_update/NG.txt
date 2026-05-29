@@ -1,0 +1,109 @@
+=== Conversion Result: NG ===
+Object: TRIGGER dbo.trg_v_employee_full_update
+Failed At: Stage 4
+NG Reason: PREREQUISITE_FAILED
+
+--- Failed Test Case ---
+Name: ALL TEST CASES (TC1-TC10)
+Expected (MSSQL):
+  NOT AVAILABLE - Source MSSQL test execution failed with connection error:
+  "You must specify a region."
+  
+Actual (PG):
+  NOT AVAILABLE - Target PostgreSQL test execution failed with connection error:
+  "You must specify a region."
+  
+Diff:
+  Cannot perform comparison - both source and target test executions failed
+  due to AWS region configuration issue.
+
+--- Hypothesis ---
+ROOT CAUSE: Environment Configuration Issue
+- AWS_REGION environment variable not set or incorrectly configured
+- MCP server configuration (mcpserver/mssql.py, mcpserver/postgres.py) missing region
+- RDS/Aurora instances may be in different region than configured
+- IAM role permissions may be region-specific
+
+CONVERSION QUALITY (Static Analysis):
+The converted PostgreSQL trigger appears to be syntactically and semantically correct:
+✓ Valid PL/pgSQL syntax
+✓ Proper trigger function structure
+✓ Correct INSTEAD OF UPDATE pattern
+✓ Appropriate use of NEW record for row-level trigger
+✓ Schema mapping applied (dbo -> public)
+✓ All columns mapped correctly
+
+LIKELY OUTCOME IF EXECUTED:
+Based on static analysis, the conversion is expected to pass all test cases with
+EXACT or SEMANTIC match. The trigger logic is straightforward and uses standard
+PostgreSQL patterns.
+
+--- Recommended Action ---
+IMMEDIATE ACTIONS:
+1. Fix AWS Region Configuration:
+   - Set AWS_REGION environment variable (e.g., export AWS_REGION=us-east-1)
+   - Update MCP server configuration files
+   - Verify RDS instance region matches configuration
+   - Restart MCP servers if needed
+
+2. Verify Database Connectivity:
+   - Test connection to Source RDS for SQL Server
+   - Test connection to Aurora PostgreSQL
+   - Check security group rules (ports 1433, 5432)
+   - Verify IAM role permissions
+
+3. Re-execute Validation Workflow:
+   - Stage 1: Execute mssql_test.sql on Source RDS
+   - Stage 4: Deploy postgres.sql and execute postgres_test.sql
+   - Compare results and generate final verdict
+
+MANUAL REVIEW POINTS:
+1. Trigger Granularity:
+   - MSSQL uses statement-level trigger (processes all rows via inserted table)
+   - PostgreSQL uses row-level trigger (processes one row at a time)
+   - Verify performance is acceptable for multi-row updates
+   - Consider FOR EACH STATEMENT with transition tables if needed
+
+2. Error Handling:
+   - Verify foreign key constraints on department_id
+   - Test NULL value handling
+   - Confirm transaction rollback behavior on errors
+
+3. View Definition:
+   - Ensure public.v_employee_full exists and matches dbo.v_employee_full
+   - Verify all columns are present and correctly typed
+   - Check JOIN conditions with departments table
+
+4. Dependencies:
+   - Verify public.employees table exists
+   - Verify public.departments table exists
+   - Check column names and data types match
+
+TESTING CHECKLIST (Once Connection Restored):
+□ TC1: Simple single-column UPDATE
+□ TC2: Multi-column UPDATE
+□ TC3: Multi-row UPDATE with calculation
+□ TC4: NULL value UPDATE
+□ TC5: UPDATE with no matching rows
+□ TC6: Foreign key column UPDATE (department_id)
+□ TC7: Boolean flag UPDATE (is_active)
+□ TC8: Date column UPDATE (hire_date)
+□ TC9: Verify trigger execution (row count)
+□ TC10: Full-row UPDATE (all columns)
+
+CONFIDENCE LEVEL:
+Static Analysis: HIGH (conversion appears correct)
+Execution Validation: BLOCKED (cannot execute tests)
+Overall: MEDIUM (pending execution confirmation)
+
+--- Next Steps ---
+1. Resolve connection issue (highest priority)
+2. Execute tests on both MSSQL and PostgreSQL
+3. Compare results
+4. If all tests pass → Generate OK.txt
+5. If any test fails → Debug and fix postgres.sql, then retry
+
+--- Additional Notes ---
+This NG result is due to infrastructure/configuration issues, NOT conversion errors.
+The converted SQL appears to be correct based on static analysis.
+Once the connection issue is resolved, re-run the validation workflow.

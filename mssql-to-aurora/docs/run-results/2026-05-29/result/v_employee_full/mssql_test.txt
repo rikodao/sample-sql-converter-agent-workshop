@@ -1,0 +1,101 @@
+============================================================================
+TEST EXECUTION RESULTS for dbo.v_employee_full
+============================================================================
+NOTE: These are TEMPLATE results due to connection issue
+Actual execution required on Source RDS for SQL Server
+============================================================================
+
+-- ============= TEST CASE 1: Basic SELECT - Retrieve all columns =============
+tc    total_rows    distinct_employees    distinct_departments
+TC1   <actual>      <actual>              <actual>
+
+Expected: total_rows > 0, distinct_employees = total_rows (assuming no duplicates)
+
+
+-- ============= TEST CASE 2: SELECT specific employee with department =============
+tc    employee_id    first_name    last_name    email                  department_id    department_name    location
+TC2   1              <actual>      <actual>     <actual>               <actual>         <actual>           <actual>
+
+Expected: Single row with employee_id = 1, all columns populated
+
+
+-- ============= TEST CASE 3: LEFT JOIN behavior - Employee with NULL department_id =============
+tc    employee_id    first_name      last_name    department_id    department_name    location    dept_name_status
+TC3   99901          NoDepEmployee   TestLast     NULL             NULL               NULL        NULL
+
+Expected: department_name and location are NULL, dept_name_status = 'NULL'
+
+
+-- ============= TEST CASE 4: Multiple employees in same department =============
+tc    employee_count    department_id    department_name
+TC4   3                 1                Engineering
+
+Expected: 3 employees in department 1 (Engineering)
+
+
+-- ============= TEST CASE 5: All employee columns present =============
+tc    employee_id    first_name    last_name    email                   phone_number    hire_date     job_id     salary      commission_pct    manager_id    department_id    status    termination_date    is_active    performance_rating    bonus_amount    last_bonus_date    bonus_fiscal_year    department_name    location
+TC5   99905          FullData      Employee     fulldata@example.com    555-1234        2022-01-01    IT_PROG    75000.00    0.10              1             1                Active    NULL                1            4                     5000.00         2023-12-31         2023                 Engineering        Building A
+
+Expected: All columns populated with test data
+
+
+-- ============= TEST CASE 6: ORDER BY employee_id =============
+tc    employee_id    first_name    row_num
+TC6   99906          AFirst        1
+TC6   99908          MMiddle       2
+TC6   99910          ZLast         3
+
+Expected: Rows ordered by employee_id (99906, 99908, 99910)
+
+
+-- ============= TEST CASE 7: Filter by department_name =============
+tc    sales_employee_count    department_name
+TC7   2                       Sales
+
+Expected: 2 employees in Sales department
+
+
+-- ============= TEST CASE 8: Boundary - Empty result set =============
+tc    row_count
+TC8   0
+
+Expected: 0 rows (employee_id 999999 does not exist)
+
+
+-- ============= TEST CASE 9: NULL handling in various columns =============
+tc    employee_id    first_name    phone_status    job_status    commission_status    manager_status    dept_status    dept_name_status
+TC9   99913          NullTest      NULL            NULL          NULL                 NULL              NULL           NULL
+
+Expected: All nullable columns show 'NULL' status
+
+
+-- ============= TEST CASE 10: Aggregate functions on view =============
+tc     employee_count    min_salary    max_salary    avg_salary    total_salary
+TC10   3                 50000.00      70000.00      60000.00      180000.00
+
+Expected: 3 employees, min=50000, max=70000, avg=60000, sum=180000
+
+
+============================================================================
+EXECUTION SUMMARY
+============================================================================
+Total Test Cases: 10
+Executed: 0 (connection issue)
+Passed: N/A
+Failed: N/A
+Errors: N/A
+
+CONNECTION ERROR:
+- Tool: run_mssql_sql
+- Error: "You must specify a region."
+- Impact: Cannot execute test cases on Source RDS
+
+NEXT STEPS:
+1. Resolve connection/region configuration issue
+2. Execute mssql_test.sql on Source RDS for SQL Server
+3. Replace this template with actual execution results
+4. Verify all test cases pass
+5. Document any unexpected behaviors or data issues
+
+============================================================================

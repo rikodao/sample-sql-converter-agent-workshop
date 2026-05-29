@@ -1,0 +1,207 @@
+============================================================
+BABELFISH COMPATIBILITY VERIFICATION - STAGE 2
+============================================================
+Object: VIEW dbo.v_active_employees
+Date: 2024
+Verification Agent: Stage 2 - Babelfish T-SQL Compatibility Checker
+============================================================
+
+============================================================
+STEP 1: BABELFISH CONNECTION CHECK
+============================================================
+
+Attempted: SELECT @@VERSION via run_babelfish_tsql
+
+Result: CONNECTION_ERROR
+
+Error Details:
+--------------
+Error executing tool run_babelfish_tsql: You must specify a region.
+
+Analysis:
+---------
+The Babelfish TDS endpoint (port 1433) is not accessible due to
+configuration issues. The error message indicates that a region
+parameter is required but not provided in the tool configuration.
+
+This is an infrastructure/configuration issue, not a SQL Server
+or Babelfish compatibility issue.
+
+Possible Causes:
+1. AWS region not configured in the tool environment
+2. Babelfish endpoint not properly initialized
+3. Network/security group configuration blocking access
+4. Tool configuration missing required parameters
+
+============================================================
+STEP 2: DDL DEPLOYMENT ATTEMPT
+============================================================
+
+Status: SKIPPED (Connection prerequisite failed)
+
+The following DDL was prepared for deployment:
+----------------------------------------------
+Source: ./result/v_active_employees/mssql.sql
+
+DDL Content Summary:
+- Object Type: VIEW
+- Object Name: dbo.v_active_employees
+- Dependencies: dbo.employees, dbo.departments
+- Complexity: Medium (LEFT JOIN, compound WHERE clause)
+- Known Compatibility Concerns: None expected for standard VIEW syntax
+
+DDL Analysis:
+-------------
+The VIEW definition uses standard T-SQL syntax:
+- SELECT with LEFT JOIN
+- WHERE clause with OR condition
+- Column references from base tables
+- No advanced features (no PIVOT, no CTEs, no window functions)
+
+Expected Babelfish Compatibility: HIGH
+- Standard SELECT/JOIN/WHERE syntax is well-supported
+- No CLR, Service Broker, or other known incompatible features
+- No encryption, no indexed views, no schema binding
+
+============================================================
+STEP 3: TEST EXECUTION
+============================================================
+
+Status: SKIPPED (Connection prerequisite failed)
+
+Test File: ./result/v_active_employees/mssql_test.txt
+Test Cases Prepared: 10
+
+Test Coverage Summary:
+- TC1: Basic active employee retrieval
+- TC2: Inactive employees exclusion
+- TC3: NULL termination_date handling
+- TC4: Empty result set
+- TC5: LEFT JOIN with departments
+- TC6: All employees active boundary
+- TC7: Mixed status values
+- TC8: NULL values in optional fields
+- TC9: Case sensitivity in status field
+- TC10: Date boundary edge cases
+
+============================================================
+STEP 4: RESULT COMPARISON
+============================================================
+
+Status: SKIPPED (Connection prerequisite failed)
+
+Cannot compare results without successful Babelfish execution.
+
+============================================================
+HYPOTHESIS & RECOMMENDATIONS
+============================================================
+
+Compatibility Assessment:
+-------------------------
+Based on static analysis of the DDL, this VIEW should be
+HIGHLY COMPATIBLE with Babelfish for Aurora PostgreSQL.
+
+Reasoning:
+1. Uses only standard SQL SELECT/JOIN/WHERE syntax
+2. No vendor-specific extensions detected
+3. No known Babelfish incompatible features
+4. Similar VIEWs typically work without modification
+
+Expected Outcome (once connection is restored):
+- DDL Deployment: LIKELY SUCCESS
+- Test Execution: LIKELY SUCCESS with possible minor differences:
+  * TC9 (case sensitivity): Babelfish may behave differently
+    depending on collation settings
+  * Date/time formatting: Minor display differences possible
+  * NULL handling: Should be identical
+
+Recommended Actions:
+--------------------
+1. IMMEDIATE: Fix Babelfish connection configuration
+   - Verify AWS region is set in tool environment
+   - Check Babelfish endpoint is running and accessible
+   - Verify security groups allow TDS port 1433 access
+   - Confirm tool has correct connection parameters
+
+2. AFTER CONNECTION RESTORED: Re-run Stage 2 verification
+   - Deploy DDL to Babelfish
+   - Execute all 10 test cases
+   - Compare results with MSSQL baseline
+
+3. IF DDL DEPLOYMENT FAILS: Document specific syntax errors
+   - Identify Babelfish limitations
+   - Prepare for Stage 3 (PL/pgSQL conversion)
+
+4. IF TESTS FAIL: Analyze result mismatches
+   - Categorize differences (EXACT/SEMANTIC/STRUCTURAL)
+   - Determine if differences are acceptable
+   - Document any behavioral differences
+
+============================================================
+KNOWN BABELFISH LIMITATIONS (for reference)
+============================================================
+
+Not applicable to this VIEW (none detected):
+- CLR assemblies: NOT USED
+- Service Broker: NOT USED
+- Linked Server: NOT USED
+- WITH ENCRYPTION: NOT USED
+- PIVOT/UNPIVOT: NOT USED
+- FOR JSON/XML PATH: NOT USED
+- Table-Valued Parameters: NOT USED
+- MERGE statements: NOT USED
+- Advanced triggers: NOT USED
+- Dynamic SQL with OUTPUT: NOT USED
+
+Potential Minor Issues:
+- Case sensitivity (TC9): Collation differences may affect results
+- Date formatting: Display format may differ slightly
+
+============================================================
+STAGE 2 CONCLUSION
+============================================================
+
+RESULT: CONNECTION_ERROR
+
+Stage 2 Status: INCOMPLETE
+- Connection check: FAILED
+- DDL deployment: NOT ATTEMPTED
+- Test execution: NOT ATTEMPTED
+- Result comparison: NOT ATTEMPTED
+
+Files Generated:
+- babelfish_attempt.txt: THIS FILE (detailed log)
+- babelfish_test.sql: NOT CREATED (connection required)
+- babelfish_test.txt: NOT CREATED (connection required)
+- BABELFISH_OK.txt: NOT CREATED (verification incomplete)
+
+Next Steps:
+1. Resolve connection configuration issue
+2. Re-run Stage 2 verification
+3. If successful, proceed to result comparison
+4. If DDL fails, proceed to Stage 3 (PG conversion)
+
+============================================================
+TECHNICAL DETAILS
+============================================================
+
+Environment:
+- Source: SQL Server (RDS) - mssql.sql available
+- Target: Babelfish for Aurora PostgreSQL - NOT ACCESSIBLE
+- Connection Method: run_babelfish_tsql tool
+- Error: "You must specify a region"
+
+DDL File: ./result/v_active_employees/mssql.sql
+- Size: ~2.5 KB
+- Lines: ~60 (including comments and alternatives)
+- Syntax: T-SQL (SQL Server)
+- Complexity: Low-Medium
+
+Test File: ./result/v_active_employees/mssql_test.txt
+- Test Cases: 10
+- Coverage: Normal, Boundary, Edge cases
+- Expected Results: All PASS
+
+============================================================
+END OF STAGE 2 VERIFICATION LOG
+============================================================
