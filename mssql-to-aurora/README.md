@@ -121,6 +121,7 @@ mssql-to-aurora/
 | [docs/03-source-extraction.md](docs/03-source-extraction.md) | 実RDSからのソース抽出（Snapshotモード用） |
 | [docs/04-conversion-strategy.md](docs/04-conversion-strategy.md) | Babelfish vs PG-native の判断基準 |
 | [docs/05-test-strategy.md](docs/05-test-strategy.md) | テスト戦略・比較判定ロジック |
+| [docs/06-customer-handover.md](docs/06-customer-handover.md) | **お客様/AM/SA 向けハンドオーバー手順書 (ヒアリングシート・FAQ 含む)** |
 | [docs/adr/](docs/adr/) | アーキテクチャ決定記録 |
 
 ## 🧹 クリーンアップ
