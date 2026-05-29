@@ -8,17 +8,20 @@
 
 実 RDS for SQL Server から AI エージェントに食わせる素材（DDL・ストアド・関数・トリガー・代表クエリ・依存関係）を抽出する。**本番 RDS には絶対に触れない**ため、Snapshot を作って別アカウント or 同アカウント別 VPC に復元してから抽出する。
 
+> [!IMPORTANT]
+> 「実トラフィックのアプリクエリ」を採取する用途では、本番側に Extended Events を仕込むのではなく、**Query Store** (SQL Server 2016+ 標準機能) を利用する。Query Store のデータは DB 内に永続化されているため Snapshot にそのまま含まれ、本番 DB に追加で何かを仕込む必要がない。
+
 ## 2. 抽出対象と方式
 
-| 対象 | 取得方法 | 出力 |
-|---|---|---|
-| スキーマ DDL（テーブル/インデックス/制約/シーケンス/型） | `sys.tables` 等 + 自動 DDL 生成（`SMO` or `mssql-scripter`） | `extraction/output/<db>/schema/*.sql` |
-| ストアドプロシージャ | `sys.sql_modules` JOIN `sys.objects` WHERE type='P' | `extraction/output/<db>/procedures/*.sql` |
-| ユーザー定義関数 | `sys.sql_modules` WHERE type IN ('FN','IF','TF','FS','FT') | `extraction/output/<db>/functions/*.sql` |
-| トリガー | `sys.sql_modules` WHERE type='TR' | `extraction/output/<db>/triggers/*.sql` |
-| ビュー | `sys.sql_modules` WHERE type='V' | `extraction/output/<db>/views/*.sql` |
-| 依存関係グラフ | `sys.sql_expression_dependencies` | `extraction/output/<db>/dependencies.json` |
-| 代表的なアプリクエリ | SQL Server Audit / Extended Events | `extraction/output/<db>/queries/*.xel` → 解析済JSON |
+| 対象 | 取得方法 | 出力 | 自動化状態 |
+|---|---|---|---|
+| ストアドプロシージャ / 関数 / トリガー / ビューの一覧 | `sys.objects` LEFT JOIN `sys.sql_modules` | `extraction/output/objects.csv` | ✅ 実装済 (`export-ddl.sh`) |
+| `agent/object_list.ini` 生成 | 上記 CSV → 整形 | `extraction/output/object_list.ini` | ✅ 実装済 (`generate-object-list.sh`) |
+| 各オブジェクトの DDL (definition) | エージェント Stage 1 が `sys.sql_modules` から都度 SELECT | `result/<obj>/mssql.sql` | ✅ Agent が実行時に自動取得 |
+| 依存関係グラフ | `sys.sql_expression_dependencies` | `extraction/output/dependencies.json` | ⚠️ Phase 2 (アセスメントレポートで利用予定) |
+| テーブル列メタデータ | `sys.tables` / `sys.columns` | `extraction/output/tables.json` | ⚠️ Phase 2 |
+| 代表的なアプリクエリ | **Query Store** (`sys.query_store_*`) | `extraction/output/queries.json` | ⚠️ Phase 2 (本番非侵襲、Query Store 有効化が前提) |
+| スキーマ DDL（テーブル/インデックス/制約） | AWS Schema Conversion Tool (SCT) | 別ツール | ❌ 本ツールのスコープ外 |
 
 ## 3. 手順
 
@@ -37,76 +40,83 @@ aws rds copy-db-snapshot \
   --region ap-northeast-1
 ```
 
-### 3.2 検証スタックを Snapshot モードでデプロイ
+### 3.2 Snapshot モードでデプロイ + 自動抽出 (推奨)
+
+`--auto-extract` を付けると、Snapshot からの復元 → 検証 DB への接続 → オブジェクト一覧抽出 → `object_list.ini` 生成 までを deploy.sh 内で自動実行します。
 
 ```bash
 ./mssql-to-aurora/scripts/deploy.sh \
   --source-mode snapshot \
   --snapshot-id mssql-to-aurora-source-20260523 \
-  --instance-class db.m5.xlarge   # 本番元のサイズに合わせる
+  --instance-class db.m5.xlarge \
+  --extract-database YourAppDb \
+  --auto-extract
 ```
 
-CDK 内部で `DatabaseInstanceFromSnapshot` を使い、SG とサブネット設定は通常モードと同じ。
+完了後、ローカルの以下に成果物がダウンロードされます:
 
-### 3.3 抽出スクリプト実行
+```
+mssql-to-aurora/extraction/output/
+├── objects.csv         # 全オブジェクトの一覧 (type, schema, name, encrypted フラグ)
+└── object_list.ini     # AI エージェント用入力ファイル (CLR / 暗号化済はコメントアウト)
+```
+
+そのまま一括変換を実行できます:
 
 ```bash
-# Workbench EC2 へ SSH
-ssh -F ssh-config-mssql workbench
-
-# 抽出スクリプト実行
-cd ~/mssql-to-aurora/extraction
-./scripts/snapshot-restore.sh        # 既にCDKで復元済みのため、このスクリプトは「接続疎通とDB一覧取得」のみ
-./scripts/export-ddl.sh              # DDL/ストアド/関数を一気に抽出 → S3
+# Workbench EC2 にコピーするか、ローカルから object_list.ini を agent/ に置く
+cd ~/mssql-to-aurora/agent
+./run.sh --multi-agent -f /path/to/extracted/object_list.ini -j 3
 ```
 
-`export-ddl.sh` の中身は `extraction/scripts/export-ddl.sql`（後述）を `sqlcmd` で実行する。
+### 3.3 手動抽出 (deploy 後に再実行する場合)
 
-### 3.4 ストアド一覧の生成
-
-抽出されたファイル名から `agent/object_list.ini` を生成する補助スクリプト:
+`--auto-extract` を使わずデプロイした場合や、別 DB を再抽出する場合:
 
 ```bash
-./scripts/generate-object-list.sh > ../agent/object_list.ini
+# Workbench EC2 に SSM Session Manager で接続
+aws ssm start-session --target $(jq -r '.MssqlToAuroraStack.WorkbenchInstanceId' output.json)
+
+# (EC2 内で)
+cd ~/mssql-to-aurora/extraction/scripts
+MSSQL_DATABASE=YourAppDb bash export-ddl.sh    # objects.csv を生成
+bash generate-object-list.sh                   # object_list.ini を生成
+
+# 結果を S3 経由でローカルに引き上げる
+aws s3 cp ../output/object_list.ini s3://<extraction-bucket>/extraction/object_list.ini
 ```
 
-出力例:
-```
-PROCEDURE dbo.usp_calculate_employee_bonus
-PROCEDURE dbo.usp_archive_old_orders
-FUNCTION dbo.fn_get_fiscal_year
-TRIGGER dbo.trg_audit_insert
-VIEW dbo.v_active_employees
-```
+`export-ddl.sh` の実体は `extraction/scripts/list-objects.sql` を `sqlcmd` で実行し、CSV 形式で吐き出すラッパです (詳細: §4)。
 
-### 3.5 アプリクエリログ（任意）
+### 3.4 アプリクエリ抽出 (Phase 2、Query Store 利用)
 
-実トラフィックの代表クエリを取得したい場合:
+実トラフィックの代表クエリを抽出したい場合、**Query Store** を利用します。Query Store のデータは DB 内 (MDF) に永続化されているため、Snapshot からの復元 DB を読むだけで取得可能で、**本番 DB への追加設定は不要**です。
+
+> [!NOTE]
+> Phase 2 で実装予定。本セクションは設計メモ。
+
+前提:
+- SQL Server 2016 以降
+- 対象 DB で Query Store が有効化されている (確認: `SELECT name, is_query_store_on FROM sys.databases`)
+
+抽出 SQL の例:
 
 ```sql
--- enable-xevents.sql
-CREATE EVENT SESSION [migration_query_capture] ON SERVER
-ADD EVENT sqlserver.sql_batch_completed (
-    ACTION (sqlserver.client_app_name, sqlserver.database_id)
-    WHERE database_id = DB_ID('YourAppDb')
-)
-ADD TARGET package0.event_file (
-    SET filename = N'D:\rdsdbdata\Log\migration_query_capture.xel'
-);
-ALTER EVENT SESSION [migration_query_capture] ON SERVER STATE = START;
+SELECT TOP 100
+    qsq.query_id,
+    qsqt.query_sql_text,
+    qsrs.count_executions,
+    qsrs.avg_duration / 1000.0   AS avg_duration_ms,
+    qsrs.avg_logical_io_reads,
+    qsrs.last_execution_time
+FROM sys.query_store_query_text   qsqt
+JOIN sys.query_store_query        qsq  ON qsqt.query_text_id = qsq.query_text_id
+JOIN sys.query_store_plan         qsp  ON qsq.query_id       = qsp.query_id
+JOIN sys.query_store_runtime_stats qsrs ON qsp.plan_id        = qsrs.plan_id
+ORDER BY qsrs.count_executions DESC;
 ```
 
-> [!IMPORTANT]
-> RDS for SQL Server で Extended Events を使う場合、Option Group に `SQLSERVER_AUDIT` または専用設定が必要。詳細は AWS ドキュメント「Working with extended events in SQL Server DB instances」を参照。
-
-ログを S3 にエクスポート（`xp_readerrorlog` は使えないため、`rds_download_from_s3` の逆向き機能 = ファイルを `RDSADMIN.dbo.rds_download_from_s3` 経由で扱う）:
-
-```sql
-EXEC msdb.dbo.rds_gather_file_details;
-EXEC msdb.dbo.rds_upload_to_s3
-    @rds_file_path='D:\rdsdbdata\Log\migration_query_capture.xel',
-    @s3_arn_to_upload_to='arn:aws:s3:::mssql-to-aurora-extraction-bucket/queries/';
-```
+取得した代表クエリは、Babelfish / PG ネイティブでの互換性チェックに利用予定。
 
 ## 4. 抽出 SQL の中身
 
@@ -155,25 +165,50 @@ JSON で保存し、エージェントが「対象オブジェクトの依存先
 ## 6. 出力フォーマット
 
 ```
-extraction/output/<dbname>/
-├── schema/
-│   ├── dbo.employees.sql
-│   └── ...
-├── procedures/
-│   ├── dbo.usp_calculate_bonus.sql
-│   └── ...
-├── functions/
-│   ├── dbo.fn_get_fiscal_year.sql
-│   └── ...
-├── triggers/
-│   └── ...
-├── views/
-│   └── ...
-├── dependencies.json
-└── queries/
-    └── migration_query_capture-2026-05-23.xel.json   # XELパース後
+mssql-to-aurora/extraction/output/
+├── objects.csv              # 全オブジェクトの一覧 (export-ddl.sh が生成)
+│                            # columns: object_type, schema_name, object_name, is_encrypted_or_unavailable
+└── object_list.ini          # AI エージェント入力ファイル (generate-object-list.sh が生成)
+                             # CLR / WITH ENCRYPTION はコメントアウトで残る
+```
+
+### 6.1 objects.csv の例
+
+```csv
+object_type,schema_name,object_name,is_encrypted_or_unavailable
+SQL_STORED_PROCEDURE,dbo,usp_calculate_employee_bonus,0
+SQL_STORED_PROCEDURE,dbo,usp_encrypted_demo,1
+SQL_SCALAR_FUNCTION,dbo,fn_get_fiscal_year,0
+CLR_SCALAR_FUNCTION,dbo,fn_clr_uppercase,0
+SQL_TRIGGER,dbo,trg_audit_employees,0
+VIEW,dbo,v_active_employees,0
+```
+
+### 6.2 object_list.ini の例
+
+```
+# Auto-generated by extraction/scripts/generate-object-list.sh
+# Generated at: 2026-05-29 14:54:29 JST
+# Source CSV:   ./extraction/output/objects.csv
+#
+# Format: <ObjectType> <SchemaName>.<ObjectName>
+# 行頭に '#' を付けると変換対象から除外されます。
+
+PROCEDURE dbo.usp_calculate_employee_bonus
+# [SKIP-ENCRYPTED] PROCEDURE dbo.usp_encrypted_demo (WITH ENCRYPTION, set INCLUDE_ENCRYPTED=1 to include)
+FUNCTION dbo.fn_get_fiscal_year
+# [SKIP-CLR] CLR_SCALAR_FUNCTION not supported by AI converter: dbo.fn_clr_uppercase
+TRIGGER dbo.trg_audit_employees
+VIEW dbo.v_active_employees
 ```
 
 ## 7. エージェント側との接続
 
-`agent/object_list.ini` を `generate-object-list.sh` で生成すれば、そのまま `./run.sh --multi-agent` で一括変換できる。エージェントは Source MSSQL に直接接続し、`sys.sql_modules` から再取得もできるので、**抽出ファイルは「変換対象リスト生成」用**と捉えるのが正確。
+`object_list.ini` を `agent/` ディレクトリに配置するか、`run.sh -f <path>` で直接指定すれば、そのまま一括変換に使えます:
+
+```bash
+cd ~/mssql-to-aurora/agent
+./run.sh --multi-agent -f /path/to/extracted/object_list.ini -j 3
+```
+
+エージェントは内部で Source MSSQL に接続し、各オブジェクトの DDL を `sys.sql_modules` から再取得するため、**抽出ファイルは「変換対象リスト」を提供する役割**となります。DDL ファイル自体を事前に作る必要はありません。

@@ -14,6 +14,9 @@
 #               --snapshot-id <SnapshotARN> \
 #               --instance-class db.m5.xlarge
 #   ./deploy.sh --skip-sample-load               # サンプル投入をスキップ
+#   ./deploy.sh --source-mode snapshot \
+#               --snapshot-id <SnapshotARN> \
+#               --auto-extract                   # 復元 DB から自動でオブジェクト一覧抽出
 # ============================================================================
 set -euo pipefail
 
@@ -25,6 +28,8 @@ SOURCE_MODE="sample"
 SNAPSHOT_ID=""
 INSTANCE_CLASS=""
 SKIP_SAMPLE_LOAD="false"
+AUTO_EXTRACT="false"
+EXTRACT_DATABASE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -32,8 +37,10 @@ while [[ $# -gt 0 ]]; do
         --snapshot-id)      SNAPSHOT_ID="$2"; shift 2 ;;
         --instance-class)   INSTANCE_CLASS="$2"; shift 2 ;;
         --skip-sample-load) SKIP_SAMPLE_LOAD="true"; shift ;;
+        --auto-extract)     AUTO_EXTRACT="true"; shift ;;
+        --extract-database) EXTRACT_DATABASE="$2"; shift 2 ;;
         -h|--help)
-            grep '^#' "$0" | head -25; exit 0 ;;
+            grep '^#' "$0" | head -28; exit 0 ;;
         *) echo "Unknown arg: $1" >&2; exit 1 ;;
     esac
 done
@@ -168,7 +175,7 @@ fi
 # --- Workbench EC2 にエージェント一式を配布 ---
 echo "=== Syncing agent code to workbench EC2 via S3 ==="
 AGENT_TGZ="/tmp/mssql-agent-$(date +%s).tgz"
-tar -C "$PROJ_DIR" -czf "$AGENT_TGZ" agent/
+tar -C "$PROJ_DIR" -czf "$AGENT_TGZ" agent/ extraction/
 aws s3 cp "$AGENT_TGZ" "s3://${EXTRACTION_BUCKET}/agent/agent.tgz" --region "$REGION"
 rm -f "$AGENT_TGZ"
 
@@ -210,6 +217,78 @@ for i in $(seq 1 30); do
     sleep 5
 done
 
+# --- (任意) 自動抽出: Source MSSQL から object_list.ini を生成 ---
+EXTRACTED_OBJECT_LIST=""
+if [[ "$AUTO_EXTRACT" == "true" ]]; then
+    echo "=== Auto-extracting object list from Source MSSQL ==="
+    # 対象 DB 名: 明示指定 > sample モード(migration_demo) > 自動検出を要求
+    EXTRACT_DB="${EXTRACT_DATABASE:-}"
+    if [[ -z "$EXTRACT_DB" ]]; then
+        if [[ "$SOURCE_MODE" == "sample" ]]; then
+            EXTRACT_DB="migration_demo"
+        else
+            echo "ERROR: --auto-extract with --source-mode=snapshot requires --extract-database <dbname>" >&2
+            echo "       (Snapshot 内のどの DB を抽出対象とするか指定してください)" >&2
+            exit 1
+        fi
+    fi
+    echo "Target database: $EXTRACT_DB"
+
+    EXTRACT_PARAMS_FILE=$(mktemp)
+    jq -n \
+      --arg bucket "$EXTRACTION_BUCKET" \
+      --arg region "$REGION" \
+      --arg db "$EXTRACT_DB" \
+      '{
+        commands: [
+          "set -e",
+          "export PATH=/opt/mssql-tools18/bin:$PATH",
+          "cd /home/ec2-user/mssql-to-aurora/extraction/scripts",
+          "chmod +x export-ddl.sh generate-object-list.sh",
+          ("MSSQL_DATABASE=" + $db + " sudo -E -u ec2-user bash export-ddl.sh"),
+          "sudo -u ec2-user bash generate-object-list.sh",
+          "OUT=/home/ec2-user/mssql-to-aurora/extraction/output",
+          ("aws s3 cp $OUT/objects.csv s3://" + $bucket + "/extraction/objects.csv --region " + $region),
+          ("aws s3 cp $OUT/object_list.ini s3://" + $bucket + "/extraction/object_list.ini --region " + $region),
+          "echo Auto-extract complete."
+        ]
+      }' > "$EXTRACT_PARAMS_FILE"
+
+    EXTRACT_CMD_ID=$(aws ssm send-command \
+        --instance-ids "$WORKBENCH_ID" \
+        --document-name AWS-RunShellScript \
+        --comment "Auto-extract object list from MSSQL" \
+        --parameters "file://$EXTRACT_PARAMS_FILE" \
+        --cloud-watch-output-config 'CloudWatchOutputEnabled=true' \
+        --query 'Command.CommandId' --output text)
+    rm -f "$EXTRACT_PARAMS_FILE"
+
+    echo "SSM Command ID: $EXTRACT_CMD_ID"
+    for i in $(seq 1 60); do
+        STATUS=$(aws ssm list-commands --command-id "$EXTRACT_CMD_ID" --query 'Commands[0].Status' --output text 2>/dev/null || echo "Pending")
+        echo "  $(date '+%H:%M:%S') status=$STATUS"
+        if [[ "$STATUS" == "Success" ]]; then
+            aws ssm get-command-invocation --command-id "$EXTRACT_CMD_ID" --instance-id "$WORKBENCH_ID" \
+                --query 'StandardOutputContent' --output text | tail -20
+            # ローカルにダウンロード
+            EXTRACTED_OBJECT_LIST="$PROJ_DIR/extraction/output/object_list.ini"
+            mkdir -p "$(dirname "$EXTRACTED_OBJECT_LIST")"
+            aws s3 cp "s3://${EXTRACTION_BUCKET}/extraction/object_list.ini" "$EXTRACTED_OBJECT_LIST" --region "$REGION"
+            aws s3 cp "s3://${EXTRACTION_BUCKET}/extraction/objects.csv"     "$PROJ_DIR/extraction/output/objects.csv"     --region "$REGION"
+            echo "=== Object list downloaded to: $EXTRACTED_OBJECT_LIST ==="
+            break
+        elif [[ "$STATUS" =~ ^(Failed|Cancelled|TimedOut)$ ]]; then
+            echo "ERROR: extraction failed."
+            aws ssm get-command-invocation --command-id "$EXTRACT_CMD_ID" --instance-id "$WORKBENCH_ID" \
+                --query 'StandardErrorContent' --output text
+            aws ssm get-command-invocation --command-id "$EXTRACT_CMD_ID" --instance-id "$WORKBENCH_ID" \
+                --query 'StandardOutputContent' --output text | tail -30
+            exit 1
+        fi
+        sleep 10
+    done
+fi
+
 cat <<EOF
 
 === Deploy complete ===
@@ -219,6 +298,20 @@ Target Aurora PG:    $PG_HOST
 Target Babelfish:    $BBF_HOST  (PG:5432, TDS:1433)
 Workbench InstanceId: $WORKBENCH_ID
 Extraction Bucket:   $EXTRACTION_BUCKET
+EOF
+
+if [[ -n "$EXTRACTED_OBJECT_LIST" ]]; then
+cat <<EOF
+
+Auto-extracted object list (use as -f option to run.sh):
+  $EXTRACTED_OBJECT_LIST
+
+  cd ~/mssql-to-aurora/agent
+  ./run.sh --multi-agent -f /path/to/extracted/object_list.ini -j 3
+EOF
+fi
+
+cat <<EOF
 
 Connect via SSM Session Manager (no SSH):
   $SSM_CMD
