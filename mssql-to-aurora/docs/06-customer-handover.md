@@ -84,23 +84,36 @@ result/<obj>/{BABELFISH_OK | OK | NG}.txt
 
 | # | 項目 | 例 / 補足 |
 |---|---|---|
-| 1 | **検証用 AWS アカウント** | PoC 専用が望ましい。AdministratorAccess 権限を持つ IAM ユーザ/ロール |
+| 1 | **検証専用 AWS アカウント** | PoC 専用のクリーンなアカウント。**弊社の IAM ユーザ/ロールに AdministratorAccess 相当の権限を付与**いただきます (CDK で VPC・RDS・EC2 を作成するため)。 |
 | 2 | **利用リージョン** | **`us-east-1` 必須** (Bedrock Claude Sonnet 4.5 を使うため) |
 | 3 | **対象 SQL Server の種別** | a) サンプルでデモ / b) お客様 RDS の Snapshot / c) オンプレ MSSQL → 別途エクスポート |
 | 4 | **対象 DB 名** | Snapshot 内のどのデータベースを抽出対象にするか (例: `YourAppDb`) |
+
+> [!IMPORTANT]
+> **検証用アカウントの提供形態**は以下のいずれかをご選択ください:
+> - **A. お客様提供アカウント (推奨)**: お客様側で PoC 用 AWS アカウントを用意し、
+>   弊社作業者の IAM ユーザに AdministratorAccess を付与
+> - **B. 弊社提供アカウント**: 弊社の検証用アカウントに Snapshot を共有・コピーいただく
+>   (より厳格な隔離が必要な場合)
+>
+> どちらでも、本検証は **検証用アカウント内で完結**し、お客様の本番アカウントには
+> 一切の操作を行いません。
 
 ### 3.2 Snapshot モード (b) を選んだ場合の追加項目
 
 | # | 項目 | 例 / 補足 |
 |---|---|---|
-| 5 | **Snapshot ARN または ID** | `arn:aws:rds:us-east-1:111122223333:snapshot:my-prod-mssql-2026-05-23` |
+| 5 | **Snapshot ARN または ID** | 検証用アカウントにコピー済みのもの (詳細は §4.5 参照) |
 | 6 | **元 DB のインスタンスクラス** | `db.m5.xlarge` 等。検証では同等以下のサイズで起動 |
 | 7 | **SQL Server のバージョン / Edition** | 2019 Standard, 2022 Enterprise など |
-| 8 | **Snapshot の暗号化 / KMS キー情報** | 別アカウントの Snapshot ならクロスアカウント共有 |
-| 9 | **Snapshot を渡すアカウント関係** | 同一アカウント / 別アカウント (Snapshot 共有許可が必要) |
+| 8 | **Snapshot の暗号化 / KMS キー情報** | 暗号化済みなら **KMS キーも検証用アカウントへ共有が必要** (§4.5 参照) |
+| 9 | **本番アカウント ID** | クロスアカウント Snapshot 共有許可時に必要 |
+| 10 | **検証用アカウント ID** | 共有先として本番側に登録する ID |
 
 > [!IMPORTANT]
 > **オブジェクト名のリストアップは不要です**。Snapshot から復元した検証 DB に対して、弊側で `sys.objects` / `sys.sql_modules` を直接 SELECT して全件抽出します (詳細: [03-source-extraction.md](./03-source-extraction.md))。
+>
+> **Snapshot は事前にお客様側で「本番 → 検証用アカウント」へコピー済み**の状態でご提供ください (§4.5 に詳細手順)。本番アカウントへ弊社がアクセスすることは一切ありません。
 
 ### 3.3 任意だが、あると精度が上がる項目
 
@@ -174,7 +187,7 @@ Snapshot モード + 自動抽出 (お客様案件で推奨) の場合:
 ```bash
 ./scripts/deploy.sh \
   --source-mode snapshot \
-  --snapshot-id arn:aws:rds:us-east-1:111122223333:snapshot:my-snap \
+  --snapshot-id arn:aws:rds:us-east-1:<検証用アカウントID>:snapshot:<copied-id> \
   --instance-class db.m5.xlarge \
   --extract-database YourAppDb \
   --auto-extract
@@ -187,6 +200,145 @@ Snapshot モード + 自動抽出 (お客様案件で推奨) の場合:
 3. `extraction/output/object_list.ini` (AI エージェント入力ファイル) をローカルにダウンロード
 
 まで自動で進みます。所要時間 25〜35 分。
+
+### 4.5 クロスアカウント Snapshot コピー (お客様作業)
+
+> [!IMPORTANT]
+> このセクションは **お客様側で事前に実施**いただく内容です。
+> 本番アカウント → 検証用アカウントへ Snapshot をコピーしておくことで、
+> 弊社 (検証用アカウント側) は本番アカウントに一切アクセスせず作業できます。
+
+#### 4.5.1 全体フロー
+
+```
+┌─ 本番アカウント (お客様DBA) ────────────────────────┐
+│  ① Snapshot 作成                                     │
+│  ② Snapshot を検証用アカウントへ共有                  │
+│  ③ (暗号化済み) KMS キーも検証用アカウントへ共有      │
+└──────────────────────────────────────────────────────┘
+                    │ 共有 (権限付与のみ)
+                    ▼
+┌─ 検証用アカウント (お客様/弊社) ─────────────────────┐
+│  ④ Snapshot を「コピー」してアカウント内に取り込む    │
+│     (これにより検証用アカウントでオーナー権を持つ)     │
+│  ⑤ ARN を弊社へ共有                                  │
+└──────────────────────────────────────────────────────┘
+                    │
+                    ▼
+            ⑥ 弊社が deploy.sh --snapshot-id <copied-arn>
+```
+
+参考: [AWS 公式ドキュメント — DB クラスタースナップショットのクロスアカウントコピー](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/USER_CopyDBClusterSnapshot.CrossAccount.html)
+(SQL Server / RDS DB Instance Snapshot の場合も同様の手順)
+
+#### 4.5.2 ① 本番アカウントで Snapshot を作成 (既存があれば省略可)
+
+```bash
+# 本番アカウントの DBA が実行
+aws rds create-db-snapshot \
+  --region <prod-region> \
+  --db-instance-identifier <prod-mssql-instance> \
+  --db-snapshot-identifier <prod-mssql-instance>-for-poc-$(date +%Y%m%d)
+```
+
+完了後、Snapshot ARN を控える:
+```
+arn:aws:rds:<prod-region>:<本番アカウントID>:snapshot:<prod-mssql-instance>-for-poc-YYYYMMDD
+```
+
+#### 4.5.3 ② Snapshot を検証用アカウントへ共有
+
+```bash
+# 本番アカウントの DBA が実行
+aws rds modify-db-snapshot-attribute \
+  --region <prod-region> \
+  --db-snapshot-identifier <prod-mssql-instance>-for-poc-YYYYMMDD \
+  --attribute-name restore \
+  --values-to-add <検証用アカウントID>
+```
+
+#### 4.5.4 ③ KMS キーの共有 (暗号化済み Snapshot の場合のみ)
+
+暗号化済み Snapshot は **KMS キーも検証用アカウントへ共有が必要**です。
+キーポリシーに以下を追加 (本番アカウント側 KMS):
+
+```json
+{
+  "Sid": "Allow validation account to use the key",
+  "Effect": "Allow",
+  "Principal": {
+    "AWS": "arn:aws:iam::<検証用アカウントID>:root"
+  },
+  "Action": [
+    "kms:Decrypt",
+    "kms:DescribeKey",
+    "kms:CreateGrant",
+    "kms:Encrypt",
+    "kms:ReEncrypt*",
+    "kms:GenerateDataKey*"
+  ],
+  "Resource": "*"
+}
+```
+
+または CLI で:
+
+```bash
+aws kms create-grant \
+  --region <prod-region> \
+  --key-id <kms-key-id> \
+  --grantee-principal arn:aws:iam::<検証用アカウントID>:root \
+  --operations Decrypt DescribeKey CreateGrant Encrypt ReEncryptFrom ReEncryptTo GenerateDataKey GenerateDataKeyWithoutPlaintext
+```
+
+> [!WARNING]
+> AWS マネージド KMS キー (`aws/rds`) は共有不可です。
+> Snapshot を作成する際にカスタマー管理 KMS キー (CMK) を使うか、
+> AWS マネージドキーから CMK へ再暗号化したコピーを作る必要があります。
+
+#### 4.5.5 ④ 検証用アカウントで Snapshot をコピー
+
+```bash
+# 検証用アカウント側 (弊社作業者の IAM で) 実行可
+# → us-east-1 (本検証で使うリージョン) に直接コピーする
+
+# 暗号化されていない場合
+aws rds copy-db-snapshot \
+  --region us-east-1 \
+  --source-db-snapshot-identifier arn:aws:rds:<prod-region>:<本番アカウントID>:snapshot:<prod-snapshot-id> \
+  --target-db-snapshot-identifier mssql-poc-source-$(date +%Y%m%d) \
+  --copy-tags
+
+# 暗号化されている場合 (検証用アカウント内の CMK で再暗号化)
+aws rds copy-db-snapshot \
+  --region us-east-1 \
+  --source-db-snapshot-identifier arn:aws:rds:<prod-region>:<本番アカウントID>:snapshot:<prod-snapshot-id> \
+  --target-db-snapshot-identifier mssql-poc-source-$(date +%Y%m%d) \
+  --kms-key-id alias/aws/rds  \
+  --copy-tags
+```
+
+リージョン跨ぎが発生する場合 (本番=ap-northeast-1, 検証=us-east-1 等)、コピーには
+**Snapshot サイズに応じて 30 分〜数時間**かかる場合があります。
+
+#### 4.5.6 ⑤ 弊社へ ARN を共有
+
+最終的に検証用アカウントに以下のような ARN ができます:
+```
+arn:aws:rds:us-east-1:<検証用アカウントID>:snapshot:mssql-poc-source-YYYYMMDD
+```
+
+これを弊社へ共有いただければ、§4.4 の `--snapshot-id` に渡してデプロイ開始できます。
+
+#### 4.5.7 トラブルシュート
+
+| 症状 | 原因 / 対処 |
+|---|---|
+| `KMSKeyNotAccessibleFault` | KMS キーポリシー (§4.5.4) を確認、grant を作り直す |
+| `DBSnapshotNotFound` | 共有 (§4.5.3) ができていない、または検証アカウントで未コピー |
+| `InvalidSnapshotState` | Snapshot が `available` 以外の状態 (creating/copying/incompatible-restore) |
+| クロスリージョンコピーが遅い | 通常動作。完了まで待つ。サイズ目安: 100GB で約 30 分 |
+| `aws/rds` (AWS マネージド KMS) で共有できない | カスタマー管理 KMS キーへ再暗号化が必要 (§4.5.4 警告参照) |
 
 ---
 
@@ -366,22 +518,29 @@ MSSQL → Aurora PG / Babelfish 移行アセスメント ヒアリングシー�
   検証成功の定義:          (例) 全 procedure の 80% 以上が自動変換
 
 【1. AWS 環境】
+  □ 検証用アカウントの提供形態:
+       [ ] A. お客様提供 PoC アカウント (弊社 IAM に AdministratorAccess 付与)
+       [ ] B. 弊社提供アカウント (お客様から Snapshot を共有・コピー)
   □ 検証用 AWS アカウント ID:           ___________________
+  □ 弊社作業者の IAM 権限:               [ ] 付与済 [ ] 着手前
   □ リージョン (us-east-1 必須):          [ ] OK  [ ] 要相談
   □ Bedrock Claude Sonnet 4.5 アクセス:    [ ] 取得済 [ ] 申請中 [ ] 未着手
   □ 既存 VPC / 既存 RDS との相互接続:     [ ] 不要 [ ] 必要 (詳細: _______ )
 
 【2. ソース DB】
   □ SQL Server バージョン / Edition:    ____ / ____ (例: 2019 Standard)
-  □ インスタンスクラス:                    ___________________
+  □ 元インスタンスクラス:                  ___________________ (例: db.m5.xlarge)
   □ DB サイズ (GB):                       ___________________
-  □ Snapshot 提供方式:
-       [ ] サンプルでデモのみ
-       [ ] 同一アカウント Snapshot
-       [ ] 別アカウント Snapshot (共有設定要)
-       [ ] オンプレ → 別途エクスポート
-  □ Snapshot ARN または ID:               ___________________
+  □ Snapshot のクロスアカウントコピー (§4.5):
+       [ ] 既に検証用アカウントへコピー済
+       [ ] これから実施予定 (弊社からの手順書を確認)
+       [ ] サンプルモードでデモのみ (Snapshot 不要)
+  □ 本番アカウント ID:                    ___________________
+  □ 本番リージョン:                       ___________________
+  □ Snapshot ARN (検証用アカウントにコピー済のもの):
+       ___________________________________________________
   □ Snapshot 暗号化:                      [ ] なし [ ] あり (KMS: _______ )
+  □ KMS キーの種類:                       [ ] AWS managed (再暗号化要) [ ] CMK (共有可)
   □ 抽出対象データベース名:                ___________________ (例: YourAppDb)
 
 【3. 対象オブジェクト】

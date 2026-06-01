@@ -25,20 +25,42 @@
 
 ## 3. 手順
 
-### 3.1 Snapshot のコピー
+### 3.1 Snapshot のコピー (お客様作業)
+
+> [!IMPORTANT]
+> 本番アカウントへの直接アクセスは禁止です。お客様 DBA が **本番アカウントで Snapshot を作成 → 検証用アカウントへコピー** を完了させてから弊社作業に引き継ぎます。
+> 詳細手順 (KMS キー共有、リージョン跨ぎ、トラブルシュート) は [06-customer-handover.md §4.5](./06-customer-handover.md#45-クロスアカウント-snapshot-コピー-お客様作業) を参照。
+
+最小フロー (本番アカウントの DBA が実行):
 
 ```bash
-# 本番アカウントで Snapshot 作成（既存があれば不要）
+# ① Snapshot 作成
 aws rds create-db-snapshot \
   --db-instance-identifier prod-mssql \
   --db-snapshot-identifier prod-mssql-for-migration-$(date +%Y%m%d)
 
-# 検証アカウントへコピー（KMS鍵共有が必要なら別途）
-aws rds copy-db-snapshot \
-  --source-db-snapshot-identifier arn:aws:rds:ap-northeast-1:PROD_ACCT:snapshot:prod-mssql-for-migration-... \
-  --target-db-snapshot-identifier mssql-to-aurora-source-$(date +%Y%m%d) \
-  --region ap-northeast-1
+# ② 検証用アカウントへ共有 (権限付与のみ、データはまだ移動しない)
+aws rds modify-db-snapshot-attribute \
+  --db-snapshot-identifier prod-mssql-for-migration-YYYYMMDD \
+  --attribute-name restore \
+  --values-to-add <検証用アカウントID>
+
+# ③ 暗号化済みなら KMS キーも共有 (キーポリシーまたは grant)
+#   詳細: 06-customer-handover.md §4.5.4
 ```
+
+検証用アカウント側 (お客様または弊社):
+
+```bash
+# ④ Snapshot を us-east-1 にコピー (検証用アカウント所有のリソースとして取り込み)
+aws rds copy-db-snapshot \
+  --region us-east-1 \
+  --source-db-snapshot-identifier arn:aws:rds:<prod-region>:<本番アカウントID>:snapshot:<prod-snapshot-id> \
+  --target-db-snapshot-identifier mssql-to-aurora-source-$(date +%Y%m%d) \
+  --copy-tags
+```
+
+このコピー先 ARN を §3.2 の `--snapshot-id` に渡します。
 
 ### 3.2 Snapshot モードでデプロイ + 自動抽出 (推奨)
 
