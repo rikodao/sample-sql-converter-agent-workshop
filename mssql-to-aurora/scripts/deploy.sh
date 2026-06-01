@@ -244,12 +244,14 @@ if [[ "$AUTO_EXTRACT" == "true" ]]; then
           "set -e",
           "export PATH=/opt/mssql-tools18/bin:$PATH",
           "cd /home/ec2-user/mssql-to-aurora/extraction/scripts",
-          "chmod +x export-ddl.sh generate-object-list.sh",
+          "chmod +x export-ddl.sh generate-object-list.sh export-queries.sh",
           ("MSSQL_DATABASE=" + $db + " sudo -E -u ec2-user bash export-ddl.sh"),
           "sudo -u ec2-user bash generate-object-list.sh",
           "OUT=/home/ec2-user/mssql-to-aurora/extraction/output",
           ("aws s3 cp $OUT/objects.csv s3://" + $bucket + "/extraction/objects.csv --region " + $region),
           ("aws s3 cp $OUT/object_list.ini s3://" + $bucket + "/extraction/object_list.ini --region " + $region),
+          "echo === Query Store extraction - best-effort, skips if disabled ===",
+          ("MSSQL_DATABASE=" + $db + " sudo -E -u ec2-user bash export-queries.sh; rc=$?; if [ $rc -eq 0 ]; then aws s3 cp $OUT/queries.csv s3://" + $bucket + "/extraction/queries.csv --region " + $region + "; echo QUERIES_EXTRACTED; elif [ $rc -eq 2 ]; then echo QUERY_STORE_DISABLED_SKIPPED; else echo QUERY_STORE_EXPORT_FAILED rc=$rc; fi"),
           "echo Auto-extract complete."
         ]
       }' > "$EXTRACT_PARAMS_FILE"
@@ -275,7 +277,15 @@ if [[ "$AUTO_EXTRACT" == "true" ]]; then
             mkdir -p "$(dirname "$EXTRACTED_OBJECT_LIST")"
             aws s3 cp "s3://${EXTRACTION_BUCKET}/extraction/object_list.ini" "$EXTRACTED_OBJECT_LIST" --region "$REGION"
             aws s3 cp "s3://${EXTRACTION_BUCKET}/extraction/objects.csv"     "$PROJ_DIR/extraction/output/objects.csv"     --region "$REGION"
-            echo "=== Object list downloaded to: $EXTRACTED_OBJECT_LIST ==="
+            # queries.csv は Query Store 有効時のみ生成される (best-effort)
+            if aws s3 ls "s3://${EXTRACTION_BUCKET}/extraction/queries.csv" --region "$REGION" >/dev/null 2>&1; then
+                aws s3 cp "s3://${EXTRACTION_BUCKET}/extraction/queries.csv" "$PROJ_DIR/extraction/output/queries.csv" --region "$REGION"
+                echo "=== Object list downloaded to: $EXTRACTED_OBJECT_LIST ==="
+                echo "=== Query Store data downloaded: $PROJ_DIR/extraction/output/queries.csv ==="
+            else
+                echo "=== Object list downloaded to: $EXTRACTED_OBJECT_LIST ==="
+                echo "=== Query Store: skipped (not enabled on $EXTRACT_DB) ==="
+            fi
             break
         elif [[ "$STATUS" =~ ^(Failed|Cancelled|TimedOut)$ ]]; then
             echo "ERROR: extraction failed."

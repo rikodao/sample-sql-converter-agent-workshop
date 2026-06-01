@@ -20,7 +20,7 @@
 | 各オブジェクトの DDL (definition) | エージェント Stage 1 が `sys.sql_modules` から都度 SELECT | `result/<obj>/mssql.sql` | ✅ Agent が実行時に自動取得 |
 | 依存関係グラフ | `sys.sql_expression_dependencies` | `extraction/output/dependencies.json` | ⚠️ Phase 2 (アセスメントレポートで利用予定) |
 | テーブル列メタデータ | `sys.tables` / `sys.columns` | `extraction/output/tables.json` | ⚠️ Phase 2 |
-| 代表的なアプリクエリ | **Query Store** (`sys.query_store_*`) | `extraction/output/queries.json` | ⚠️ Phase 2 (本番非侵襲、Query Store 有効化が前提) |
+| 代表的なアプリクエリ | **Query Store** (`sys.query_store_*`) | `extraction/output/queries.csv` | ✅ 実装済 (`export-queries.sh`、Query Store 有効化が前提) |
 | スキーマ DDL（テーブル/インデックス/制約） | AWS Schema Conversion Tool (SCT) | 別ツール | ❌ 本ツールのスコープ外 |
 
 ## 3. 手順
@@ -110,35 +110,97 @@ aws s3 cp ../output/object_list.ini s3://<extraction-bucket>/extraction/object_l
 
 `export-ddl.sh` の実体は `extraction/scripts/list-objects.sql` を `sqlcmd` で実行し、CSV 形式で吐き出すラッパです (詳細: §4)。
 
-### 3.4 アプリクエリ抽出 (Phase 2、Query Store 利用)
+### 3.4 アプリクエリ抽出 (Query Store 利用) ✅ 実装済
 
-実トラフィックの代表クエリを抽出したい場合、**Query Store** を利用します。Query Store のデータは DB 内 (MDF) に永続化されているため、Snapshot からの復元 DB を読むだけで取得可能で、**本番 DB への追加設定は不要**です。
+実トラフィックの代表クエリを抽出するために **Query Store** を利用します。Query Store のデータは DB 内 (MDF) に永続化されているため、Snapshot からの復元 DB を読むだけで取得可能で、**本番 DB への追加設定は不要**です。
 
-> [!NOTE]
-> Phase 2 で実装予定。本セクションは設計メモ。
+#### 前提条件
 
-前提:
 - SQL Server 2016 以降
-- 対象 DB で Query Store が有効化されている (確認: `SELECT name, is_query_store_on FROM sys.databases`)
+- **対象 DB で Query Store が有効化されている**ことが必須
+  ```sql
+  -- 確認
+  SELECT name, is_query_store_on FROM sys.databases WHERE name = 'YourAppDb';
+  -- 有効化 (本番側で事前に実施しておくのが理想)
+  ALTER DATABASE [YourAppDb] SET QUERY_STORE = ON
+      (OPERATION_MODE = READ_WRITE,
+       QUERY_CAPTURE_MODE = AUTO,
+       MAX_STORAGE_SIZE_MB = 2048,
+       STALE_QUERY_THRESHOLD_DAYS = 30);
+  ```
 
-抽出 SQL の例:
+> [!IMPORTANT]
+> Query Store が **無効** の場合 export-queries.sh は exit 2 で early-return し、`queries.csv` は生成されません。`deploy.sh --auto-extract` 経路では best-effort で skip され、デプロイ自体は継続します。
 
-```sql
-SELECT TOP 100
-    qsq.query_id,
-    qsqt.query_sql_text,
-    qsrs.count_executions,
-    qsrs.avg_duration / 1000.0   AS avg_duration_ms,
-    qsrs.avg_logical_io_reads,
-    qsrs.last_execution_time
-FROM sys.query_store_query_text   qsqt
-JOIN sys.query_store_query        qsq  ON qsqt.query_text_id = qsq.query_text_id
-JOIN sys.query_store_plan         qsp  ON qsq.query_id       = qsp.query_id
-JOIN sys.query_store_runtime_stats qsrs ON qsp.plan_id        = qsrs.plan_id
-ORDER BY qsrs.count_executions DESC;
+#### 自動抽出 (`deploy.sh --auto-extract` 経路)
+
+`deploy.sh --auto-extract` が有効な場合、`object_list.ini` 抽出後に自動的に
+`export-queries.sh` も実行されます。
+
+成功時の出力:
+```
+mssql-to-aurora/extraction/output/queries.csv
 ```
 
-取得した代表クエリは、Babelfish / PG ネイティブでの互換性チェックに利用予定。
+#### 手動抽出
+
+```bash
+cd ~/mssql-to-aurora/extraction/scripts
+MSSQL_DATABASE=YourAppDb bash export-queries.sh
+```
+
+#### 出力カラム (queries.csv)
+
+```csv
+query_hash,sample_text,schema_name,object_name,object_type,
+variant_count,total_executions,avg_duration_ms,max_duration_ms,
+total_logical_reads,first_execution_time,last_execution_time
+```
+
+| カラム | 内容 |
+|---|---|
+| `query_hash` | パラメータ違いを統合する形状ハッシュ |
+| `sample_text` | 代表的な SQL テキスト (CSV 用にカンマ・改行・タブを置換済) |
+| `schema_name`, `object_name`, `object_type` | 関連するストアド/関数等 (アドホックは NULL) |
+| `variant_count` | 同 hash 内の `query_id` の数 (パラメータバリエーション) |
+| `total_executions` | 期間内の累計実行回数 |
+| `avg_duration_ms`, `max_duration_ms` | 実行時間統計 |
+| `total_logical_reads` | 累計論理 I/O |
+| `first_execution_time`, `last_execution_time` | Query Store 内での観測時刻範囲 |
+
+#### 抽出 SQL の構造
+
+`extraction/scripts/list-queries.sql` で以下を集約しています (パターン A: ユニーククエリ × 全期間):
+
+```sql
+SELECT
+    qsq.query_hash,
+    MIN(qsqt.query_sql_text)                AS sample_text,
+    COUNT(DISTINCT qsq.query_id)            AS variant_count,
+    SUM(qsrs.count_executions)              AS total_executions,
+    AVG(qsrs.avg_duration / 1000.0)         AS avg_duration_ms,
+    MAX(qsrs.max_duration / 1000.0)         AS max_duration_ms,
+    SUM(qsrs.avg_logical_io_reads * qsrs.count_executions) AS total_logical_reads,
+    MIN(qsrs.first_execution_time)          AS first_seen,
+    MAX(qsrs.last_execution_time)           AS last_seen
+FROM sys.query_store_query_text     qsqt
+JOIN sys.query_store_query          qsq  ON qsqt.query_text_id = qsq.query_text_id
+JOIN sys.query_store_plan           qsp  ON qsq.query_id       = qsp.query_id
+JOIN sys.query_store_runtime_stats  qsrs ON qsp.plan_id        = qsrs.plan_id
+LEFT JOIN sys.objects               o    ON qsq.object_id      = o.object_id
+GROUP BY qsq.query_hash, ...
+ORDER BY total_executions DESC;
+```
+
+TOP 制限なしで全量取得。通常 数百〜数千行のオーダ。
+
+#### 用途
+
+| 観点 | 使い方 |
+|---|---|
+| **影響範囲の絞り込み** | 実行頻度ゼロのオブジェクトは「未使用 = 移行不要」と判断、対象を絞れる |
+| **互換性事前評価** | 取得した `sample_text` を Babelfish / PG-native の互換性ルールで grep |
+| **パフォーマンスベースライン** | `avg_duration_ms` を移行後比較の基準に |
 
 ## 4. 抽出 SQL の中身
 

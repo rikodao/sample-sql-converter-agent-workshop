@@ -119,7 +119,7 @@ result/<obj>/{BABELFISH_OK | OK | NG}.txt
 
 | # | 項目 | 効果 |
 |---|---|---|
-| 10 | **Query Store の有効化状況** | 有効なら **過去のアプリ実行クエリ** も Snapshot から抽出可能 (本番非侵襲) |
+| 10 | **Query Store の有効化状況** ⭐推奨 | 有効なら **過去のアプリ実行クエリの全量** が Snapshot から抽出可能 (本番非侵襲) → `queries.csv` 出力 |
 | 11 | **既存テストデータ / 期待出力** | AI が生成するテストの精度補強 |
 | 12 | **アプリ側の接続情報 (ドライバ / 接続文字列)** | Babelfish 維持 vs ネイティブ PG の判断材料 |
 | 13 | **業務上の優先順位 (どの procedure から?)** | 全件は時間がかかるため、優先度高の N 件で先行検証 |
@@ -129,6 +129,19 @@ Query Store 有効化の確認方法:
 ```sql
 SELECT name, is_query_store_on FROM sys.databases WHERE name = 'YourAppDb';
 ```
+
+無効の場合の有効化 (本番側で事前に実施推奨、再起動不要・公式ベンチでオーバーヘッド <2%):
+```sql
+ALTER DATABASE [YourAppDb] SET QUERY_STORE = ON
+    (OPERATION_MODE = READ_WRITE,
+     QUERY_CAPTURE_MODE = AUTO,
+     MAX_STORAGE_SIZE_MB = 2048,
+     STALE_QUERY_THRESHOLD_DAYS = 30);
+```
+
+> [!IMPORTANT]
+> Query Store が無効の場合、`queries.csv` は生成されません (本ツールは best-effort で skip し、デプロイは継続)。
+> アプリ実行クエリの分析が必要なケース (コード資産だけでなく実呼出頻度や互換性事前評価まで行いたい場合) は、お客様 DBA に **Snapshot 取得前** の有効化をお願いしてください。
 
 ### 3.4 事前合意事項
 
@@ -366,8 +379,15 @@ DDL を自動取得する**」設計です。
 ```
 mssql-to-aurora/extraction/output/
 ├── objects.csv         # 全オブジェクト一覧 (type, schema, name, encrypted フラグ)
-└── object_list.ini     # AI エージェント入力 (CLR / 暗号化はコメントアウト済)
+├── object_list.ini     # AI エージェント入力 (CLR / 暗号化はコメントアウト済)
+└── queries.csv         # アプリ実行クエリ全量 (Query Store が有効なときのみ)
 ```
+
+> [!NOTE]
+> `queries.csv` は **Query Store が有効化されている場合のみ生成**されます。
+> 無効の場合 best-effort でスキップされ、`objects.csv` と `object_list.ini` のみ出力されます。
+> `queries.csv` には query_hash 集約形式で全ユニーククエリが含まれ、
+> 実行頻度の低いオブジェクトの除外や、アプリ側 SQL の Babelfish 互換性事前評価に利用します。
 
 中身を確認し、必要に応じて編集します:
 
