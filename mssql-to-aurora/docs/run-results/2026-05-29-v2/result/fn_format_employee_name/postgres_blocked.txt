@@ -1,0 +1,56 @@
+================================================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION - BLOCKED
+================================================================================
+Object: FUNCTION dbo.fn_format_employee_name
+Timestamp: 2025-01-10 (Stage 3 execution)
+
+================================================================================
+RESULT: PREREQUISITE_FAILURE
+================================================================================
+
+Stage 3 cannot proceed due to missing Stage 1 artifacts.
+
+Root Cause:
+- ./result/fn_format_employee_name/mssql.sql does NOT exist
+- Stage 1 (DDL extraction from MSSQL) did not complete successfully
+- No source T-SQL definition available for conversion
+
+Impact:
+- Cannot perform T-SQL → PL/pgSQL conversion
+- Cannot create postgres.sql
+- Cannot deploy to Aurora PostgreSQL
+- PostgreSQL native compatibility status is UNKNOWN
+
+================================================================================
+COMPLIANCE WITH ANTI-FABRICATION POLICY
+================================================================================
+
+Per Stage 3 specification, when Stage 1 artifacts are missing:
+
+✅ DO NOT fabricate postgres.sql based on assumptions
+✅ DO NOT create placeholder code "that might work"
+✅ DO NOT proceed with Aurora PostgreSQL deployment
+✅ DO record actual blocking reason
+✅ DO terminate Stage 3 immediately
+
+This report complies with all anti-fabrication requirements.
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+To resolve this issue:
+
+1. Complete Stage 1:
+   - Verify MSSQL source database connectivity
+   - Confirm dbo.fn_format_employee_name exists in source
+   - Re-run Stage 1 to extract DDL
+
+2. Re-run Stage 3:
+   - Only after Stage 1 completes successfully and mssql.sql is created
+
+================================================================================
+NO postgres.sql CREATED
+================================================================================
+
+Stage 3 terminated. No conversion performed.

@@ -1,0 +1,60 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Test Cases: 0 total (comparison not possible)
+
+================================================================================
+COMPARISON STATUS: NOT EXECUTED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Details:
+--------
+Stage 1 (MSSQL DDL Extraction & Test Execution) did not complete successfully.
+
+Missing artifacts:
+  [MISSING] mssql.sql          - Source DDL definition
+  [MISSING] mssql_test.sql     - MSSQL test script
+  [MISSING] mssql_test.txt     - MSSQL test execution results
+
+Stage 3 (T-SQL → PL/pgSQL Conversion) was blocked due to missing Stage 1 artifacts.
+
+Missing artifacts:
+  [MISSING] postgres.sql       - Converted PostgreSQL DDL
+
+Root Cause:
+-----------
+According to prerequisites.txt:
+  - Tool: run_mssql_sql
+  - Error: "You must specify a region."
+  - Description: Cannot connect to Source RDS for SQL Server due to missing AWS region configuration.
+
+Impact:
+-------
+Without mssql_test.txt (actual MSSQL execution results), there is no baseline to compare against.
+Without postgres.sql (converted DDL), there is no PostgreSQL code to test.
+
+Per workflow specification (絶対禁止事項):
+  ❌ Cannot create OK.txt without actual DB execution results
+  ❌ Cannot assume "logical equivalence" without real test data
+  ❌ Cannot fabricate test results or comparison outcomes
+
+Correct Action:
+---------------
+Generate NG.txt with NG Reason: PREREQUISITE_FAILED
+Document the missing prerequisites and required remediation steps
+
+================================================================================
+VERDICT: COMPARISON NOT POSSIBLE
+================================================================================
+
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0
+Total Pass: 0/0 (no tests executed)
+
+Next Steps:
+-----------
+1. Configure AWS region for Source RDS for SQL Server connection
+2. Re-run Stage 1 to extract DDL and execute tests on actual MSSQL database
+3. Verify mssql.sql, mssql_test.sql, and mssql_test.txt are created
+4. Re-run Stage 3 to convert T-SQL to PL/pgSQL
+5. Re-run Stage 4 to execute PostgreSQL tests and perform comparison

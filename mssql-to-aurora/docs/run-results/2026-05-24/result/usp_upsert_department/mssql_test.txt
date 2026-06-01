@@ -1,0 +1,285 @@
+============================================================
+TEST EXECUTION RESULTS: dbo.usp_upsert_department
+Target: Source RDS for SQL Server
+Execution Date: 2026-05-23
+============================================================
+
+============= TEST CASE 1: INSERT new department with parent_id =============
+Description: Insert a new department 'TestDept_TC1' with parent_id = 1
+Expected: New row inserted with specified parent_id
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC1', @parent_id = 1
+
+RESULT:
+{
+  "tc": "TC1",
+  "name": "TestDept_TC1",
+  "parent_id": 1
+}
+
+STATUS: ✓ PASS
+- New department inserted successfully
+- parent_id correctly set to 1
+
+
+============= TEST CASE 2: INSERT new department with NULL parent_id =============
+Description: Insert a new department 'TestDept_TC2' with NULL parent_id
+Expected: New row inserted with NULL parent_id
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC2', @parent_id = NULL
+
+RESULT:
+{
+  "tc": "TC2",
+  "name": "TestDept_TC2",
+  "parent_id": null
+}
+
+STATUS: ✓ PASS
+- New department inserted successfully
+- parent_id correctly set to NULL
+
+
+============= TEST CASE 3: UPDATE existing department parent_id (non-NULL to NULL) =============
+Description: Update existing department 'TestDept_TC3' parent_id from 2 to NULL
+Expected: Existing row updated, parent_id changed to NULL
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC3', @parent_id = 2
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC3', @parent_id = NULL
+
+RESULT:
+{
+  "tc": "TC3",
+  "name": "TestDept_TC3",
+  "parent_id": null
+}
+
+STATUS: ✓ PASS
+- Department updated successfully (MERGE UPDATE path)
+- parent_id correctly changed from 2 to NULL
+
+
+============= TEST CASE 4: UPDATE existing department parent_id (NULL to non-NULL) =============
+Description: Update existing department 'TestDept_TC4' parent_id from NULL to 1
+Expected: Existing row updated, parent_id changed to 1
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC4', @parent_id = NULL
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC4', @parent_id = 1
+
+RESULT:
+{
+  "tc": "TC4",
+  "name": "TestDept_TC4",
+  "parent_id": 1
+}
+
+STATUS: ✓ PASS
+- Department updated successfully (MERGE UPDATE path)
+- parent_id correctly changed from NULL to 1
+
+
+============= TEST CASE 5: UPDATE existing department parent_id (non-NULL to different non-NULL) =============
+Description: Update existing department 'TestDept_TC5' parent_id from 1 to 2
+Expected: Existing row updated, parent_id changed to 2
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC5', @parent_id = 1
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC5', @parent_id = 2
+
+RESULT:
+{
+  "tc": "TC5",
+  "name": "TestDept_TC5",
+  "parent_id": 2
+}
+
+STATUS: ✓ PASS
+- Department updated successfully (MERGE UPDATE path)
+- parent_id correctly changed from 1 to 2
+
+
+============= TEST CASE 6: Boundary - Empty string name =============
+Description: Insert department with empty string name
+Expected: Either success (if allowed) or error
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = '', @parent_id = NULL
+
+RESULT:
+{
+  "tc": "TC6",
+  "result": "SUCCESS",
+  "row_count": 1
+}
+
+STATUS: ✓ PASS
+- Empty string name is allowed by the procedure
+- Row inserted successfully with empty name
+- Note: This may be a business logic concern (empty names typically not desired)
+
+
+============= TEST CASE 7: Boundary - Maximum length name (100 characters) =============
+Description: Insert department with 100-character name (maximum length)
+Expected: Success, name stored with full 100 characters
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = REPLICATE('A', 100), @parent_id = NULL
+
+RESULT:
+{
+  "tc": "TC7",
+  "name_length": 100,
+  "parent_id": null
+}
+
+STATUS: ✓ PASS
+- Maximum length name (100 chars) inserted successfully
+- No truncation occurred
+
+
+============= TEST CASE 8: Multiple sequential upserts on same name =============
+Description: Execute upsert 3 times on same department name with different parent_id values
+Expected: Only 1 row exists, parent_id reflects last upsert value
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC8', @parent_id = 1
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC8', @parent_id = NULL
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC8', @parent_id = 2
+
+RESULT:
+{
+  "tc": "TC8",
+  "name": "TestDept_TC8",
+  "parent_id": 2,
+  "occurrence_count": 1
+}
+
+STATUS: ✓ PASS
+- Only 1 row exists for 'TestDept_TC8' (no duplicates)
+- parent_id correctly reflects last upsert value (2)
+- MERGE logic working correctly (UPDATE path taken on subsequent calls)
+
+
+============= TEST CASE 9: Transaction rollback behavior =============
+Description: Execute upsert within transaction, then rollback
+Expected: No row inserted (rollback successful)
+
+SETUP:
+  - BEGIN TRANSACTION
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC9', @parent_id = 1
+  - ROLLBACK TRANSACTION
+
+RESULT:
+{
+  "tc": "TC9",
+  "row_count": 0
+}
+
+STATUS: ✓ PASS
+- Transaction rollback successful
+- No row exists for 'TestDept_TC9'
+- Procedure respects transaction boundaries
+
+
+============= TEST CASE 10: Case sensitivity in name matching =============
+Description: Upsert with lowercase name, then uppercase name
+Expected: In case-insensitive collation, should UPDATE (not INSERT duplicate)
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'testdept_tc10', @parent_id = 1
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TESTDEPT_TC10', @parent_id = 2
+
+RESULT:
+{
+  "tc": "TC10",
+  "name": "testdept_tc10",
+  "parent_id": 2,
+  "total_rows": 1
+}
+
+STATUS: ✓ PASS
+- Only 1 row exists (case-insensitive match worked)
+- parent_id updated to 2 (UPDATE path taken)
+- Name preserved as lowercase (original case retained)
+- Collation: Case-insensitive (SQL_Latin1_General_CP1_CI_AS default)
+
+
+============= TEST CASE 11: @@ROWCOUNT after INSERT path =============
+Description: Check @@ROWCOUNT after MERGE INSERT path
+Expected: @@ROWCOUNT = 1 (or -1 if SET NOCOUNT ON affects it)
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC11', @parent_id = NULL
+  - Capture @@ROWCOUNT
+
+RESULT:
+{
+  "tc": "TC11",
+  "rowcount_after_insert": 1
+}
+
+STATUS: ✓ PASS
+- @@ROWCOUNT = 1 after INSERT path
+- Note: Procedure has SET NOCOUNT ON, but @@ROWCOUNT still reflects MERGE result
+
+
+============= TEST CASE 12: @@ROWCOUNT after UPDATE path =============
+Description: Check @@ROWCOUNT after MERGE UPDATE path
+Expected: @@ROWCOUNT = 1
+
+SETUP:
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC12', @parent_id = 1
+  - Execute: EXEC dbo.usp_upsert_department @name = 'TestDept_TC12', @parent_id = 2
+  - Capture @@ROWCOUNT
+
+RESULT:
+{
+  "tc": "TC12",
+  "rowcount_after_update": 1,
+  "parent_id": 2
+}
+
+STATUS: ✓ PASS
+- @@ROWCOUNT = 1 after UPDATE path
+- parent_id correctly updated to 2
+
+
+============================================================
+CLEANUP
+============================================================
+Deleted test data: 11 rows removed
+Test departments cleaned up successfully
+
+============================================================
+SUMMARY
+============================================================
+Total Test Cases: 12
+Passed: 12
+Failed: 0
+Success Rate: 100%
+
+Key Findings:
+1. MERGE INSERT path works correctly (TC1, TC2, TC7, TC11)
+2. MERGE UPDATE path works correctly (TC3, TC4, TC5, TC8, TC12)
+3. NULL parent_id handling works in both INSERT and UPDATE paths
+4. Empty string names are allowed (may need business validation)
+5. Maximum length (100 chars) handled correctly
+6. Case-insensitive name matching works as expected (TC10)
+7. Transaction rollback behavior correct (TC9)
+8. @@ROWCOUNT reflects MERGE operation despite SET NOCOUNT ON
+9. No duplicate rows created on repeated upserts (TC8)
+
+Compatibility Notes for Babelfish Migration:
+- MERGE statement support required
+- SET NOCOUNT ON behavior
+- @@ROWCOUNT behavior after MERGE
+- Case-insensitive collation (SQL_Latin1_General_CP1_CI_AS)
+- NVARCHAR(100) data type
+- INT data type for parent_id
+- NULL handling in MERGE conditions
+
+============================================================

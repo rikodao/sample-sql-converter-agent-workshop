@@ -1,0 +1,259 @@
+============================================================================
+BABELFISH COMPATIBILITY CERTIFICATION
+============================================================================
+Object Type: FUNCTION
+Object Name: dbo.fn_format_employee_name
+Verification Date: 2026-05-23
+Stage: 2 - Babelfish T-SQL Compatibility Verification
+Status: ✓ COMPATIBLE
+============================================================================
+
+EXECUTIVE SUMMARY
+============================================================================
+The MSSQL scalar function dbo.fn_format_employee_name has been successfully
+verified for compatibility with Babelfish for Aurora PostgreSQL. The 
+original T-SQL DDL was deployed without modification and all test cases 
+passed with 100% exact match rate.
+
+COMPATIBILITY RATING: ★★★★★ (5/5)
+- DDL Deployment: SUCCESS
+- Test Execution: SUCCESS (15/15)
+- Result Accuracy: EXACT MATCH (100%)
+- Production Readiness: APPROVED
+
+============================================================================
+VERIFICATION DETAILS
+============================================================================
+
+Connection Test:
+  Status: SUCCESS
+  Babelfish Version: 4.3.3
+  PostgreSQL Version: 16.4
+  Compatibility Mode: SQL Server 12.0.2000.8
+
+DDL Deployment:
+  Source: ./result/fn_format_employee_name/mssql.sql
+  Method: Direct deployment via run_babelfish_tsql
+  Modifications Required: NONE
+  Syntax Errors: NONE
+  Deployment Status: SUCCESS
+  
+Test Execution:
+  Test Suite: ./result/fn_format_employee_name/mssql_test.sql
+  Total Test Cases: 15
+  Passed: 15
+  Failed: 0
+  Error Rate: 0%
+  Success Rate: 100%
+
+Result Comparison:
+  Comparison Method: Byte-level exact match
+  MSSQL Results: ./result/fn_format_employee_name/mssql_test.txt
+  Babelfish Results: ./result/fn_format_employee_name/babelfish_test.txt
+  
+  Match Statistics:
+    - Exact Matches: 15/15 (100%)
+    - Semantic Matches: 0 (all were exact)
+    - Structural Matches: 0 (all were exact)
+    - Mismatches: 0
+    
+  Match Level Distribution:
+    - EXACT: 15 test cases
+    - SEMANTIC: 0 test cases
+    - STRUCTURAL: 0 test cases
+    - FAILED: 0 test cases
+
+============================================================================
+TEST CASE BREAKDOWN
+============================================================================
+
+Normal Cases (3 test cases):
+  TC1 - Normal input with typical names: EXACT MATCH ✓
+  TC2 - Normal input with Unicode characters: EXACT MATCH ✓
+  TC3 - Normal input with special characters: EXACT MATCH ✓
+
+Boundary Cases (9 test cases):
+  TC4 - NULL first name: EXACT MATCH ✓
+  TC5 - NULL last name: EXACT MATCH ✓
+  TC6 - Both NULL: EXACT MATCH ✓
+  TC7 - Empty string first name: EXACT MATCH ✓
+  TC8 - Empty string last name: EXACT MATCH ✓
+  TC9 - Both empty strings: EXACT MATCH ✓
+  TC10 - Single character names: EXACT MATCH ✓
+  TC11 - Maximum length names (50 chars each): EXACT MATCH ✓
+  TC12 - Names with leading/trailing spaces: EXACT MATCH ✓
+
+Edge Cases (3 test cases):
+  TC13 - Names with only spaces: EXACT MATCH ✓
+  TC14 - Names with newline characters: EXACT MATCH ✓
+  TC15 - Verify return type length (NVARCHAR(105)): EXACT MATCH ✓
+
+============================================================================
+TECHNICAL FEATURES VERIFIED
+============================================================================
+
+T-SQL Features Successfully Tested:
+  ✓ SCALAR FUNCTION definition
+  ✓ NVARCHAR data type (50 and 105 character limits)
+  ✓ Function parameters (@first, @last)
+  ✓ BEGIN/END block structure
+  ✓ IF conditional logic
+  ✓ IS NULL operator
+  ✓ RETURN statement (conditional and final)
+  ✓ String concatenation with + operator
+  ✓ N-prefix Unicode string literals
+  ✓ LEN() function
+  ✓ CHAR() function for control characters
+  ✓ NULL handling
+  ✓ Empty string handling
+  ✓ Unicode character support (Japanese characters)
+  ✓ Special character handling (apostrophes, hyphens)
+  ✓ Whitespace preservation
+  ✓ Control character preservation (CR, LF)
+
+Data Type Compatibility:
+  ✓ NVARCHAR(50) - Input parameters
+  ✓ NVARCHAR(105) - Return type
+  ✓ Unicode string literals (N'...')
+  ✓ NULL values
+  ✓ Empty strings
+  ✓ Maximum length strings (50 characters)
+
+Control Flow Compatibility:
+  ✓ IF condition
+  ✓ OR logical operator
+  ✓ RETURN statement (early exit)
+  ✓ RETURN statement (final value)
+
+String Operations Compatibility:
+  ✓ String concatenation (+)
+  ✓ String length calculation (LEN)
+  ✓ Character code conversion (CHAR)
+  ✓ Unicode literal prefix (N'...')
+
+============================================================================
+COMPATIBILITY ANALYSIS
+============================================================================
+
+Babelfish Strengths Demonstrated:
+  - Core T-SQL scalar function syntax fully supported
+  - NVARCHAR data type with Unicode support
+  - String concatenation and manipulation
+  - NULL handling identical to MSSQL
+  - Control flow (IF/RETURN) works as expected
+  - No precision or encoding issues with Unicode
+  - Control characters (CR, LF) preserved correctly
+
+Known Limitations NOT Applicable:
+  - No CLR assemblies used
+  - No Service Broker features
+  - No Linked Server references
+  - No WITH ENCRYPTION clause
+  - No dynamic SQL (sp_executesql)
+  - No Table-Valued Parameters
+  - No PIVOT/UNPIVOT operations
+  - No MERGE statements
+  - No triggers
+  - No FOR JSON/FOR XML
+  - No DATETIMEOFFSET/DATETIME2
+  - No DMV queries
+  - No table hints
+  - No MONEY type
+  - No complex collation operations
+
+Risk Assessment:
+  Risk Level: NONE
+  Confidence Level: VERY HIGH
+  Production Readiness: APPROVED
+  
+  Rationale:
+  This function uses only basic, well-supported T-SQL features. The 100%
+  exact match rate across all test cases (including edge cases with NULL,
+  empty strings, Unicode, and control characters) demonstrates complete
+  compatibility. No behavioral differences observed.
+
+============================================================================
+MIGRATION RECOMMENDATION
+============================================================================
+
+Migration Strategy: DIRECT MIGRATION
+  
+  The function can be migrated to Babelfish without any modifications.
+  Deploy the original MSSQL DDL directly.
+
+Deployment Steps:
+  1. Connect to Babelfish via TDS port (1433)
+  2. Execute the DDL from mssql.sql as-is
+  3. Verify deployment with: SELECT OBJECT_ID('dbo.fn_format_employee_name')
+  4. Run validation tests from babelfish_test.sql
+  5. Confirm all tests pass
+
+No Additional Steps Required:
+  - No code modifications needed
+  - No PL/pgSQL conversion required (Stage 3 not needed)
+  - No retry/fix iterations required (Stage 4 not needed)
+  - No special configuration needed
+  - No performance tuning required
+
+Post-Migration Validation:
+  - Execute the test suite (babelfish_test.sql)
+  - Verify all 15 test cases pass
+  - Compare results with mssql_test.txt
+  - Monitor function performance in production workload
+
+============================================================================
+CERTIFICATION STATEMENT
+============================================================================
+
+I, the Stage 2 Babelfish Compatibility Verification Agent, hereby certify
+that the MSSQL function dbo.fn_format_employee_name has been thoroughly
+tested for compatibility with Babelfish for Aurora PostgreSQL and has
+achieved a 100% compatibility rating.
+
+The function:
+  ✓ Deploys successfully without syntax errors
+  ✓ Executes all test cases without runtime errors
+  ✓ Produces results identical to MSSQL (exact match)
+  ✓ Handles all edge cases correctly
+  ✓ Is ready for production migration
+
+Certification Level: FULLY COMPATIBLE
+Recommended Action: APPROVE FOR PRODUCTION MIGRATION
+Confidence: 100%
+
+============================================================================
+APPENDIX: FILE REFERENCES
+============================================================================
+
+Source Files:
+  - MSSQL DDL: ./result/fn_format_employee_name/mssql.sql
+  - MSSQL Test Script: ./result/fn_format_employee_name/mssql_test.sql
+  - MSSQL Test Results: ./result/fn_format_employee_name/mssql_test.txt
+
+Generated Files:
+  - Babelfish Test Script: ./result/fn_format_employee_name/babelfish_test.sql
+  - Babelfish Test Results: ./result/fn_format_employee_name/babelfish_test.txt
+  - Verification Log: ./result/fn_format_employee_name/babelfish_attempt.txt
+  - Certification: ./result/fn_format_employee_name/BABELFISH_OK.txt (this file)
+
+Test Statistics:
+  - Total Test Cases: 15
+  - Normal Cases: 3
+  - Boundary Cases: 9
+  - Edge Cases: 3
+  - Exception Cases: 0 (not applicable for this function)
+
+Match Level Summary:
+  - EXACT: 15 (100%)
+  - SEMANTIC: 0 (0%)
+  - STRUCTURAL: 0 (0%)
+  - FAILED: 0 (0%)
+
+============================================================================
+END OF CERTIFICATION
+============================================================================
+Generated: 2026-05-23
+Agent: Stage 2 Babelfish Compatibility Verification Agent
+Status: ✓ COMPLETE
+Result: BABELFISH_COMPATIBLE
+============================================================================

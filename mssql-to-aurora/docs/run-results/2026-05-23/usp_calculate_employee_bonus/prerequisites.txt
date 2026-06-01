@@ -1,0 +1,68 @@
+================================================================================
+前提条件チェック結果
+================================================================================
+対象オブジェクト: dbo.usp_calculate_employee_bonus
+オブジェクトタイプ: SQL_STORED_PROCEDURE
+作成日時: 2026-05-23 13:54:20.557
+最終更新日時: 2026-05-23 13:54:20.557
+
+================================================================================
+パラメータ
+================================================================================
+@employee_id INT (INPUT)
+@fiscal_year INT (INPUT)
+@bonus MONEY (OUTPUT)
+
+================================================================================
+依存オブジェクト
+================================================================================
+1. dbo.employees (TABLE)
+   - employee_id (int, NOT NULL, PK)
+   - department_id (int, NOT NULL)
+   - first_name (nvarchar, NOT NULL)
+   - last_name (nvarchar, NOT NULL)
+   - hire_date (date, NOT NULL)
+   - is_active (bit, NOT NULL)
+   - email (nvarchar, NULL)
+   - created_at (datetime2, NOT NULL)
+
+2. dbo.salaries (TABLE)
+   - salary_id (int, NOT NULL, PK)
+   - employee_id (int, NOT NULL, FK)
+   - base_salary (money, NOT NULL)
+   - effective_from (date, NOT NULL)
+   - effective_to (date, NULL)
+
+3. dbo.bonuses (TABLE)
+   - bonus_id (int, NOT NULL, PK)
+   - employee_id (int, NOT NULL, FK)
+   - fiscal_year (int, NOT NULL)
+   - bonus_amount (money, NOT NULL)
+   - awarded_at (datetime2, NOT NULL)
+
+================================================================================
+ビジネスロジック概要
+================================================================================
+このプロシージャは従業員のボーナスを計算し、bonusesテーブルに記録します。
+
+計算ロジック:
+1. 対象従業員の最新の base_salary を salaries テーブルから取得
+2. 従業員の勤続年数を employees.hire_date から計算
+3. ボーナス = base_salary × 0.10 × (1 + 勤続年数 × 0.05)
+4. bonuses テーブルに UPSERT (既存レコードがあれば UPDATE、なければ INSERT)
+
+特記事項:
+- base_salary が見つからない場合は @bonus = 0 を返す
+- 勤続年数は fiscal_year の12月31日時点で計算
+- OUTPUT パラメータ @bonus に計算結果を返す
+- bonuses テーブルへの副作用あり (INSERT/UPDATE)
+
+================================================================================
+検証ステータス
+================================================================================
+✓ オブジェクト存在確認: OK
+✓ 依存オブジェクト確認: OK (3テーブル)
+✓ DDL取得: OK (暗号化なし)
+✓ 結果保存先ディレクトリ: OK
+
+前提条件チェック: 全て合格

@@ -1,0 +1,12 @@
+============================================================================
+Test Execution Results for public.usp_archive_old_orders
+Target: Aurora PostgreSQL (Native)
+============================================================================
+ERROR: Unable to execute tests
+Reason: PostgreSQL connection failed - "You must specify a region."
+
+The test suite was successfully converted to PostgreSQL syntax but could not
+be executed due to database connectivity issues.
+
+Test script location: ./result/usp_archive_old_orders/postgres_test.sql
+============================================================================

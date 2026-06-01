@@ -1,0 +1,151 @@
+=== Conversion Result: NG ===
+Object: PROCEDURE dbo.usp_validate_and_create_dept
+Failed At: Stage 4
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE DETAILS
+================================================================================
+
+Stage 4 (PostgreSQL Native Test Execution & Validation) cannot proceed due to
+missing prerequisite artifacts from upstream stages.
+
+--- Missing Artifacts ---
+
+1. mssql.sql (Stage 1 output)
+   Status: NOT FOUND
+   Required for: Understanding source T-SQL structure
+
+2. mssql_test.sql (Stage 1 output)
+   Status: NOT FOUND
+   Required for: Creating equivalent PostgreSQL test cases
+
+3. mssql_test.txt (Stage 1 output)
+   Status: NOT FOUND
+   Required for: Baseline comparison of expected results
+
+4. postgres.sql (Stage 3 output)
+   Status: NOT FOUND
+   Required for: Deploying converted PL/pgSQL to Aurora PostgreSQL
+
+--- Root Cause Analysis ---
+
+Stage 1 Status: PREREQUISITE_FAILED
+  - Error: "You must specify a region."
+  - Tool: run_mssql_sql
+  - Impact: Cannot connect to Source RDS for SQL Server
+  - Result: No DDL extraction, no test case generation, no baseline results
+
+Stage 2 Status: CONNECTION_ERROR
+  - Error: "You must specify a region."
+  - Tool: run_babelfish_tsql
+  - Impact: Babelfish compatibility undetermined (not blocking for Stage 4)
+
+Stage 3 Status: BLOCKED
+  - Reason: Missing mssql.sql from Stage 1
+  - Impact: Cannot perform T-SQL → PL/pgSQL conversion
+  - Result: No postgres.sql generated
+
+Stage 4 Status: CANNOT_PROCEED
+  - Reason: Missing all prerequisite artifacts
+  - Impact: Cannot create postgres_test.sql, cannot execute tests, cannot compare results
+
+================================================================================
+COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 4 specification:
+  "🚫 絶対禁止事項 — OK 判定の前提条件と捏造禁止"
+  
+  "以下のいずれかに該当する場合は、絶対に OK.txt を作成してはならない:
+   ❌ Stage 1 の成果物 (mssql_test.txt) が無い
+   ❌ postgres_test.txt を実 DB から取得できていない
+   ❌ 接続失敗または前提条件不足の場合"
+
+Actions taken:
+  ✓ Verified mssql_test.txt does NOT exist
+  ✓ Verified postgres.sql does NOT exist
+  ✓ Did NOT fabricate test results
+  ✓ Did NOT create OK.txt
+  ✓ Did NOT assume "code would work" without actual execution
+  ✓ Generated NG.txt with PREREQUISITE_FAILED reason
+
+Prohibited actions NOT taken:
+  ✓ Did NOT create postgres_test.sql without source mssql_test.sql
+  ✓ Did NOT create postgres_test.txt with "expected" or "assumed" results
+  ✓ Did NOT create comparison_result.txt with fabricated comparisons
+  ✓ Did NOT create OK.txt claiming successful validation
+
+This behavior prevents the "hallucination" scenario described in the specification:
+  "過去の事例: 2026-05-29 のバルクラン (20件) で、接続失敗時にこのガードが無かったため、
+   12 件で偽 OK.txt が生成され、実際には 1 件も DB に投入されていなかった。"
+
+================================================================================
+HYPOTHESIS
+================================================================================
+
+This is NOT a conversion failure or SQL compatibility issue.
+This is an environment configuration issue affecting the entire pipeline.
+
+Root Cause:
+  - AWS region configuration is missing or incorrect for database connections
+  - Both run_mssql_sql and run_babelfish_tsql tools require region specification
+  - Without region, no database connectivity is possible
+
+Impact:
+  - Stage 1 cannot extract source DDL from MSSQL
+  - Stage 2 cannot verify Babelfish compatibility
+  - Stage 3 cannot convert T-SQL to PL/pgSQL (no source to convert)
+  - Stage 4 cannot validate conversion (no artifacts to test)
+
+This object (usp_validate_and_create_dept) may be perfectly convertible,
+but validation cannot proceed without proper environment setup.
+
+================================================================================
+RECOMMENDED ACTION
+================================================================================
+
+1. Environment Configuration (CRITICAL):
+   - Configure AWS region for database connections
+   - Verify credentials for Source RDS for SQL Server
+   - Verify credentials for Babelfish endpoint
+   - Verify credentials for Aurora PostgreSQL endpoint
+   - Test connectivity with simple queries before running full pipeline
+
+2. Pipeline Re-execution:
+   - Re-run Stage 1 for object: dbo.usp_validate_and_create_dept
+   - Verify mssql.sql, mssql_test.sql, mssql_test.txt are created
+   - Re-run Stage 2 (optional, for Babelfish compatibility check)
+   - Re-run Stage 3 to generate postgres.sql
+   - Re-run Stage 4 to validate conversion with actual test execution
+
+3. Validation Checklist:
+   - [ ] mssql.sql exists and contains valid T-SQL DDL
+   - [ ] mssql_test.sql exists and contains test cases
+   - [ ] mssql_test.txt exists and contains actual MSSQL execution results
+   - [ ] postgres.sql exists and contains converted PL/pgSQL
+   - [ ] postgres_test.sql created from mssql_test.sql
+   - [ ] postgres_test.txt contains actual Aurora PostgreSQL execution results
+   - [ ] comparison_result.txt shows EXACT or SEMANTIC match for all test cases
+   - [ ] OK.txt created only after all above conditions are met
+
+4. Human Review Required:
+   - Verify environment configuration is correct
+   - Check AWS region settings in tool configuration
+   - Verify database endpoints are accessible
+   - Review IAM permissions for database access
+   - Once environment is fixed, re-run entire pipeline for this object
+
+================================================================================
+FINAL STATUS
+================================================================================
+
+Conversion Result: NG
+Reason: PREREQUISITE_FAILED (environment configuration issue)
+Test Cases: 0/0 (no tests executed)
+Match Levels: N/A (no comparison possible)
+
+This object requires environment configuration fix and full pipeline re-execution.
+No code conversion issues have been identified - validation simply cannot proceed.
+
+================================================================================

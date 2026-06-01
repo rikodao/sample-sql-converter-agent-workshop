@@ -1,0 +1,16 @@
+PREREQUISITE CHECK RESULT
+=========================
+Object: dbo.usp_validate_and_create_dept
+Type: SQL_STORED_PROCEDURE
+Status: EXISTS
+Encrypted: NO
+Created: 2026-05-23T23:20:23.263000
+Modified: 2026-05-23T23:20:23.263000
+
+DEPENDENCIES
+============
+1. dbo.departments (table) - referenced for validation and INSERT
+2. dbo.audit_log (table) - referenced for error logging
+
+PREREQUISITE STATUS: PASSED
+All dependencies are accessible and object definition can be retrieved.

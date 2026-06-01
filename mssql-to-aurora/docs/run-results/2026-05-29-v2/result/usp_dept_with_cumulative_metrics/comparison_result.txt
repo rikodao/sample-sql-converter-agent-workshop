@@ -1,0 +1,69 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_dept_with_cumulative_metrics
+Test Cases: 0 total (comparison not possible)
+
+================================================================================
+COMPARISON STATUS: NOT EXECUTED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Stage 1 (Source MSSQL Verification) did not complete successfully.
+Required artifacts are missing:
+
+  ❌ mssql.sql          - Source T-SQL DDL
+  ❌ mssql_test.sql     - MSSQL test cases
+  ❌ mssql_test.txt     - MSSQL baseline results
+  ❌ postgres.sql       - Converted PL/pgSQL DDL
+
+Root Cause:
+  Connection to Source RDS for SQL Server failed with error:
+  "You must specify a region."
+  
+  AWS region configuration is missing or invalid, preventing:
+  - Object definition retrieval
+  - Test case execution
+  - Baseline result generation
+
+Impact on Stage 4:
+  Without mssql_test.txt (actual results from SQL Server), there is no
+  baseline to compare against. Without postgres.sql, there is no converted
+  code to test against Aurora PostgreSQL.
+  
+  Comparison cannot proceed.
+
+================================================================================
+COMPLIANCE WITH STAGE 4 PROTOCOL
+================================================================================
+
+Per Stage 4 specification (絶対禁止事項), when Stage 1 artifacts are missing:
+
+✅ DO NOT fabricate or assume test results
+✅ DO NOT create OK.txt based on speculation
+✅ DO NOT proceed with "logical equivalence" reasoning
+✅ MUST create NG.txt with NG Reason: PREREQUISITE_FAILED
+✅ MUST document the missing prerequisites clearly
+
+This report complies with all requirements above.
+
+================================================================================
+VERDICT
+================================================================================
+
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0
+Total Pass: 0/0 (no tests executed)
+
+Result: COMPARISON_NOT_POSSIBLE
+
+================================================================================
+REQUIRED ACTION
+================================================================================
+
+1. Resolve AWS region configuration for Source RDS for SQL Server
+2. Execute Stage 1 to retrieve object definition and create test cases
+3. Execute Stage 3 to convert T-SQL to PL/pgSQL
+4. Re-run Stage 4 after all prerequisites are met
+
+================================================================================
+END OF COMPARISON REPORT
+================================================================================

@@ -1,0 +1,65 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: FUNCTION dbo.fn_get_dept_summary
+Test Cases: 0 total (comparison not possible)
+
+================================================================================
+COMPARISON STATUS: BLOCKED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Required Files:
+---------------
+- mssql_test.txt: NOT FOUND ❌
+  (Baseline results from actual SQL Server execution)
+  
+- postgres.sql: NOT FOUND ❌
+  (Converted PL/pgSQL function definition)
+  
+- postgres_test.sql: NOT CREATED ❌
+  (Cannot create without mssql_test.sql as template)
+  
+- postgres_test.txt: NOT CREATED ❌
+  (Cannot execute tests without postgres.sql)
+
+Root Cause:
+-----------
+Stage 1 failed with connectivity error: "You must specify a region."
+
+This prevented:
+1. Extraction of source T-SQL DDL from SQL Server
+2. Generation of test cases
+3. Execution of baseline tests on SQL Server
+4. All downstream stages (2, 3, 4)
+
+Impact on Comparison:
+---------------------
+Without mssql_test.txt (actual SQL Server results), there is no baseline
+to compare against. Any comparison would be fabricated.
+
+Without postgres.sql (converted function), there is nothing to test on
+Aurora PostgreSQL.
+
+Per workflow rules (<output_specification>):
+- Comparison requires BOTH mssql_test.txt AND postgres_test.txt
+- Both must be from ACTUAL database execution (not assumed/expected)
+- "Logical equivalence" reasoning without execution is prohibited
+
+================================================================================
+VERDICT
+================================================================================
+
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0, BLOCKED=1
+Total Pass: 0/0 (N/A - comparison not performed)
+
+Result: COMPARISON_BLOCKED
+
+Next Steps:
+-----------
+1. Resolve AWS connectivity issue (region configuration)
+2. Re-run Stage 1 to obtain mssql.sql, mssql_test.sql, mssql_test.txt
+3. Re-run Stage 3 to generate postgres.sql
+4. Re-run Stage 4 to perform actual comparison
+
+This comparison_result.txt documents why comparison was not possible,
+in compliance with the requirement to always create this file.

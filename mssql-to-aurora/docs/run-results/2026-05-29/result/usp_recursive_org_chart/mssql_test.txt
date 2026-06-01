@@ -1,0 +1,291 @@
+============================================================================
+TEST EXECUTION RESULTS: dbo.usp_recursive_org_chart
+============================================================================
+Execution Date: 2026-05-29
+Database: Source RDS for SQL Server (migration_demo)
+Status: ❌ UNABLE TO EXECUTE - Connection failure
+
+============================================================================
+CONNECTION ERROR
+============================================================================
+Error: "You must specify a region" - boto3 SecretsManager configuration issue
+All test cases could not be executed against the actual database.
+
+The following are EXPECTED results based on the assumed procedure definition.
+These results must be validated once database connectivity is restored.
+
+============================================================================
+TEST CASE 1: Basic hierarchy from top (no parameters)
+============================================================================
+Expected Result:
+- Should return all active employees in the organization
+- Starting from top-level (manager_id IS NULL)
+- Ordered by sort_path (hierarchical alphabetical order)
+- Each employee should have level, path, and direct_report_count
+
+Expected Output:
+test_case | total_employees | max_depth
+----------|-----------------|----------
+TC1       | 5               | 2
+
+Notes:
+- Assumes test data: CEO (level 0) -> 2 VPs (level 1) -> 2 engineers (level 2)
+- Max depth of 2 indicates 3 levels (0, 1, 2)
+
+============================================================================
+TEST CASE 2: Hierarchy from specific employee (mid-level manager)
+============================================================================
+Expected Result:
+- Should return only the subtree starting from employee_id = 2
+- Bob Brown (VP Engineering) and all his subordinates
+- Level 0 should be Bob (the root of this subtree)
+
+Expected Output:
+test_case | employee_count | min_level | max_level
+----------|----------------|-----------|----------
+TC2       | 4              | 0         | 2
+
+Notes:
+- Bob (level 0) -> David (level 1) -> Eve, Frank (level 2)
+- Total 4 employees in this subtree
+
+============================================================================
+TEST CASE 3: Max depth limit (depth = 1, only direct reports)
+============================================================================
+Expected Result:
+- Should return CEO and only direct reports (VPs)
+- Should NOT include employees at level 2 or deeper
+- Max level in results should be 1
+
+Expected Output:
+test_case | returned_count | max_level_returned
+----------|----------------|-------------------
+TC3       | 3              | 1
+
+Notes:
+- CEO (level 0) + 2 VPs (level 1) = 3 employees
+- Senior Engineer (level 2) should be excluded
+
+============================================================================
+TEST CASE 4: Include inactive employees
+============================================================================
+Expected Result:
+TC4a (exclude inactive - default):
+- Should return only active employees (is_active = 1 or NULL)
+- Bob Brown (inactive) should be excluded
+
+TC4b (include inactive):
+- Should return all employees regardless of is_active status
+- Bob Brown should be included
+
+Expected Output:
+test_case | active_only_count
+----------|------------------
+TC4a      | 2
+
+test_case | all_employees_count
+----------|--------------------
+TC4b      | 3
+
+Notes:
+- Alice (active) + Carol (active) = 2 for TC4a
+- Alice + Bob (inactive) + Carol = 3 for TC4b
+
+============================================================================
+TEST CASE 5: Leaf node employee (no direct reports)
+============================================================================
+Expected Result:
+- Should return only Eve Evans (employee_id = 5)
+- Level should be 0 (she is the root of her own subtree)
+- direct_report_count should be 0 (no subordinates)
+
+Expected Output:
+test_case | result_count | max_level | max_reports
+----------|--------------|-----------|------------
+TC5       | 1            | 0         | 0
+
+Notes:
+- Leaf node with no children
+- Valid use case for viewing single employee details
+
+============================================================================
+TEST CASE 6: Non-existent employee ID (error case)
+============================================================================
+Expected Result:
+- Should raise error: "Employee ID 99999 does not exist."
+- Error should be caught by TRY-CATCH block
+- Should return error message
+
+Expected Output:
+test_case | result        | error_message
+----------|---------------|----------------------------------
+TC6       | ERROR_CAUGHT  | Employee ID 99999 does not exist.
+
+Notes:
+- Input validation working correctly
+- Graceful error handling
+
+============================================================================
+TEST CASE 7: Invalid max_depth (zero or negative)
+============================================================================
+Expected Result:
+TC7a (max_depth = 0):
+- Should raise error: "Max depth must be a positive integer."
+
+TC7b (max_depth = -1):
+- Should raise error: "Max depth must be a positive integer."
+
+Expected Output:
+test_case | result        | error_message
+----------|---------------|----------------------------------------
+TC7a      | ERROR_CAUGHT  | Max depth must be a positive integer.
+TC7b      | ERROR_CAUGHT  | Max depth must be a positive integer.
+
+Notes:
+- Parameter validation working correctly
+- Both zero and negative values rejected
+
+============================================================================
+TEST CASE 8: Deep hierarchy (5+ levels)
+============================================================================
+Expected Result:
+- Should handle deep recursion (6 levels: 0 through 5)
+- All 6 employees should be returned
+- Deepest level should be 5
+
+Expected Output:
+test_case | total_employees | deepest_level
+----------|-----------------|---------------
+TC8       | 6               | 5
+
+Notes:
+- Tests recursive CTE depth handling
+- L0 -> L1 -> L2 -> L3 -> L4 -> L5 (6 levels)
+- No max_depth specified, so all levels returned
+
+============================================================================
+TEST CASE 9: Multiple top-level employees (no root specified)
+============================================================================
+Expected Result:
+- Should return all employees from all organizational trees
+- Two separate hierarchies (Division A and Division B)
+- Both CEOs should have level = 0
+
+Expected Output:
+test_case | total_employees | root_count
+----------|-----------------|------------
+TC9       | 4               | 2
+
+Notes:
+- Alice (CEO A, level 0) -> Carol (level 1)
+- Bob (CEO B, level 0) -> David (level 1)
+- Total 4 employees, 2 roots
+
+============================================================================
+TEST CASE 10: NULL values in employee data
+============================================================================
+Expected Result:
+- Should handle NULL values gracefully
+- NULL department_id should not cause errors
+- NULL is_active should be treated as active (ISNULL(is_active, 1) = 1)
+- NULL last_name should be handled in full_name concatenation
+
+Expected Output:
+test_case | employee_count | null_dept_count | null_name_count
+----------|----------------|-----------------|----------------
+TC10      | 2              | 1               | 1
+
+Notes:
+- Alice: NULL department, NULL is_active (treated as active)
+- Bob: NULL last_name
+- Both should be included in results
+
+============================================================================
+TEST CASE 11: Path and sort_path verification
+============================================================================
+Expected Result:
+- path should show hierarchical IDs: /1/, /1/2/, /1/2/3/
+- sort_path should show hierarchical names for sorting
+- Results should be ordered by sort_path
+
+Expected Output:
+test_case | employee_id | path     | sort_path                                    | expected_path
+----------|-------------|----------|----------------------------------------------|---------------
+TC11      | 1           | /1/      | Anderson, Alice                              | /1/
+TC11      | 2           | /1/2/    | Anderson, Alice > Brown, Bob                 | /1/2/
+TC11      | 3           | /1/2/3/  | Anderson, Alice > Brown, Bob > Clark, Carol  | /1/2/3/
+
+Notes:
+- path format: /<id1>/<id2>/<id3>/
+- sort_path format: LastName, FirstName > LastName, FirstName > ...
+- Enables hierarchical sorting and display
+
+============================================================================
+TEST CASE 12: Direct report count accuracy
+============================================================================
+Expected Result:
+- Alice (employee_id = 1) should have 3 direct reports (Bob, Carol, David)
+- Bob (employee_id = 2) should have 1 direct report (Eve)
+- Others should have 0 direct reports
+
+Expected Output:
+test_case | employee_id | direct_report_count | expected_count
+----------|-------------|---------------------|----------------
+TC12      | 1           | 3                   | 3
+TC12      | 2           | 1                   | 1
+TC12      | 3           | 0                   | 0
+TC12      | 4           | 0                   | 0
+TC12      | 5           | 0                   | 0
+
+Notes:
+- direct_report_count calculated via subquery
+- Only counts direct reports (not entire subtree)
+- Useful for management reporting
+
+============================================================================
+SUMMARY
+============================================================================
+Total Test Cases: 12 (covering 15 scenarios including sub-cases)
+
+Coverage:
+✓ Normal operation (TC1, TC2, TC9)
+✓ Boundary conditions (TC3, TC5, TC8)
+✓ Error handling (TC6, TC7)
+✓ Optional parameters (TC3, TC4)
+✓ NULL handling (TC10)
+✓ Data integrity (TC11, TC12)
+✓ Recursive depth (TC8)
+✓ Multiple roots (TC9)
+
+Status: ⚠️  EXPECTED RESULTS ONLY
+Action Required: Execute tests against actual database once connectivity restored
+
+============================================================================
+VALIDATION CHECKLIST
+============================================================================
+When database connectivity is restored, verify:
+
+1. [ ] All test cases execute without syntax errors
+2. [ ] Actual results match expected results
+3. [ ] Error messages match expected error messages
+4. [ ] Performance is acceptable for deep hierarchies
+5. [ ] NULL handling works as expected
+6. [ ] Path and sort_path calculations are correct
+7. [ ] direct_report_count is accurate
+8. [ ] Inactive employee filtering works correctly
+9. [ ] max_depth parameter limits recursion correctly
+10. [ ] Multiple root nodes are handled correctly
+
+============================================================================
+KNOWN LIMITATIONS
+============================================================================
+1. Cannot execute actual tests due to connection failure
+2. Results are based on assumed procedure definition
+3. Actual procedure signature may differ
+4. Business logic may have additional complexity not captured
+5. Performance characteristics unknown
+
+Recommendation: Re-run Stage 1 with live database connection before proceeding
+to Stage 2 (Babelfish conversion).
+
+============================================================================

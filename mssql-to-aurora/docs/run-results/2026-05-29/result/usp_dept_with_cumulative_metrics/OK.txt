@@ -1,0 +1,233 @@
+=== Conversion Result: OK ===
+Object: PROCEDURE dbo.usp_dept_with_cumulative_metrics
+Target Engine: PostgreSQL native (PL/pgSQL)
+Stages Completed: 1, 2, 3, 4
+Test Cases: 12/12 matched
+Match Levels: EXACT=10, SEMANTIC=2, STRUCTURAL=0
+
+================================================================================
+CONVERSION SUMMARY
+================================================================================
+
+Object Type: Stored Procedure → Table-Valued Function
+Source: dbo.usp_dept_with_cumulative_metrics (T-SQL)
+Target: public.usp_dept_with_cumulative_metrics (PL/pgSQL)
+
+Conversion Approach:
+- T-SQL PROCEDURE converted to PL/pgSQL FUNCTION with RETURNS TABLE
+- This is the standard pattern for procedures that return result sets
+- All business logic and calculations preserved with full fidelity
+
+================================================================================
+TEST RESULTS DETAIL
+================================================================================
+
+Total Test Cases: 12
+Passed: 12 (100%)
+Failed: 0
+
+Breakdown by Match Level:
+- EXACT MATCH: 10 cases
+  * TC1: Default parameters
+  * TC2: Specific date range
+  * TC3: Single department filter
+  * TC4: Cumulative count calculation verification
+  * TC5: Invalid date range error handling
+  * TC7: NULL start_date handling
+  * TC8: NULL end_date handling
+  * TC9: Both dates NULL handling
+  * TC10: Same hire date ordering
+  * TC12: Running average calculation
+
+- SEMANTIC MATCH: 2 cases
+  * TC6: Empty result set (terminology: "procedure" vs "function")
+  * TC11: Non-existent department (terminology: "procedure" vs "function")
+
+- STRUCTURAL MATCH: 0 cases
+
+- MISMATCH: 0 cases
+
+================================================================================
+KEY CONVERSION FEATURES
+================================================================================
+
+1. Window Functions (Fully Preserved)
+   ✓ ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)
+   ✓ SUM() OVER (... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+   ✓ AVG() OVER (... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+   ✓ DENSE_RANK() OVER (ORDER BY ...)
+   → All window functions use identical syntax in PostgreSQL
+
+2. Date/Time Handling (Converted)
+   ✓ GETDATE() → now()
+   ✓ DATEADD(YEAR, -1, GETDATE()) → now() - interval '1 year'
+   ✓ BETWEEN date filtering preserved
+   → Semantically equivalent behavior
+
+3. Error Handling (Converted)
+   ✓ RAISERROR('message', 16, 1) → RAISE EXCEPTION 'message'
+   ✓ Date validation logic preserved
+   → Error behavior is identical
+
+4. String Operations (Converted)
+   ✓ first_name + ' ' + last_name → first_name || ' ' || last_name
+   → Concatenation produces identical results
+
+5. Parameter Handling (Preserved)
+   ✓ Default parameter values (NULL)
+   ✓ Optional parameters
+   ✓ Parameter validation
+   → All parameter logic works identically
+
+6. Data Type Mappings (Converted)
+   ✓ NVARCHAR → VARCHAR
+   ✓ DATETIME → TIMESTAMP
+   ✓ DECIMAL(10,2) → DECIMAL(10,2)
+   ✓ INT → INT
+   → All type conversions are semantically equivalent
+
+7. Cumulative Calculations (Fully Preserved)
+   ✓ Running count of employees
+   ✓ Running total of salaries
+   ✓ Running average of salaries
+   ✓ Deterministic ordering with secondary sort keys
+   → All calculations verified correct in TC4, TC10, TC12
+
+================================================================================
+SEMANTIC DIFFERENCES (ACCEPTABLE)
+================================================================================
+
+The following differences are platform-specific and do not affect functionality:
+
+1. Object Type:
+   - MSSQL: PROCEDURE (can return result sets directly)
+   - PostgreSQL: FUNCTION with RETURNS TABLE (required for result sets)
+   - Impact: Invocation syntax differs (EXEC vs SELECT FROM) but behavior identical
+
+2. Schema Names:
+   - MSSQL: dbo (default schema)
+   - PostgreSQL: public (default schema)
+   - Impact: None - both are default schemas for their platforms
+
+3. Terminology in Messages:
+   - MSSQL test output: "procedure"
+   - PostgreSQL test output: "function"
+   - Impact: Documentation only - no functional difference
+
+================================================================================
+BUSINESS LOGIC VERIFICATION
+================================================================================
+
+✓ Cumulative Employee Count:
+  - Correctly increments for each employee within department
+  - Verified in TC4: counts progress 1, 2, 3 as expected
+
+✓ Cumulative Salary Total:
+  - Correctly sums salaries as employees are added
+  - Verified in TC4: final total is 180000 (50000+60000+70000)
+
+✓ Cumulative Salary Average:
+  - Correctly calculates running average
+  - Verified in TC12: first avg=60000, second avg=70000 (avg of 60000 and 80000)
+
+✓ Date Range Filtering:
+  - Correctly filters employees by hire_date
+  - Verified in TC2, TC6: date ranges work as expected
+
+✓ Department Filtering:
+  - Correctly filters by department_id when specified
+  - Verified in TC3, TC11: department filter works correctly
+
+✓ NULL Parameter Defaults:
+  - Correctly uses default dates (last 12 months) when NULL
+  - Verified in TC7, TC8, TC9: all NULL combinations work
+
+✓ Error Handling:
+  - Correctly raises error for invalid date range (start > end)
+  - Verified in TC5: error message matches expected
+
+✓ Same Hire Date Handling:
+  - Correctly orders employees with same hire_date by employee_id
+  - Verified in TC10: cumulative counts are distinct (1, 2, 3)
+
+✓ Empty Result Sets:
+  - Correctly returns no rows when no data matches filters
+  - Verified in TC6, TC11: empty results handled properly
+
+================================================================================
+DEPENDENCIES
+================================================================================
+
+Required Tables:
+- public.employees (columns: employee_id, first_name, last_name, email, 
+                    hire_date, department_id, salary, status)
+- public.departments (columns: department_id, department_name, location, 
+                      manager_id)
+
+Required Permissions:
+- SELECT on public.employees
+- SELECT on public.departments
+
+No External Dependencies:
+- No linked servers
+- No CLR assemblies
+- No Service Broker
+- No external procedures
+
+================================================================================
+DEPLOYMENT NOTES
+================================================================================
+
+1. Function Signature:
+   CREATE OR REPLACE FUNCTION public.usp_dept_with_cumulative_metrics(
+       p_start_date TIMESTAMP DEFAULT NULL,
+       p_end_date TIMESTAMP DEFAULT NULL,
+       p_department_id INT DEFAULT NULL
+   )
+   RETURNS TABLE (...)
+
+2. Invocation Pattern:
+   SELECT * FROM public.usp_dept_with_cumulative_metrics(
+       '2020-01-01'::TIMESTAMP,
+       '2023-12-31'::TIMESTAMP,
+       NULL
+   );
+
+3. Performance Considerations:
+   - Window functions are efficient in PostgreSQL
+   - Consider indexes on: employees(hire_date, department_id, employee_id)
+   - Consider index on: departments(department_id)
+
+4. Compatibility:
+   - PostgreSQL 11+ (window functions with ROWS BETWEEN)
+   - No Babelfish-specific features used
+   - Pure PL/pgSQL implementation
+
+================================================================================
+CONCLUSION
+================================================================================
+
+Status: ✓ CONVERSION SUCCESSFUL
+
+The stored procedure has been successfully converted from T-SQL to PL/pgSQL
+with 100% test case pass rate. All business logic, calculations, error handling,
+and edge cases are preserved with full fidelity.
+
+The conversion required only standard T-SQL to PL/pgSQL transformations:
+- Procedure → Function with RETURNS TABLE
+- Date functions (GETDATE, DATEADD → now, interval)
+- String concatenation (+ → ||)
+- Error handling (RAISERROR → RAISE EXCEPTION)
+
+All window functions, cumulative calculations, and filtering logic work
+identically in PostgreSQL. The two SEMANTIC MATCH cases differ only in
+terminology ("procedure" vs "function") which is an acceptable platform
+difference.
+
+Recommendation: APPROVED FOR PRODUCTION DEPLOYMENT
+
+The converted function is ready for deployment to Aurora PostgreSQL native
+environment. All functionality has been verified and no manual adjustments
+are required.
+
+================================================================================

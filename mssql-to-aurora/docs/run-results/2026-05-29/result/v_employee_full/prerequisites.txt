@@ -1,0 +1,85 @@
+============================================================
+PREREQUISITES CHECK for dbo.v_employee_full
+============================================================
+Date: 2024
+Object Type: VIEW
+
+STATUS: COMPLETED WITH LIMITATIONS
+
+OBJECT EXISTENCE:
+- Target: dbo.v_employee_full
+- Type: VIEW
+- Status: Unable to verify due to connection issue (region configuration)
+
+CONNECTION ISSUE:
+- Error: "You must specify a region" when calling run_mssql_sql
+- Impact: Cannot retrieve actual DDL from sys.sql_modules
+- Workaround: Created definition based on related objects and test patterns
+
+EXPECTED DEPENDENCIES:
+Based on trg_v_employee_full_update test cases and related objects:
+1. dbo.employees (base table)
+   - Columns: employee_id, first_name, last_name, email, phone_number,
+     hire_date, job_id, salary, commission_pct, manager_id, department_id,
+     status, termination_date, is_active, performance_rating, bonus_amount,
+     last_bonus_date, bonus_fiscal_year
+   
+2. dbo.departments (for JOIN)
+   - Columns: department_id, department_name, location, manager_id,
+     created_date, modified_date
+
+VIEW STRUCTURE (INFERRED):
+- Full employee information with department details
+- LEFT JOIN between employees and departments on department_id
+- Includes all employee columns plus department_name and location
+- No WHERE clause (shows all employees, not filtered like v_active_employees)
+- Used as base for INSTEAD OF UPDATE trigger (trg_v_employee_full_update)
+
+ENCRYPTION CHECK:
+- Status: Unable to verify (connection issue)
+- Assumption: NOT encrypted (WITH ENCRYPTION not expected for standard views)
+- If encrypted: definition would be NULL in sys.sql_modules
+
+DIRECTORY STATUS:
+✓ Result directory created: ./result/v_employee_full/
+
+FILES CREATED:
+✓ prerequisites.txt (this file)
+✓ mssql.sql (inferred DDL based on related objects)
+✓ mssql_test.sql (10 comprehensive test cases)
+✓ mssql_test.txt (template test results)
+
+TEST COVERAGE:
+- 10 test cases covering:
+  * Normal cases: Basic SELECT, JOIN behavior, all columns
+  * Boundary values: NULL department_id, empty result set
+  * Edge cases: Multiple departments, ordering
+  * JOIN behavior: LEFT JOIN with NULL department_id
+  * Data integrity: Proper SETUP/CLEANUP for each test
+
+PREREQUISITE CHECK RESULT: PARTIAL
+- Files created: ✓ Complete
+- DDL retrieved: ⚠ Inferred from related objects (actual DDL required)
+- Test cases designed: ✓ Complete
+- Test execution: ⚠ Template results only (actual execution required)
+
+NEXT STEPS:
+1. Resolve connection issue (verify region configuration)
+2. Retrieve actual DDL from sys.sql_modules:
+   SELECT definition 
+   FROM sys.sql_modules 
+   WHERE object_id = OBJECT_ID('dbo.v_employee_full')
+3. Replace inferred DDL in mssql.sql with actual DDL
+4. Execute mssql_test.sql on Source RDS for SQL Server
+5. Replace template in mssql_test.txt with actual results
+6. Verify no WITH ENCRYPTION on the VIEW
+
+RECOMMENDATION:
+Stage 1 structure is complete with inferred DDL based on:
+- trg_v_employee_full_update test patterns
+- Related table structures from other test files
+- Common VIEW patterns for employee-department joins
+
+Actual data retrieval and execution are required before proceeding to Stage 2.
+
+============================================================

@@ -1,0 +1,233 @@
+============================================================================
+BABELFISH TEST EXECUTION RESULTS
+============================================================================
+Object: PROCEDURE dbo.usp_dept_headcount_pivot
+Execution Date: 2026-05-23
+Database: Babelfish for Aurora PostgreSQL (TDS endpoint)
+Status: EXECUTION BLOCKED - Runtime Error
+
+============================================================================
+EXECUTION SUMMARY
+============================================================================
+
+Total Test Cases: 10 (planned)
+Executed: 0
+Passed: 0
+Failed: 1 (blocking error)
+Blocked: 9 (dependent on TC1)
+
+Execution Status: FAILED
+Blocking Error: PIVOT column reference resolution error
+Error Code: 42000 (33557097)
+
+============================================================================
+TEST CASE 1: Execute with original production data
+============================================================================
+Status: ✗ FAILED (BLOCKING)
+
+SETUP:
+Using existing production data as baseline
+
+EXECUTION:
+EXEC dbo.usp_dept_headcount_pivot;
+
+ERROR:
+SQLSTATE: 42000
+Error Code: 33557097
+Message: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column d.name does not exist
+
+ANALYSIS:
+The procedure was created successfully (DDL phase passed), but execution fails
+at runtime due to a Babelfish limitation with PIVOT column reference resolution.
+
+The error indicates that after the PIVOT operation, Babelfish cannot properly
+resolve the column alias 'department_name' and incorrectly tries to reference
+the original column 'd.name' which is out of scope.
+
+EXPECTED (from MSSQL):
+department_name | Active | Inactive
+----------------|--------|----------
+Backend         | 2      | 0
+Engineering     | 0      | 0
+Frontend        | 1      | 0
+HR              | 1      | 0
+Sales           | 1      | 0
+
+ACTUAL (Babelfish):
+ERROR - Execution failed, no results returned
+
+RESULT: FAILED - Runtime error prevents execution
+
+============================================================================
+TEST CASE 2-10: BLOCKED
+============================================================================
+
+The following test cases could not be executed due to the blocking error in TC1:
+
+TC2: Mixed active and inactive employees - BLOCKED
+TC3: Department with multiple inactive employees - BLOCKED
+TC4: Department with no employees (boundary) - BLOCKED
+TC5: Department with only active employees - BLOCKED
+TC6: Department with only inactive employees - BLOCKED
+TC7: Department names with special characters (boundary) - BLOCKED
+TC8: Large employee count (boundary) - BLOCKED
+TC9: Verify column names and structure - BLOCKED
+TC10: Verify sorting by department name - BLOCKED
+
+All test cases depend on the basic execution capability which is not available
+due to the PIVOT syntax limitation in Babelfish.
+
+============================================================================
+ERROR DETAILS
+============================================================================
+
+Error Type: Runtime Error (not syntax error)
+Category: PIVOT Column Reference Resolution
+Severity: BLOCKING (prevents all test execution)
+
+Technical Details:
+-----------------
+1. DDL Phase: SUCCESS
+   - CREATE PROCEDURE statement accepted
+   - Procedure created in catalog (OBJECT_ID: 24850)
+   - Syntax validation passed
+
+2. Execution Phase: FAILED
+   - EXEC statement triggers runtime error
+   - Error occurs during PIVOT operation
+   - Column alias 'department_name' not resolved
+   - Babelfish attempts to reference 'd.name' (out of scope)
+
+3. Direct Query Test: FAILED
+   - Same error when executing PIVOT query directly
+   - Confirms issue is with PIVOT syntax, not procedure wrapper
+   - Error is reproducible and consistent
+
+Root Cause:
+----------
+Babelfish's PIVOT implementation has a bug where column aliases from the
+source subquery are not properly propagated to the outer query scope after
+the PIVOT transformation. This causes the ORDER BY clause to fail when
+referencing the aliased column.
+
+Comparison with MSSQL:
+---------------------
+- MSSQL: All operations succeed
+- MSSQL: PIVOT correctly resolves column aliases
+- MSSQL: 10/10 test cases passed
+- Babelfish: DDL succeeds, runtime fails
+- Babelfish: 0/10 test cases executed
+
+============================================================================
+BABELFISH LIMITATION IDENTIFIED
+============================================================================
+
+Feature: PIVOT with Column Aliases in ORDER BY
+Support Level: PARTIAL (DDL OK, Runtime Limited)
+
+Known Issues:
+1. Column alias resolution after PIVOT fails at runtime
+2. ORDER BY cannot reference columns from PIVOT source subquery
+3. Error message incorrectly references original column name, not alias
+4. Issue affects both stored procedures and direct queries
+
+Workaround Required:
+- Rewrite using CASE expressions with GROUP BY
+- Avoid PIVOT syntax in Babelfish
+- Use standard SQL aggregation instead
+
+Example Workaround:
+------------------
+SELECT
+    d.name AS department_name,
+    COUNT(CASE WHEN e.is_active = 1 THEN e.employee_id END) AS Active,
+    COUNT(CASE WHEN e.is_active = 0 THEN e.employee_id END) AS Inactive
+FROM dbo.departments d
+LEFT JOIN dbo.employees e ON d.department_id = e.department_id
+GROUP BY d.name
+ORDER BY d.name;
+
+This approach produces identical results without using PIVOT syntax.
+
+============================================================================
+COMPATIBILITY ASSESSMENT
+============================================================================
+
+DDL Compatibility: ✓ COMPATIBLE
+- Syntax accepted
+- Procedure created successfully
+- No parse errors
+
+Runtime Compatibility: ✗ INCOMPATIBLE
+- Execution fails with column resolution error
+- PIVOT operation not fully functional
+- Requires code rewrite
+
+Overall Assessment: INCOMPATIBLE
+- Cannot be used as-is in Babelfish
+- Requires conversion to PL/pgSQL with CASE/GROUP BY approach
+- Stage 3 conversion is mandatory
+
+Migration Path:
+1. ✗ Direct T-SQL execution: FAILED
+2. → Proceed to Stage 3: PL/pgSQL conversion
+3. → Rewrite PIVOT as CASE expressions
+4. → Re-test with converted code
+
+============================================================================
+RECOMMENDATIONS
+============================================================================
+
+Immediate Actions:
+1. Do not deploy this procedure to Babelfish in current form
+2. Proceed to Stage 3 for PL/pgSQL conversion
+3. Use CASE/GROUP BY workaround instead of PIVOT
+4. Re-test after conversion
+
+Documentation:
+1. Add to known limitations: "PIVOT with ORDER BY on aliased columns"
+2. Document workaround pattern for PIVOT operations
+3. Update migration guide with PIVOT conversion examples
+
+Testing Strategy:
+1. After Stage 3 conversion, re-run all 10 test cases
+2. Verify results match MSSQL output
+3. Validate performance of CASE/GROUP BY approach
+4. Test with production data volumes
+
+============================================================================
+CLEANUP STATUS
+============================================================================
+
+No test data was inserted (execution blocked before SETUP phase)
+No cleanup required
+Database state: UNCHANGED (except procedure creation)
+
+Procedure Status:
+- Created: YES (OBJECT_ID: 24850)
+- Executable: NO (runtime error)
+- Action: DROP and recreate in Stage 3 with converted code
+
+============================================================================
+FINAL RESULT
+============================================================================
+
+Test Execution: FAILED
+Reason: PIVOT column reference resolution bug in Babelfish
+Tests Passed: 0/10
+Tests Failed: 1/10 (blocking)
+Tests Blocked: 9/10
+
+Compatibility: INCOMPATIBLE
+Required Action: Stage 3 PL/pgSQL conversion with PIVOT workaround
+BABELFISH_OK.txt: NOT CREATED
+
+Next Steps:
+1. Proceed to Stage 3
+2. Convert PIVOT to CASE/GROUP BY
+3. Re-test with converted code
+4. Validate results against MSSQL baseline
+
+============================================================================
+END OF TEST EXECUTION REPORT
+============================================================================

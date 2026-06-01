@@ -1,0 +1,152 @@
+============================================================================
+TEST EXECUTION RESULTS FOR dbo.usp_dynamic_count_with_output
+Executed on: Source RDS for SQL Server
+============================================================================
+
+============= TEST CASE 1: Normal case - exact match with multiple rows =============
+SETUP: Created #test_products with 5 rows (3 Electronics, 2 Furniture)
+EXEC: Called usp_dynamic_count_with_output with category='Electronics'
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC1  3       Expected: 3 Electronics items
+CLEANUP: Dropped #test_products
+STATUS: PASSED
+
+============= TEST CASE 2: Normal case - single row match =============
+SETUP: Created #test_employees with 3 rows (2 IT, 1 HR)
+EXEC: Called usp_dynamic_count_with_output with dept_name='HR'
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC2  1       Expected: 1 HR employee
+CLEANUP: Dropped #test_employees
+STATUS: PASSED
+
+============= TEST CASE 3: Boundary - no matching rows =============
+SETUP: Created #test_orders with 3 rows (2 Completed, 1 Shipped)
+EXEC: Called usp_dynamic_count_with_output with status='Pending'
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC3  0       Expected: 0 (no Pending orders)
+CLEANUP: Dropped #test_orders
+STATUS: PASSED
+
+============= TEST CASE 4: Boundary - empty table =============
+SETUP: Created empty #test_empty table
+EXEC: Called usp_dynamic_count_with_output with name='AnyValue'
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC4  0       Expected: 0 (empty table)
+CLEANUP: Dropped #test_empty
+STATUS: PASSED
+
+============= TEST CASE 5: Boundary - NULL filter value (no match expected) =============
+SETUP: Created #test_nulls with 3 rows (1 Active, 1 NULL, 1 Inactive)
+EXEC: Called usp_dynamic_count_with_output with status=NULL
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC5  0       Expected: 0 (NULL = NULL is UNKNOWN in SQL)
+CLEANUP: Dropped #test_nulls
+STATUS: PASSED
+NOTE: NULL comparison in WHERE clause returns no matches (NULL = NULL is UNKNOWN)
+
+============= TEST CASE 6: Normal - numeric column filter =============
+SETUP: Created #test_numeric with 4 rows (3 with quantity=100, 1 with quantity=200)
+EXEC: Called usp_dynamic_count_with_output with quantity='100'
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC6  3       Expected: 3 (quantity=100)
+CLEANUP: Dropped #test_numeric
+STATUS: PASSED
+NOTE: String '100' successfully matched INT column via implicit conversion
+
+============= TEST CASE 7: Boundary - all rows match =============
+SETUP: Created #test_all_match with 4 rows (all type='TypeA')
+EXEC: Called usp_dynamic_count_with_output with type='TypeA'
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC7  4       Expected: 4 (all rows match)
+CLEANUP: Dropped #test_all_match
+STATUS: PASSED
+
+============= TEST CASE 8: Exception - invalid table name =============
+SETUP: None
+EXEC: Called usp_dynamic_count_with_output with table_name='NonExistentTable'
+ASSERT:
+tc   result
+---- -------------------------------------------------------
+TC8  Invalid object name 'NonExistentTable'.
+CLEANUP: None
+STATUS: PASSED (Error correctly caught and reported)
+
+============= TEST CASE 9: Exception - invalid column name =============
+SETUP: Created #test_invalid_col with valid_column
+EXEC: Called usp_dynamic_count_with_output with filter_column='invalid_column'
+ASSERT:
+tc   result
+---- -------------------------------------------------------
+TC9  Invalid column name 'invalid_column'.
+CLEANUP: Dropped #test_invalid_col
+STATUS: PASSED (Error correctly caught and reported)
+
+============= TEST CASE 10: Normal - special characters in filter value =============
+SETUP: Created #test_special with 3 rows (2 with quotes, 1 normal)
+EXEC: Called usp_dynamic_count_with_output with description='Item with ''quotes'''
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC10 2       Expected: 2 (items with quotes)
+CLEANUP: Dropped #test_special
+STATUS: PASSED
+NOTE: sp_executesql properly handles quoted strings via parameterization
+
+============= TEST CASE 11: Boundary - empty string filter value =============
+SETUP: Created #test_empty_string with 4 rows (2 empty strings, 2 with values)
+EXEC: Called usp_dynamic_count_with_output with code=''
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC11 2       Expected: 2 (empty string codes)
+CLEANUP: Dropped #test_empty_string
+STATUS: PASSED
+
+============= TEST CASE 12: Normal - case sensitivity test =============
+SETUP: Created #test_case with 4 rows (Active, ACTIVE, active, Inactive)
+EXEC: Called usp_dynamic_count_with_output with status='Active'
+ASSERT:
+tc   result  description
+---- ------- ------------------------------------------
+TC12 3       Expected: 3 (case-insensitive match)
+CLEANUP: Dropped #test_case
+STATUS: PASSED
+NOTE: Default SQL Server collation is case-insensitive
+
+============================================================================
+TEST SUMMARY
+============================================================================
+Total Test Cases: 12
+Passed: 12
+Failed: 0
+Success Rate: 100%
+
+KEY OBSERVATIONS:
+1. OUTPUT parameter correctly returns count values
+2. Dynamic SQL with sp_executesql works correctly
+3. QUOTENAME provides SQL injection protection
+4. Parameterization handles special characters (quotes) correctly
+5. NULL filter values return 0 (NULL comparison semantics)
+6. Invalid table/column names produce appropriate error messages
+7. Implicit type conversion works (string '100' matches INT 100)
+8. Case-insensitive matching follows SQL Server default collation
+9. Empty strings are handled correctly
+10. All temporary tables properly cleaned up
+
+============================================================================
+END OF TEST EXECUTION
+============================================================================

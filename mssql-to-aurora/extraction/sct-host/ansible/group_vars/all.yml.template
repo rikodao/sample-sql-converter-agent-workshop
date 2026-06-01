@@ -1,0 +1,37 @@
+# =============================================================================
+# group_vars/all.yml.template
+# all.yml にコピーして編集してください (機密値が含まれる場合は ansible-vault 推奨)
+# =============================================================================
+
+# --- SQL Server 共通 ---
+mssql_version: "2022"            # 2022 or 2019
+mssql_edition: "Developer"       # Developer (無償・評価) / Express / Standard / Enterprise / Web
+mssql_sa_password: "ChangeMe!Strong#Pass2026"  # 強度: 大文字・小文字・数字・記号・8文字以上
+
+# --- ネットワーク ---
+mssql_listen_port: 1433
+mssql_open_firewall: true        # ufw で 1433/tcp を許可するか
+mssql_firewall_allowed_cidrs:    # ufw に許可する CIDR (空 → 全許可)
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+
+# --- バックアップ復元 (任意) ---
+mssql_restore_enabled: false     # true にすると S3 から bak を取得 + restore
+mssql_restore_bak_s3_uri: ""     # 例: s3://your-bucket/prod-mssql.bak
+mssql_restore_database_name: ""  # 復元先 DB 名 (例: YourAppDb)
+mssql_restore_local_path: "/var/opt/mssql/backup"
+# bak 内の論理ファイル名と物理パスの mapping
+# RESTORE FILELISTONLY で確認した値を入れる。空なら自動検出 (失敗したら手動指定)
+mssql_restore_file_moves: []
+  # - logical_name: "YourAppDb"
+  #   physical_path: "/var/opt/mssql/data/YourAppDb.mdf"
+  # - logical_name: "YourAppDb_log"
+  #   physical_path: "/var/opt/mssql/data/YourAppDb.ldf"
+
+# --- ストレージ ---
+# 大規模 DB を扱う場合、別 EBS を /var/opt/mssql にマウントするのがオススメ
+# (本 playbook は EC2 構築は行わないため、CDK or 手動で事前準備)
+mssql_data_volume_mount: "/var/opt/mssql"
+
+# --- AWS CLI / region (S3 から bak を取る場合に必要) ---
+aws_region: "us-east-1"

@@ -1,0 +1,105 @@
+================================================================================
+STAGE 3: T-SQL → PL/pgSQL CONVERSION (AURORA POSTGRESQL NATIVE)
+================================================================================
+Object: PROCEDURE dbo.usp_propagate_salary_raise
+Timestamp: Stage 3 Execution
+Agent: T-SQL to PL/pgSQL Conversion Specialist
+
+================================================================================
+SECTION 1: PRE-FLIGHT CHECKS
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+Required files from Stage 1:
+  - mssql.sql: ❌ NOT FOUND
+
+Status: ❌ FAILED - Source DDL is missing
+
+1.2 Stage 2 Status Review
+--------------------------
+From babelfish_attempt.txt:
+  - Stage 2 Result: CONNECTION_ERROR
+  - Babelfish verification: NOT COMPLETED
+  - Reason: Missing Stage 1 artifacts + Babelfish connection failure
+
+================================================================================
+SECTION 2: EXECUTION DECISION
+================================================================================
+
+Per workflow requirements and 🚫 ABSOLUTE PROHIBITION rules:
+
+❌ Cannot proceed with T-SQL → PL/pgSQL conversion
+   Reason: No source DDL available (mssql.sql does not exist)
+
+❌ PROHIBITED ACTIONS (NOT TAKEN):
+   - Creating postgres.sql with speculative/fabricated code
+   - Generating "sample" conversion without actual source
+   - Assuming structure based on object name alone
+   - Creating placeholder code with "this might work" comments
+
+DECISION: ABORT STAGE 3 IMMEDIATELY
+
+Rationale:
+  Without the source T-SQL DDL from Stage 1, any conversion attempt would be
+  pure fabrication. The workflow explicitly prohibits generating code without
+  verified source material.
+
+================================================================================
+SECTION 3: ROOT CAUSE ANALYSIS
+================================================================================
+
+Chain of Failures:
+  1. Stage 1 did not successfully extract DDL from MSSQL
+     → mssql.sql was never created
+  
+  2. Stage 2 could not verify Babelfish compatibility
+     → No source DDL + connection failure
+  
+  3. Stage 3 cannot convert non-existent source
+     → Conversion requires actual T-SQL input
+
+Critical Missing Artifact:
+  - mssql.sql (Source DDL from MSSQL)
+
+================================================================================
+SECTION 4: RECOMMENDATIONS
+================================================================================
+
+To successfully complete Stage 3, the following must be resolved:
+
+1. Execute Stage 1 successfully:
+   - Verify MSSQL connectivity
+   - Extract DDL for dbo.usp_propagate_salary_raise
+   - Generate mssql.sql with complete source code
+
+2. (Optional) Complete Stage 2:
+   - Fix Babelfish environment if migration path includes Babelfish
+   - Or skip Stage 2 if direct MSSQL → Aurora PostgreSQL migration
+
+3. Re-run Stage 3:
+   - Only after mssql.sql is available
+
+================================================================================
+FINAL RESULT
+================================================================================
+
+RESULT: PREREQUISITE_FAILURE
+
+Stage 3 Status: BLOCKED - Cannot convert without source DDL
+Reason: Missing mssql.sql from Stage 1
+postgres.sql: NOT CREATED (correctly, per prohibition rules)
+
+Files Created:
+  - postgres_blocked.txt (this file)
+
+Files NOT Created (correctly):
+  - postgres.sql (would be fabrication without source)
+
+Next Steps:
+  1. Resolve Stage 1 execution to obtain mssql.sql
+  2. Re-attempt Stage 3 conversion
+
+================================================================================
+END OF STAGE 3 ATTEMPT LOG
+================================================================================

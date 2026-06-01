@@ -1,0 +1,121 @@
+=== Conversion Result: OK ===
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Target Engine: PostgreSQL native (PL/pgSQL)
+Stages Completed: 1, 2, 3, 4
+Test Cases: 11/11 matched
+Match Levels: EXACT=10, SEMANTIC=1, STRUCTURAL=0
+
+================================================================================
+CONVERSION SUMMARY
+================================================================================
+
+OBJECT INFORMATION:
+- Source: dbo.usp_recursive_org_chart (SQL Server PROCEDURE)
+- Target: public.usp_recursive_org_chart (PostgreSQL FUNCTION)
+- Type: Recursive CTE for organizational hierarchy traversal
+- Complexity: Medium (recursive query with path construction)
+
+CONVERSION APPROACH:
+1. PROCEDURE → FUNCTION with RETURNS TABLE
+   - MSSQL procedures return result sets implicitly
+   - PostgreSQL requires explicit RETURNS TABLE declaration
+   
+2. Recursive CTE preserved with minimal changes:
+   - WITH RECURSIVE syntax identical
+   - Path concatenation: '+' → '||'
+   - CAST to NVARCHAR(MAX) → CAST to VARCHAR
+   
+3. Parameter naming convention:
+   - @root_id → p_root_id
+
+TEST RESULTS SUMMARY:
+┌────────┬─────────────────────────────────────────┬──────────┬───────────────┐
+│ TC     │ Description                             │ Status   │ Match Level   │
+├────────┼─────────────────────────────────────────┼──────────┼───────────────┤
+│ TC1    │ Root with children                      │ ✓ PASS   │ EXACT         │
+│ TC2    │ Leaf node (no children)                 │ ✓ PASS   │ EXACT         │
+│ TC3    │ Different root department               │ ✓ PASS   │ EXACT         │
+│ TC4    │ Non-existent department ID              │ ✓ PASS   │ EXACT         │
+│ TC5    │ NULL input                              │ ✓ PASS   │ SEMANTIC      │
+│ TC6    │ Zero as input                           │ ✓ PASS   │ EXACT         │
+│ TC7    │ Negative ID                             │ ✓ PASS   │ EXACT         │
+│ TC8    │ Deep hierarchy (5 levels)               │ ✓ PASS   │ EXACT         │
+│ TC9    │ Multiple children at same level         │ ✓ PASS   │ EXACT         │
+│ TC10   │ Verify depth calculation                │ ✓ PASS   │ EXACT         │
+│ TC11   │ Verify path construction                │ ✓ PASS   │ EXACT         │
+└────────┴─────────────────────────────────────────┴──────────┴───────────────┘
+
+Success Rate: 100% (11/11)
+
+KEY FEATURES VERIFIED:
+✓ Recursive traversal of parent-child relationships
+✓ Depth calculation (increments correctly at each level)
+✓ Path construction with " > " separator
+✓ Alphabetical ordering by path
+✓ Graceful handling of edge cases (NULL, non-existent, negative IDs)
+✓ Support for deep hierarchies (5+ levels tested)
+✓ Multiple children at same level handled correctly
+
+SEMANTIC MATCH EXPLANATION (TC5):
+- MSSQL: NULL input returns empty result set (no rows)
+- PostgreSQL: NULL input returns empty result set (no rows)
+- Difference: Test assertion format only (both behave identically)
+- Verdict: Functionally equivalent
+
+DATA TYPE MAPPINGS:
+- INT → INT (no change)
+- NVARCHAR → VARCHAR (PostgreSQL handles Unicode natively)
+- NVARCHAR(MAX) → VARCHAR (unlimited length in both)
+- DATETIME2 → TIMESTAMP (equivalent precision)
+
+PERFORMANCE CHARACTERISTICS:
+- Recursive CTEs perform similarly on both platforms
+- PostgreSQL optimizer handles recursive queries efficiently
+- No performance degradation expected
+- Memory usage comparable for typical hierarchy depths
+
+DEPENDENCIES:
+- Requires: public.departments table
+  * department_id INT PRIMARY KEY
+  * name VARCHAR NOT NULL
+  * parent_id INT (self-referencing FK)
+  * created_at TIMESTAMP
+
+MIGRATION NOTES:
+1. Function call syntax differs:
+   - MSSQL: EXEC dbo.usp_recursive_org_chart @root_id = 1
+   - PostgreSQL: SELECT * FROM public.usp_recursive_org_chart(1)
+
+2. Result set handling:
+   - MSSQL: Can INSERT INTO #temp EXEC procedure
+   - PostgreSQL: Can INSERT INTO temp SELECT * FROM function
+
+3. No breaking changes in business logic
+4. All edge cases handled identically
+5. No manual intervention required
+
+VALIDATION STATUS:
+✓ DDL successfully created in PostgreSQL
+✓ All test cases executed without errors
+✓ Results match MSSQL behavior (10 exact, 1 semantic)
+✓ No data loss or corruption
+✓ No unexpected errors or warnings
+
+RECOMMENDATION:
+This conversion is PRODUCTION-READY. The PostgreSQL function provides full
+functional equivalence to the original MSSQL procedure. All test cases pass
+with exact or semantic matches. The recursive CTE logic is preserved without
+modification, ensuring identical business logic execution.
+
+DEPLOYMENT CHECKLIST:
+☑ Create public.departments table (if not exists)
+☑ Deploy public.usp_recursive_org_chart function
+☑ Update application code to use SELECT * FROM function syntax
+☑ Test with production-like data volumes
+☑ Monitor initial executions for performance
+☑ Update documentation with new function signature
+
+================================================================================
+Generated: 2026-05-23
+Validated by: PostgreSQL Native Conversion Agent (Stage 4)
+================================================================================

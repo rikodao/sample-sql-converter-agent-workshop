@@ -1,0 +1,25 @@
+STAGE 1: PREREQUISITE CHECK - dbo.fn_get_fiscal_year
+================================================================
+
+Object Type: SQL_SCALAR_FUNCTION
+Object ID: 1301579675
+Created: 2026-05-23T23:20:23.153000
+Modified: 2026-05-23T23:20:23.153000
+
+Dependencies:
+- No dependencies found (standalone function)
+
+Encryption Status: NOT ENCRYPTED (definition retrieved successfully)
+
+Function Signature:
+- Input: @d DATE
+- Returns: INT
+- Logic: Returns fiscal year (April-based) for given date
+  - If month < 4, returns year - 1
+  - Otherwise returns year
+
+Prerequisites Status: ✓ PASSED
+- Object exists
+- Definition is accessible
+- No external dependencies
+- Ready for testing

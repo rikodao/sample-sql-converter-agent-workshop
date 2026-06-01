@@ -1,0 +1,125 @@
+================================================================
+BABELFISH COMPATIBILITY: SUCCESS
+================================================================
+Object Type: SCALAR FUNCTION
+Object Name: dbo.fn_get_fiscal_year
+Verification Date: 2026-05-23
+
+================================================================
+COMPATIBILITY SUMMARY
+================================================================
+Status: ✓ FULLY COMPATIBLE
+DDL Deployment: SUCCESS (no modifications required)
+Test Execution: SUCCESS (13/13 test cases passed)
+Result Matching: PERFECT (100% exact match)
+
+================================================================
+TEST RESULTS
+================================================================
+Total Test Cases: 13
+Match Levels:
+  - EXACT: 13 (100.0%)
+  - SEMANTIC: 0 (0.0%)
+  - STRUCTURAL: 0 (0.0%)
+  - MISMATCH: 0 (0.0%)
+
+Test Coverage:
+  ✓ Normal cases: 3 tests
+  ✓ Boundary values: 7 tests
+  ✓ Edge cases: 3 tests
+  ✓ NULL handling: 1 test
+
+================================================================
+DETAILED TEST CASE RESULTS
+================================================================
+TC1:  Mid fiscal year (July 2023) → 2023 [EXACT] ✓
+TC2:  Start of fiscal year (April 1st) → 2023 [EXACT] ✓
+TC3:  End of fiscal year (March 31st) → 2022 [EXACT] ✓
+TC4:  January (Q4 of previous FY) → 2022 [EXACT] ✓
+TC5:  February (Q4 of previous FY) → 2022 [EXACT] ✓
+TC6:  March (last month of FY) → 2022 [EXACT] ✓
+TC7:  December (Q3 of FY) → 2023 [EXACT] ✓
+TC8:  NULL input → null [EXACT] ✓
+TC9:  Leap year February 29th → 2023 [EXACT] ✓
+TC10: Very old date (1900) → 1899 [EXACT] ✓
+TC11: Future date (2100) → 2100 [EXACT] ✓
+TC12: April 30th → 2023 [EXACT] ✓
+TC13: May 1st → 2023 [EXACT] ✓
+
+================================================================
+T-SQL FEATURES VALIDATED
+================================================================
+✓ Scalar function definition (CREATE FUNCTION ... RETURNS)
+✓ DATE data type parameter
+✓ INT return type
+✓ DECLARE with inline initialization
+✓ YEAR() built-in function
+✓ MONTH() built-in function
+✓ IF conditional statement
+✓ SET variable assignment
+✓ RETURN statement
+✓ NULL propagation behavior
+
+================================================================
+COMPATIBILITY NOTES
+================================================================
+This scalar function demonstrates excellent Babelfish compatibility:
+
+1. Core T-SQL Support:
+   - All date functions (YEAR, MONTH) work identically
+   - Variable declaration and assignment syntax fully supported
+   - Control flow (IF statement) behaves identically
+   - NULL handling matches SQL Server behavior
+
+2. No Modifications Required:
+   - DDL deployed without any syntax changes
+   - No workarounds or compatibility adjustments needed
+   - Function body is identical between MSSQL and Babelfish
+
+3. Performance Characteristics:
+   - Simple scalar function with minimal overhead
+   - No table access or complex operations
+   - Expected to perform similarly on both platforms
+
+4. Edge Cases Validated:
+   - Historical dates (1900) handled correctly
+   - Future dates (2100) handled correctly
+   - Leap year dates (Feb 29) handled correctly
+   - NULL input returns NULL as expected
+
+================================================================
+MIGRATION RECOMMENDATION
+================================================================
+✓ APPROVED FOR MIGRATION
+
+This function can be migrated to Babelfish with ZERO modifications.
+The DDL is fully compatible and all test cases pass with exact results.
+
+Migration Steps:
+1. Deploy the original mssql.sql DDL to Babelfish (no changes needed)
+2. Verify with the provided test suite
+3. Update application connection strings to point to Babelfish
+
+Risk Level: NONE
+Confidence: 100%
+Estimated Effort: < 5 minutes (deployment only)
+
+================================================================
+ARTIFACTS GENERATED
+================================================================
+✓ babelfish_attempt.txt - Detailed verification log
+✓ babelfish_test.sql - Test suite (identical to mssql_test.sql)
+✓ babelfish_test.txt - Test execution results
+✓ BABELFISH_OK.txt - This compatibility certificate
+
+================================================================
+CONCLUSION
+================================================================
+The scalar function dbo.fn_get_fiscal_year is FULLY COMPATIBLE with
+Babelfish for Aurora PostgreSQL. No syntax translation or behavioral
+adjustments are required. This object is ready for production migration.
+
+Verified by: Babelfish Compatibility Verification Agent (Stage 2)
+Verification Method: Automated DDL deployment + comprehensive test suite
+Result: PASS (100% compatibility)
+================================================================

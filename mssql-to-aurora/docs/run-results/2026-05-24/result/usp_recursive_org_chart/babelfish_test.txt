@@ -1,0 +1,169 @@
+============================================================
+TEST RESULTS: dbo.usp_recursive_org_chart
+Target: Babelfish for Aurora PostgreSQL
+Execution Date: 2026-05-23
+============================================================
+
+============= TEST CASE 1: Normal - Root with children =============
+Description: Execute with root department that has child departments
+Input: @root_id = 1 (Engineering)
+Expected: Returns root and all descendants with depth and path
+
+RESULTS:
+Status: ✗ FAILED
+Error Code: 42000
+Error Message: column "name" does not exist
+SQL State: 42000
+Full Error: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column "name" does not exist (33557097)
+
+Rows returned: 0 (error occurred)
+
+
+============= TEST CASE 2: Normal - Leaf node (no children) =============
+Description: Execute with leaf department (no children)
+Input: @root_id = 2 (Backend)
+Expected: Returns only the single department
+
+RESULTS:
+Status: ✗ FAILED
+Error Code: 42000
+Error Message: column "name" does not exist
+SQL State: 42000
+Full Error: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column "name" does not exist (33557097)
+
+Rows returned: 0 (error occurred)
+
+
+============= TEST CASE 3: Normal - Different root department =============
+Description: Execute with different root department
+Input: @root_id = 4 (Sales)
+Expected: Returns the Sales department
+
+RESULTS:
+Status: ✗ FAILED
+Error Code: 42000
+Error Message: column "name" does not exist
+SQL State: 42000
+Full Error: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column "name" does not exist (33557097)
+
+Rows returned: 0 (error occurred)
+
+
+============= TEST CASE 4: Boundary - Non-existent department ID =============
+Description: Execute with non-existent department ID
+Input: @root_id = 99999
+Expected: Returns empty result set (0 rows)
+
+RESULTS:
+Status: ✗ FAILED
+Error Code: 42000
+Error Message: column "name" does not exist
+SQL State: 42000
+Full Error: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column "name" does not exist (33557097)
+
+Rows returned: 0 (error occurred)
+
+
+============= TEST CASE 5: Boundary - NULL input =============
+Description: Execute with NULL as input parameter
+Input: @root_id = NULL
+Expected: Returns empty result set (NULL in WHERE clause evaluates to false)
+
+RESULTS:
+Status: ✗ FAILED
+Error Code: 42000
+Error Message: column "name" does not exist
+SQL State: 42000
+Full Error: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column "name" does not exist (33557097)
+
+Rows returned: 0 (error occurred)
+
+
+============= TEST CASE 6: Boundary - Zero as input =============
+Description: Execute with zero as department ID
+Input: @root_id = 0
+Expected: Returns empty result set (no department with ID 0)
+
+RESULTS:
+Status: ✗ FAILED
+Error Code: 42000
+Error Message: column "name" does not exist
+SQL State: 42000
+Full Error: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column "name" does not exist (33557097)
+
+Rows returned: 0 (error occurred)
+
+
+============= TEST CASE 7: Exception - Negative ID =============
+Description: Execute with negative department ID
+Input: @root_id = -1
+Expected: Returns empty result set (no department with negative ID)
+
+RESULTS:
+Status: ✗ FAILED
+Error Code: 42000
+Error Message: column "name" does not exist
+SQL State: 42000
+Full Error: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column "name" does not exist (33557097)
+
+Rows returned: 0 (error occurred)
+
+
+============= TEST CASE 8: Deep hierarchy - Multi-level recursion =============
+Status: NOT EXECUTED (early failure in TC1-7)
+
+
+============= TEST CASE 9: Multiple children at same level =============
+Status: NOT EXECUTED (early failure in TC1-7)
+
+
+============= TEST CASE 10: Verify depth calculation =============
+Status: NOT EXECUTED (early failure in TC1-7)
+
+
+============= TEST CASE 11: Verify path construction =============
+Status: NOT EXECUTED (early failure in TC1-7)
+
+
+============================================================
+SUMMARY
+============================================================
+Total Test Cases: 11
+Passed: 0
+Failed: 7 (runtime error)
+Not Executed: 4
+Success Rate: 0%
+
+FAILURE ANALYSIS:
+============================================================
+Category: RUNTIME ERROR - SCHEMA MISMATCH
+Root Cause: Column name mismatch between MSSQL and Babelfish environments
+
+MSSQL Environment:
+  - departments.name (NVARCHAR)
+
+Babelfish Environment:
+  - departments.department_name (VARCHAR)
+
+The stored procedure was created successfully (DDL passed), but
+execution fails because the referenced column "name" does not exist
+in the Babelfish environment's departments table.
+
+This is an ENVIRONMENT CONFIGURATION issue, not a Babelfish
+compatibility issue. The T-SQL syntax is fully supported.
+
+NOTES:
+============================================================
+- DDL deployment: SUCCESS
+- Syntax compatibility: FULL
+- Runtime compatibility: BLOCKED by schema mismatch
+- Recursive CTE: Supported by Babelfish
+- All T-SQL features used in this procedure are compatible
+
+RECOMMENDATION:
+============================================================
+1. Align table schemas between MSSQL and Babelfish environments
+2. If schema alignment is not possible, modify the procedure to
+   use "department_name" instead of "name"
+3. Consider using Stage 4 (PL/pgSQL conversion) to handle schema
+   differences programmatically

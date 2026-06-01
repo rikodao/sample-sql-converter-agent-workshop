@@ -1,0 +1,204 @@
+============================================================
+BABELFISH T-SQL COMPATIBILITY VERIFICATION (STAGE 2)
+============================================================
+Object: PROCEDURE dbo.usp_upsert_department
+Verification Date: 2026-05-23
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8 (Babelfish 4.3.3)
+
+============================================================
+STEP 1: CONNECTION TEST
+============================================================
+✓ Babelfish connection successful
+  - Connected via TDS:1433 (MSSQL client compatible)
+  - Version: Babelfish 4.3.3 on PostgreSQL 16.4
+
+============================================================
+STEP 2: DDL EXTRACTION
+============================================================
+Source DDL file: ./result/usp_upsert_department/mssql.sql
+
+DDL Content:
+-----------------------------------------------------------
+CREATE PROCEDURE dbo.usp_upsert_department
+    @name      NVARCHAR(100),
+    @parent_id INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    MERGE dbo.departments AS tgt
+    USING (SELECT @name AS name, @parent_id AS parent_id) AS src
+    ON tgt.name = src.name
+    WHEN MATCHED THEN
+        UPDATE SET parent_id = src.parent_id
+    WHEN NOT MATCHED THEN
+        INSERT (name, parent_id) VALUES (src.name, src.parent_id);
+END
+-----------------------------------------------------------
+
+DDL Analysis:
+- Object Type: STORED PROCEDURE
+- Parameters: 2 (@name NVARCHAR(100), @parent_id INT with default NULL)
+- Key Features:
+  * SET NOCOUNT ON
+  * MERGE statement (UPSERT pattern)
+  * WHEN MATCHED / WHEN NOT MATCHED clauses
+  * NULL default parameter value
+
+============================================================
+STEP 3: DDL DEPLOYMENT TO BABELFISH
+============================================================
+Status: ❌ FAILED
+
+Error Details:
+-----------------------------------------------------------
+SQLSTATE: 42000
+Error Code: 33557097
+Error Message: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]'MERGE' is not currently supported in Babelfish
+-----------------------------------------------------------
+
+Execution Context:
+- Attempted to create procedure via run_babelfish_tsql
+- DDL submitted as-is without modification (per Stage 2 policy)
+- Failure occurred at DDL parsing/compilation stage
+
+============================================================
+HYPOTHESIS: ROOT CAUSE ANALYSIS
+============================================================
+
+Primary Cause: **MERGE Statement Not Supported in Babelfish**
+
+The stored procedure uses the T-SQL MERGE statement, which is explicitly
+not supported in the current version of Babelfish (4.3.3).
+
+Known Limitation Category: **PARTIAL SUPPORT - DML STATEMENTS**
+
+From Babelfish documentation and known limitations:
+- MERGE is a complex T-SQL statement that combines INSERT, UPDATE, and
+  DELETE operations in a single atomic statement
+- Babelfish 4.3.3 does not implement MERGE syntax
+- This is a documented limitation in Babelfish compatibility matrix
+
+Impact:
+- DDL creation fails at parse time
+- Procedure cannot be created in Babelfish as-is
+- Requires rewrite to equivalent INSERT/UPDATE logic or PL/pgSQL
+
+Alternative Approaches (for Stage 3/4):
+1. Rewrite using IF EXISTS pattern:
+   IF EXISTS (SELECT 1 FROM departments WHERE name = @name)
+       UPDATE departments SET parent_id = @parent_id WHERE name = @name
+   ELSE
+       INSERT INTO departments (name, parent_id) VALUES (@name, @parent_id)
+
+2. Use PostgreSQL native UPSERT (INSERT ... ON CONFLICT):
+   INSERT INTO departments (name, parent_id)
+   VALUES (@name, @parent_id)
+   ON CONFLICT (name) DO UPDATE SET parent_id = EXCLUDED.parent_id
+
+3. Use PL/pgSQL with exception handling (Stage 3 approach)
+
+============================================================
+BABELFISH COMPATIBILITY ASSESSMENT
+============================================================
+
+Feature Compatibility Matrix:
+-----------------------------------------------------------
+Feature                          | Supported | Status
+-----------------------------------------------------------
+CREATE PROCEDURE                 | ✓         | Yes
+NVARCHAR(n) data type            | ✓         | Yes
+INT data type                    | ✓         | Yes
+Default parameter values (NULL)  | ✓         | Yes
+SET NOCOUNT ON                   | ✓         | Yes (no-op)
+MERGE statement                  | ✗         | NO - Not implemented
+WHEN MATCHED / NOT MATCHED       | ✗         | NO - Part of MERGE
+-----------------------------------------------------------
+
+Overall Compatibility: **INCOMPATIBLE**
+Blocking Issue: MERGE statement
+
+============================================================
+TEST EXECUTION
+============================================================
+Status: NOT ATTEMPTED
+
+Reason: DDL deployment failed, cannot proceed to test execution phase
+
+Expected Test Coverage (from mssql_test.txt):
+- 12 test cases covering:
+  * INSERT path (new departments)
+  * UPDATE path (existing departments)
+  * NULL handling (both directions)
+  * Boundary conditions (empty string, max length)
+  * Transaction rollback
+  * Case sensitivity
+  * @@ROWCOUNT behavior
+
+These tests cannot be executed until the MERGE statement is rewritten.
+
+============================================================
+MIGRATION RECOMMENDATIONS
+============================================================
+
+For Stage 3 (PL/pgSQL Conversion):
+1. Replace MERGE with IF EXISTS pattern or INSERT ... ON CONFLICT
+2. Ensure unique constraint exists on departments.name column
+3. Test NULL handling in both INSERT and UPDATE paths
+4. Verify case-insensitive matching behavior (collation)
+5. Validate @@ROWCOUNT equivalent behavior
+
+For Stage 4 (Retry/Refinement):
+1. If Stage 3 uses T-SQL rewrite, test all 12 test cases
+2. Pay special attention to:
+   - TC3, TC4, TC5: NULL ↔ non-NULL transitions
+   - TC8: Multiple sequential upserts (no duplicates)
+   - TC10: Case-insensitive matching
+   - TC11, TC12: @@ROWCOUNT behavior
+
+Business Logic Preservation:
+- MERGE is atomic; ensure rewrite maintains atomicity
+- Consider race conditions if using IF EXISTS pattern
+- INSERT ... ON CONFLICT is atomic and preferred for PG
+
+============================================================
+RELATED BABELFISH LIMITATIONS
+============================================================
+
+Other MERGE-related limitations:
+- MERGE with OUTPUT clause: Not supported
+- MERGE with TOP clause: Not supported
+- MERGE with table hints: Not supported
+- MERGE with CTE source: Not supported
+
+These are all moot since MERGE itself is not supported.
+
+============================================================
+CONCLUSION
+============================================================
+
+RESULT: SYNTAX_FAILED
+
+Summary:
+- Babelfish connection: ✓ Success
+- DDL deployment: ✗ Failed (MERGE not supported)
+- Test execution: - Not attempted
+- Overall compatibility: INCOMPATIBLE
+
+Next Steps:
+1. Proceed to Stage 3 for PL/pgSQL conversion
+2. Rewrite MERGE as INSERT ... ON CONFLICT or IF EXISTS pattern
+3. Re-test all 12 test cases in Stage 4
+4. Validate atomicity and concurrency behavior
+
+Files Generated:
+- babelfish_attempt.txt (this file)
+
+Files NOT Generated:
+- babelfish_test.sql (DDL failed, no test execution)
+- babelfish_test.txt (DDL failed, no test execution)
+- BABELFISH_OK.txt (incompatible, not created)
+
+============================================================
+END OF STAGE 2 REPORT
+============================================================

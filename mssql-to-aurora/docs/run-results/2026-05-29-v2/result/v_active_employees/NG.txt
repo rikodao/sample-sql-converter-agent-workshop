@@ -1,0 +1,113 @@
+=== Conversion Result: NG ===
+Object: VIEW dbo.v_active_employees
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE SUMMARY
+================================================================================
+
+Stage 4 (Final Verification) cannot proceed because Stage 1 failed to extract
+the source object from MSSQL due to connection errors.
+
+--- Missing Prerequisites ---
+
+Required Files (NOT FOUND):
+1. mssql.sql - Source T-SQL DDL definition
+2. mssql_test.sql - MSSQL test cases
+3. mssql_test.txt - MSSQL test execution results
+4. postgres.sql - PostgreSQL converted DDL
+
+All of these files are missing because Stage 1 could not connect to the
+Source RDS for SQL Server instance.
+
+--- Root Cause ---
+
+Connection Error: "You must specify a region."
+
+The AWS region configuration for the Source RDS for SQL Server connection
+is missing or improperly configured. This prevented:
+- Object existence verification
+- DDL extraction
+- Dependency analysis
+- Test case creation
+- Test execution
+
+--- Impact on Stage 4 ---
+
+Stage 4 requires:
+✅ mssql_test.txt (actual MSSQL execution results) - MISSING
+✅ postgres.sql (converted DDL) - MISSING
+✅ postgres_test.sql (converted test cases) - CANNOT CREATE
+✅ postgres_test.txt (actual PostgreSQL execution results) - CANNOT CREATE
+
+Without these artifacts, it is IMPOSSIBLE to:
+- Create PostgreSQL test cases (no source test to convert)
+- Execute tests on PostgreSQL (no DDL to deploy)
+- Compare results (no baseline from MSSQL)
+- Validate conversion correctness
+
+================================================================================
+HYPOTHESIS
+================================================================================
+
+This is NOT a conversion failure or compatibility issue.
+This is an infrastructure/configuration failure that occurred before any
+conversion work could begin.
+
+The PostgreSQL compatibility of VIEW dbo.v_active_employees remains UNKNOWN
+because the source object could not be retrieved for analysis.
+
+Possible causes:
+1. AWS region environment variable not set
+2. AWS credentials missing or expired
+3. Source RDS endpoint not accessible from execution environment
+4. Network connectivity issues (security groups, VPC routing)
+
+================================================================================
+RECOMMENDED ACTION
+================================================================================
+
+1. **Immediate**: Verify AWS configuration
+   - Set AWS_REGION or AWS_DEFAULT_REGION environment variable
+   - Verify AWS credentials are valid and have RDS access permissions
+   - Test connectivity: aws rds describe-db-instances --region <region>
+
+2. **Network**: Check connectivity to Source RDS
+   - Verify security group allows inbound connections from execution environment
+   - Verify RDS instance is in "available" state
+   - Test connection: telnet <rds-endpoint> 1433
+
+3. **Re-run Pipeline**: After resolving connectivity
+   - Re-execute Stage 1 to extract DDL and create test cases
+   - Stage 2, 3, 4 will automatically proceed if Stage 1 succeeds
+
+4. **Manual Verification** (if automated retry fails):
+   - Manually extract VIEW definition from MSSQL
+   - Place in ./result/v_active_employees/mssql.sql
+   - Create test cases manually in mssql_test.sql
+   - Execute tests and save results to mssql_test.txt
+   - Re-run Stage 3 and Stage 4
+
+================================================================================
+COMPLIANCE WITH WORKFLOW POLICY
+================================================================================
+
+Per "🚫 絶対禁止事項 — OK 判定の前提条件と捏造禁止":
+
+❌ mssql_test.txt does NOT exist (Stage 1 failed)
+❌ postgres.sql does NOT exist (Stage 3 blocked)
+❌ Cannot execute postgres_test.sql (no DDL to deploy)
+❌ Cannot create postgres_test.txt (no tests to run)
+
+Therefore:
+✅ NG.txt created with NG Reason: PREREQUISITE_FAILED
+✅ OK.txt MUST NOT be created (would be fraudulent)
+✅ No fabricated test results or "expected" outputs
+
+This NG.txt accurately reflects the actual state: conversion was not attempted
+due to missing source data, not due to conversion failure.
+
+================================================================================
+STATUS: PREREQUISITE_FAILED - REQUIRES INFRASTRUCTURE FIX
+================================================================================

@@ -1,0 +1,250 @@
+================================================================================
+POSTGRESQL NATIVE CONVERSION - STAGE 3
+================================================================================
+Object: dbo.usp_encrypted_demo
+Type: STORED PROCEDURE
+Conversion Date: 2026-05-23
+Target: Aurora PostgreSQL (native PL/pgSQL)
+================================================================================
+
+STAGE 3 OBJECTIVE:
+Convert T-SQL stored procedure to PostgreSQL native PL/pgSQL for objects that
+could not run on Babelfish, or for native PostgreSQL deployment requirements.
+
+================================================================================
+CONVERSION STATUS: UNSUPPORTED - CANNOT CONVERT
+================================================================================
+
+REASON: WITH ENCRYPTION - SOURCE CODE NOT AVAILABLE
+
+Category: PREREQUISITE FAILURE (DDL Unavailable)
+
+Detailed Explanation:
+The stored procedure 'dbo.usp_encrypted_demo' was created in SQL Server with
+the WITH ENCRYPTION option. This SQL Server proprietary feature encrypts the
+procedure definition in the system catalog, making it impossible to retrieve
+the source code through any standard metadata query.
+
+Impact on Migration Workflow:
+- Stage 1: FAILED - Could not extract DDL from SQL Server
+  * sys.sql_modules.definition returns NULL for encrypted objects
+  * OBJECT_DEFINITION() returns NULL
+  * sp_helptext returns "The text for object is encrypted."
+  
+- Stage 2: BLOCKED - No DDL available to test on Babelfish
+  * Cannot verify Babelfish compatibility without source code
+  * Cannot generate test cases without knowing procedure logic
+  
+- Stage 3: BLOCKED - No DDL available to convert to PL/pgSQL
+  * Cannot perform T-SQL → PL/pgSQL conversion without source code
+  * This stage requires mssql.sql as input, which does not exist
+  
+- Stage 4: BLOCKED - No converted code to validate on PostgreSQL
+  * Cannot test on Aurora PostgreSQL without converted code
+
+Technical Background:
+SQL Server's WITH ENCRYPTION feature uses a proprietary encryption algorithm
+to obfuscate object definitions in the system catalog. This encryption:
+- Is one-way (no official decryption method exists)
+- Is SQL Server-specific (not portable to other database systems)
+- Prevents all metadata-based extraction methods
+- Was designed to protect intellectual property, not for security
+
+PostgreSQL Equivalent:
+PostgreSQL does NOT have an equivalent to WITH ENCRYPTION because:
+- PostgreSQL relies on file system permissions for source code protection
+- The PostgreSQL philosophy favors transparency and auditability
+- Encrypted code cannot be debugged, maintained, or migrated effectively
+- Security is better achieved through access control and SECURITY DEFINER
+
+================================================================================
+REQUIRED ACTIONS TO PROCEED WITH MIGRATION
+================================================================================
+
+To migrate this encrypted stored procedure, you MUST obtain the original
+unencrypted source code. Possible sources include:
+
+1. Source Control Systems:
+   - Git, SVN, TFS, Azure DevOps, GitHub, GitLab, Bitbucket
+   - Check repository history for the original CREATE PROCEDURE script
+   - Look for deployment scripts or database migration files
+   - Search for .sql files containing the procedure name
+
+2. Deployment Scripts:
+   - Original database installation scripts
+   - Application deployment packages
+   - Database change management scripts (Liquibase, Flyway, etc.)
+   - Release management documentation
+
+3. Development Team:
+   - Contact the original developers or database administrators
+   - Check team documentation or wikis
+   - Review code review systems (Azure DevOps, Jira, etc.)
+   - Check email archives for script attachments
+
+4. Database Backups:
+   - Restore a backup from BEFORE the encryption was applied
+   - Extract the definition from the unencrypted version
+   - Note: This only works if you have pre-encryption backups
+
+5. Change Management Systems:
+   - ServiceNow, Remedy, or other ITSM tools
+   - Database change request records
+   - Audit logs with attached scripts
+
+6. Documentation:
+   - Technical design documents
+   - Database schema documentation
+   - API documentation that describes procedure behavior
+   - Business requirements that specify procedure logic
+
+7. Reverse Engineering (Last Resort):
+   - Black-box testing with various input parameters
+   - Analyze calling applications to understand behavior
+   - Review transaction logs for procedure execution patterns
+   - Recreate logic based on business requirements
+   - Validate with stakeholders before deployment
+
+================================================================================
+WORKFLOW ONCE SOURCE CODE IS OBTAINED
+================================================================================
+
+Step 1: Prepare Unencrypted DDL
+   - Remove the WITH ENCRYPTION clause from the CREATE PROCEDURE statement
+   - Save the unencrypted DDL to ./result/usp_encrypted_demo/mssql.sql
+   - Ensure the DDL is syntactically valid T-SQL
+
+Step 2: Create Test Cases
+   - Develop comprehensive test cases in ./result/usp_encrypted_demo/mssql_test.sql
+   - Include edge cases, error conditions, and typical usage scenarios
+   - Execute tests on SQL Server and save results to mssql_test.txt
+
+Step 3: Re-run Stage 1 (Validation)
+   - Validate the unencrypted DDL against SQL Server
+   - Ensure all dependencies are documented
+   - Verify test cases produce expected results
+
+Step 4: Re-run Stage 2 (Babelfish Compatibility)
+   - Test the DDL on Babelfish for SQL Server compatibility
+   - Compare test results between SQL Server and Babelfish
+   - Determine if Babelfish can run the procedure without modification
+
+Step 5: Run Stage 3 (PL/pgSQL Conversion) - THIS STAGE
+   - If Babelfish cannot run the procedure, convert to native PL/pgSQL
+   - Apply T-SQL → PL/pgSQL conversion rules
+   - Save converted code to postgres.sql
+   - Test syntax on Aurora PostgreSQL
+
+Step 6: Run Stage 4 (PostgreSQL Validation)
+   - Execute converted code on Aurora PostgreSQL
+   - Run test cases and compare results with SQL Server baseline
+   - Validate performance and behavior
+
+================================================================================
+SECURITY CONSIDERATIONS FOR POSTGRESQL MIGRATION
+================================================================================
+
+If the procedure was encrypted for security reasons, consider these PostgreSQL
+alternatives to protect sensitive logic:
+
+1. File System Permissions:
+   - Restrict access to PostgreSQL data directory
+   - Only database superusers can read function source code from disk
+   - Use operating system access controls
+
+2. Schema-Level Permissions:
+   - Create a separate schema for sensitive procedures
+   - REVOKE USAGE on the schema from public
+   - GRANT EXECUTE on specific functions without USAGE on schema
+   - Users can execute but cannot view source code via pg_proc
+
+3. SECURITY DEFINER:
+   - Create functions with SECURITY DEFINER attribute
+   - Function executes with privileges of the owner, not caller
+   - Useful for privilege elevation scenarios
+   - Example: CREATE FUNCTION f() ... SECURITY DEFINER;
+
+4. Row-Level Security (RLS):
+   - Implement fine-grained access control at the row level
+   - Policies can restrict data visibility based on user context
+   - More flexible than view-based security
+
+5. Application-Level Encryption:
+   - Encrypt sensitive data before storing in database
+   - Implement business logic in application tier
+   - Use PostgreSQL only for data storage
+
+6. Transparent Data Encryption (TDE):
+   - Encrypt data at rest using PostgreSQL TDE extensions
+   - Protects against physical media theft
+   - Does not protect source code from authorized users
+
+7. Obfuscation (Not Recommended):
+   - While possible to obfuscate PL/pgSQL code, it's not recommended
+   - Obfuscated code is difficult to maintain and debug
+   - PostgreSQL philosophy favors transparency
+
+Recommendation:
+Use a combination of file system permissions, schema-level access control,
+and SECURITY DEFINER to achieve security goals without encryption.
+
+================================================================================
+ALTERNATIVE: THIRD-PARTY DECRYPTION TOOLS (USE WITH CAUTION)
+================================================================================
+
+Warning: The following information is provided for completeness only.
+
+Third-party tools claim to decrypt SQL Server encrypted objects:
+- SQL Decryptor by Red Gate (discontinued)
+- Various open-source scripts on GitHub
+- Commercial forensic tools
+
+Legal and Ethical Considerations:
+- Decrypting objects may violate software licensing agreements
+- If you did not create the encrypted object, you may not have rights to decrypt
+- Consult with legal counsel before using decryption tools
+- Respect intellectual property rights
+
+Technical Limitations:
+- Decryption tools may not work on all SQL Server versions
+- Decrypted code may have formatting issues
+- No guarantee of 100% accurate decryption
+- Microsoft does not support or endorse these tools
+
+Recommendation:
+Always attempt to obtain the original source code through legitimate channels
+before considering decryption tools.
+
+================================================================================
+CONCLUSION
+================================================================================
+
+Conversion Status: UNSUPPORTED - CANNOT CONVERT
+
+Blocking Issue: WITH ENCRYPTION (source code not available)
+
+Files Generated:
+- postgres_unsupported.txt (this file)
+
+Files NOT Generated:
+- postgres.sql (cannot convert without source code)
+- postgres_test.sql (cannot create tests without knowing procedure logic)
+- postgres_test.txt (cannot execute tests without converted code)
+- POSTGRES_OK.txt (no successful conversion to report)
+
+Next Steps:
+1. Obtain original unencrypted source code (see "Required Actions" section)
+2. Place unencrypted DDL in ./result/usp_encrypted_demo/mssql.sql
+3. Create test cases in ./result/usp_encrypted_demo/mssql_test.sql
+4. Re-run Stage 1 (validation)
+5. Re-run Stage 2 (Babelfish compatibility)
+6. Re-run Stage 3 (this stage) with available source code
+7. Proceed to Stage 4 (PostgreSQL validation)
+
+Migration Status: BLOCKED
+
+Action Required: OBTAIN SOURCE CODE FROM SOURCE CONTROL OR DEVELOPMENT TEAM
+
+================================================================================
+RESULT: UNSUPPORTED - WITH ENCRYPTION (SOURCE CODE NOT AVAILABLE)
+================================================================================

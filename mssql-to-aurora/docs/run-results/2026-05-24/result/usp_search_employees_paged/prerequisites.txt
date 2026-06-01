@@ -1,0 +1,35 @@
+PREREQUISITE CHECK RESULT: PASS
+================================================================================
+Object: dbo.usp_search_employees_paged
+Type: SQL_STORED_PROCEDURE
+Created: 2026-05-23T23:20:23.240000
+Modified: 2026-05-23T23:20:23.240000
+
+ENCRYPTION STATUS: NOT ENCRYPTED (definition available)
+
+DEPENDENCIES:
+- dbo.employees (table)
+- dbo.departments (table)
+
+PARAMETERS:
+- @search_term NVARCHAR(100) - search keyword
+- @page_no INT = 1 - page number (default 1)
+- @page_size INT = 20 - page size (default 20)
+- @total_rows INT OUTPUT - total matching rows
+
+FUNCTIONALITY:
+This stored procedure performs paginated search on employees table.
+It searches across first_name, last_name, and email columns using LIKE pattern.
+Returns:
+1. @total_rows OUTPUT parameter with total matching count
+2. Result set with employee_id, full_name, department_name, email, row_num
+   for the requested page using OFFSET-FETCH pagination
+
+NOTES:
+- Uses OFFSET-FETCH for pagination (SQL Server 2012+)
+- Joins with departments table for department_name
+- Handles NULL email with ISNULL
+- Orders by last_name, first_name
+- ROW_NUMBER() is included in result set
+
+All prerequisites satisfied. Proceeding to DDL extraction.

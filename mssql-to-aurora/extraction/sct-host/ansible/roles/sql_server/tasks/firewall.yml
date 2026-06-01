@@ -1,0 +1,44 @@
+---
+# =============================================================================
+# UFW で 1433/tcp を許可 (SCT 接続用)
+# =============================================================================
+# Note: AWS EC2 Security Group とは別物。SG 側でも 1433 を許可する必要あり。
+#       UFW を使わない (SG だけで管理) なら mssql_open_firewall=false に。
+
+- name: ufw のデフォルトポリシーを確認
+  ansible.builtin.command: "ufw status"
+  register: ufw_status
+  changed_when: false
+  failed_when: false
+
+- name: ufw が installed されていることを再確認
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: SSH を許可 (ufw enable で締め出されないため)
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+
+- name: 1433/tcp を許可 (CIDR 制限あり)
+  community.general.ufw:
+    rule: allow
+    port: "{{ mssql_listen_port }}"
+    proto: tcp
+    src: "{{ item }}"
+  loop: "{{ mssql_firewall_allowed_cidrs }}"
+  when: mssql_firewall_allowed_cidrs | length > 0
+
+- name: 1433/tcp を全許可 (CIDR 未指定の場合)
+  community.general.ufw:
+    rule: allow
+    port: "{{ mssql_listen_port }}"
+    proto: tcp
+  when: mssql_firewall_allowed_cidrs | length == 0
+
+- name: ufw を有効化
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming

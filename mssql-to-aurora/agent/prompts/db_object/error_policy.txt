@@ -1,0 +1,17 @@
+<error_policy>
+## エラー時の挙動
+- 構文エラー: エラー内容を該当ステージのログファイル (例: `babelfish_attempt.txt`, `retry_log.txt`) に記録
+- ランタイムエラー: エラーメッセージ・スタックを記録し、テストケースは "EXPECTED_ERROR" でアサーションを書く
+- リトライ上限: Stage 4 の修正リトライは最大3回。それでも NG なら `NG.txt` を作成して終了
+- 致命的なエラー (DB接続不可など): すぐに失敗を報告し、後続ステージを実行しない
+
+## NG.txt の内容
+NG.txt には以下を含める:
+- NG Reason (カテゴリ): SYNTAX / RUNTIME / RESULT_MISMATCH / UNSUPPORTED / TIMEOUT
+- 失敗したテストケース名
+- Expected (MSSQL の結果)
+- Actual (PG の結果)
+- 差分の要約
+- 推測される原因
+- 推奨される対応 (人間によるレビュー観点)
+</error_policy>

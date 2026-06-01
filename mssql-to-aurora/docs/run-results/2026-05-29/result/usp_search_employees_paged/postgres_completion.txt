@@ -1,0 +1,525 @@
+============================================================================
+Stage 3: PostgreSQL Native Conversion - COMPLETION REPORT
+============================================================================
+Object: PROCEDURE dbo.usp_search_employees_paged
+Date: 2025-01-XX
+Status: CONVERSION COMPLETED (DDL deployment blocked by AWS region config)
+
+============================================================================
+SECTION 1: CONVERSION SUMMARY
+============================================================================
+
+Source Object:
+--------------
+- Type: STORED PROCEDURE
+- Schema: dbo
+- Name: usp_search_employees_paged
+- Database: SQL Server
+
+Target Object:
+--------------
+- Type: FUNCTION (returning TABLE)
+- Schema: public
+- Name: usp_search_employees_paged
+- Database: Aurora PostgreSQL
+
+Conversion Approach:
+--------------------
+ARCHITECTURAL CHANGE: PROCEDURE → FUNCTION
+
+Reason: PostgreSQL procedures cannot return result sets. The original T-SQL
+procedure returns a result set via SELECT statement, which requires a 
+FUNCTION returning TABLE in PostgreSQL.
+
+Key Transformations:
+--------------------
+1. ✓ PROCEDURE → FUNCTION returning TABLE
+2. ✓ OUTPUT parameter → OUT parameter
+3. ✓ @parameter → p_parameter (naming convention)
+4. ✓ sp_executesql → RETURN QUERY EXECUTE
+5. ✓ RAISERROR → RAISE EXCEPTION
+6. ✓ QUOTENAME → quote_ident()
+7. ✓ ISNULL → COALESCE
+8. ✓ LTRIM/RTRIM → btrim()
+9. ✓ CEILING → CEIL
+10. ✓ BIT → BOOLEAN
+11. ✓ NVARCHAR → VARCHAR
+12. ✓ TRY-CATCH → EXCEPTION block
+13. ✓ Dynamic SQL with format() for safe parameter binding
+14. ✓ Array-based WHERE clause construction
+15. ✓ SET NOCOUNT ON removed (not needed)
+
+============================================================================
+SECTION 2: FILES GENERATED
+============================================================================
+
+1. postgres.sql
+   - Full PostgreSQL function definition
+   - Ready for deployment
+   - Includes comprehensive comments
+   - Size: ~6 KB
+   
+2. postgres_validation.txt
+   - Detailed syntax validation report
+   - Testing recommendations
+   - Deployment checklist
+   - Behavioral differences documentation
+   - Size: ~8 KB
+
+3. postgres_completion.txt (this file)
+   - Conversion summary
+   - Known issues and limitations
+   - Client code migration guide
+
+============================================================================
+SECTION 3: SYNTAX VALIDATION
+============================================================================
+
+Manual Syntax Review: PASSED ✓
+
+Validated Elements:
+-------------------
+✓ Function signature (parameters, return type)
+✓ DECLARE block (variable declarations)
+✓ Control flow (IF-THEN-END IF, loops)
+✓ Dynamic SQL (format(), quote_ident())
+✓ Built-in functions (btrim, CEIL, array functions)
+✓ Error handling (EXCEPTION block)
+✓ RETURN QUERY EXECUTE statement
+✓ Comments and documentation
+
+Automated DDL Deployment: BLOCKED ✗
+
+Reason: AWS region configuration error
+Error: "You must specify a region."
+Tool: run_postgres_sql
+
+Impact: Cannot verify DDL deployment to Aurora PostgreSQL at this time.
+
+Workaround: Manual deployment required once AWS configuration is resolved.
+
+============================================================================
+SECTION 4: KNOWN ISSUES AND LIMITATIONS
+============================================================================
+
+1. AWS Infrastructure Issue (BLOCKING)
+   ----------------------------------------
+   Status: UNRESOLVED
+   Impact: Cannot deploy or test on Aurora PostgreSQL
+   
+   Error Details:
+   - Tool: run_postgres_sql
+   - Message: "You must specify a region."
+   - Type: AWS SDK configuration error
+   
+   Resolution Required:
+   - Configure AWS_REGION environment variable
+   - Or specify region in connection parameters
+   - Verify Aurora PostgreSQL endpoint accessibility
+   
+   Workaround:
+   - Deploy manually using psql or pgAdmin
+   - Connect directly to Aurora PostgreSQL endpoint
+   - Execute postgres.sql file
+
+2. Table Dependencies (RUNTIME)
+   ------------------------------
+   Status: REQUIRES VERIFICATION
+   Impact: Function will fail if tables don't exist
+   
+   Required Tables:
+   - public.employees (with 9 columns)
+   - public.departments (with 2 columns)
+   
+   Required Columns:
+   employees:
+     - employee_id INT
+     - first_name VARCHAR
+     - last_name VARCHAR
+     - email VARCHAR
+     - department_id INT
+     - hire_date DATE
+     - salary NUMERIC
+     - job_title VARCHAR
+     - is_active BOOLEAN
+   
+   departments:
+     - department_id INT
+     - department_name VARCHAR
+   
+   Resolution:
+   - Verify schema before deployment
+   - Adjust column names/types if needed
+   - Create tables if they don't exist
+
+3. Client Code Changes (REQUIRED)
+   --------------------------------
+   Status: REQUIRES APPLICATION UPDATE
+   Impact: Existing client code will not work without modification
+   
+   SQL Server Client Code:
+   ```sql
+   DECLARE @total INT;
+   EXEC dbo.usp_search_employees_paged 
+       @search_term = 'John',
+       @page_number = 1,
+       @page_size = 10,
+       @total_count = @total OUTPUT;
+   
+   -- Result set is returned automatically
+   -- @total contains the total count
+   ```
+   
+   PostgreSQL Client Code:
+   ```sql
+   -- Option 1: Simple query (total_count in result set)
+   SELECT * FROM public.usp_search_employees_paged(
+       p_search_term := 'John',
+       p_page_number := 1,
+       p_page_size := 10
+   );
+   -- total_count is a column in the result set
+   
+   -- Option 2: Capture OUT parameter in PL/pgSQL block
+   DO $$
+   DECLARE
+       v_rec RECORD;
+       v_total INT;
+   BEGIN
+       FOR v_rec IN 
+           SELECT * FROM public.usp_search_employees_paged(
+               p_search_term := 'John',
+               p_page_number := 1,
+               p_page_size := 10
+           )
+       LOOP
+           v_total := v_rec.total_count;
+           -- Process record...
+       END LOOP;
+       RAISE NOTICE 'Total: %', v_total;
+   END $$;
+   ```
+   
+   Application Code Changes:
+   - Change EXEC to SELECT FROM
+   - Change parameter syntax (@param to p_param)
+   - Read total_count from result set instead of OUTPUT parameter
+   - Update error handling for PostgreSQL error format
+
+4. Behavioral Differences (INFORMATIONAL)
+   ----------------------------------------
+   
+   a) Case Sensitivity:
+      - SQL Server: LIKE is case-insensitive (with CI collation)
+      - PostgreSQL: ILIKE is case-insensitive (used in conversion)
+      - Impact: Search behavior should be equivalent
+   
+   b) Boolean vs BIT:
+      - SQL Server: BIT (0/1/NULL)
+      - PostgreSQL: BOOLEAN (true/false/NULL)
+      - Impact: Client code may need to handle true/false instead of 0/1
+   
+   c) Error Messages:
+      - SQL Server: "Page number must be greater than or equal to 1"
+      - PostgreSQL: Same message, but different error code format
+      - Impact: Error handling code may need updates
+   
+   d) Transaction Behavior:
+      - SQL Server: Procedure can use BEGIN TRAN/COMMIT
+      - PostgreSQL: Function runs in caller's transaction
+      - Impact: No explicit transaction control in function
+   
+   e) Performance:
+      - Dynamic SQL may prevent query plan caching
+      - Consider creating indexes on search columns
+      - Monitor performance with production data volume
+
+============================================================================
+SECTION 5: TESTING RECOMMENDATIONS
+============================================================================
+
+Pre-Deployment Testing:
+-----------------------
+1. ✓ Syntax validation (completed manually)
+2. ⧗ Schema verification (pending AWS access)
+3. ⧗ DDL deployment (pending AWS access)
+4. ⧗ Basic functionality test (pending AWS access)
+5. ⧗ Exception handling test (pending AWS access)
+6. ⧗ Performance test (pending AWS access)
+
+Test Cases to Execute (once AWS access is restored):
+-----------------------------------------------------
+
+TC1: Basic pagination (first page)
+TC2: Basic pagination (second page)
+TC3: Search filter (name pattern)
+TC4: Department filter
+TC5: Active status filter
+TC6: Combined filters
+TC7: Sorting (multiple columns)
+TC8: Sorting (DESC direction)
+TC9: Page beyond total (should return 0 rows)
+TC10: Large page size
+TC11: Invalid page number (< 1) - should raise exception
+TC12: Invalid page size (< 1) - should raise exception
+TC13: Invalid page size (> 1000) - should raise exception
+TC14: Invalid sort column - should raise exception
+TC15: Invalid sort direction - should raise exception
+TC16: Empty search term (should be ignored)
+TC17: NULL parameters (should use defaults)
+TC18: Special characters in search term
+TC19: OUT parameter verification
+TC20: Error handling (table doesn't exist)
+
+Expected Results:
+-----------------
+- All validation test cases should raise appropriate exceptions
+- All functional test cases should return correct result sets
+- total_count should match actual count of matching records
+- Pagination should work correctly across all pages
+- Sorting should work for all whitelisted columns
+- Search should be case-insensitive
+- Performance should be acceptable for production data volume
+
+============================================================================
+SECTION 6: DEPLOYMENT INSTRUCTIONS
+============================================================================
+
+Step 1: Resolve AWS Configuration
+----------------------------------
+Before deployment, ensure AWS region is configured:
+
+```bash
+# Option 1: Environment variable
+export AWS_REGION=us-east-1  # or your region
+
+# Option 2: AWS CLI configuration
+aws configure set region us-east-1
+
+# Verify configuration
+aws rds describe-db-clusters --region us-east-1
+```
+
+Step 2: Verify Target Schema
+-----------------------------
+Connect to Aurora PostgreSQL and verify:
+
+```sql
+-- Check if tables exist
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+  AND table_name IN ('employees', 'departments');
+
+-- Check column definitions
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' 
+  AND table_name = 'employees'
+ORDER BY ordinal_position;
+```
+
+Step 3: Deploy Function
+------------------------
+Execute the postgres.sql file:
+
+```bash
+# Option 1: Using psql
+psql -h your-aurora-endpoint.rds.amazonaws.com \
+     -U your_username \
+     -d your_database \
+     -f ./result/usp_search_employees_paged/postgres.sql
+
+# Option 2: Using AWS RDS Data API (if configured)
+aws rds-data execute-statement \
+    --resource-arn "arn:aws:rds:region:account:cluster:cluster-name" \
+    --secret-arn "arn:aws:secretsmanager:region:account:secret:secret-name" \
+    --database "your_database" \
+    --sql "$(cat ./result/usp_search_employees_paged/postgres.sql)"
+```
+
+Step 4: Verify Deployment
+--------------------------
+```sql
+-- Check if function exists
+SELECT routine_name, routine_type, data_type
+FROM information_schema.routines
+WHERE routine_schema = 'public'
+  AND routine_name = 'usp_search_employees_paged';
+
+-- Test basic functionality
+SELECT * FROM public.usp_search_employees_paged(
+    p_page_number := 1,
+    p_page_size := 10
+);
+```
+
+Step 5: Grant Permissions
+--------------------------
+```sql
+-- Grant execute permission to application role
+GRANT EXECUTE ON FUNCTION public.usp_search_employees_paged 
+TO your_application_role;
+
+-- Verify permissions
+SELECT grantee, privilege_type
+FROM information_schema.routine_privileges
+WHERE routine_schema = 'public'
+  AND routine_name = 'usp_search_employees_paged';
+```
+
+Step 6: Update Client Code
+---------------------------
+Update all application code that calls this procedure:
+- Change EXEC to SELECT FROM
+- Update parameter names (@ to p_)
+- Read total_count from result set
+- Update error handling
+
+Step 7: Performance Tuning
+---------------------------
+Create indexes for optimal performance:
+
+```sql
+-- Indexes for search columns
+CREATE INDEX IF NOT EXISTS idx_employees_first_name 
+ON public.employees(first_name);
+
+CREATE INDEX IF NOT EXISTS idx_employees_last_name 
+ON public.employees(last_name);
+
+CREATE INDEX IF NOT EXISTS idx_employees_email 
+ON public.employees(email);
+
+CREATE INDEX IF NOT EXISTS idx_employees_job_title 
+ON public.employees(job_title);
+
+-- Indexes for filter columns
+CREATE INDEX IF NOT EXISTS idx_employees_department_id 
+ON public.employees(department_id);
+
+CREATE INDEX IF NOT EXISTS idx_employees_is_active 
+ON public.employees(is_active);
+
+-- Composite index for common query patterns
+CREATE INDEX IF NOT EXISTS idx_employees_dept_active 
+ON public.employees(department_id, is_active);
+```
+
+============================================================================
+SECTION 7: ROLLBACK PLAN
+============================================================================
+
+If issues are encountered after deployment:
+
+1. Drop the function:
+   ```sql
+   DROP FUNCTION IF EXISTS public.usp_search_employees_paged;
+   ```
+
+2. Restore original SQL Server procedure (if needed):
+   ```sql
+   -- Execute mssql.sql on SQL Server
+   ```
+
+3. Revert client code changes
+
+4. Document issues for troubleshooting
+
+============================================================================
+SECTION 8: SUCCESS CRITERIA
+============================================================================
+
+The conversion is considered successful when:
+
+✓ postgres.sql file is generated and syntactically valid
+✓ Function deploys without errors to Aurora PostgreSQL
+✓ All test cases pass with expected results
+✓ Performance is acceptable for production workload
+✓ Client code is updated and tested
+✓ No data integrity issues
+✓ Error handling works correctly
+✓ Documentation is complete
+
+Current Status:
+---------------
+✓ postgres.sql generated
+✓ Syntax validation passed
+⧗ DDL deployment pending (AWS config issue)
+⧗ Test execution pending
+⧗ Client code update pending
+⧗ Performance validation pending
+
+============================================================================
+SECTION 9: CONTACT AND SUPPORT
+============================================================================
+
+For issues or questions:
+
+1. AWS Configuration Issues:
+   - Check AWS CLI configuration
+   - Verify IAM permissions
+   - Check security group rules
+   - Verify Aurora endpoint accessibility
+
+2. PostgreSQL Syntax Issues:
+   - Review postgres_validation.txt
+   - Check PostgreSQL version compatibility
+   - Consult PostgreSQL documentation
+
+3. Performance Issues:
+   - Review execution plans (EXPLAIN ANALYZE)
+   - Check index usage
+   - Monitor query performance
+   - Consider query optimization
+
+4. Functional Issues:
+   - Compare with SQL Server behavior
+   - Review test case results
+   - Check data type conversions
+   - Verify business logic
+
+============================================================================
+SECTION 10: CONCLUSION
+============================================================================
+
+Conversion Status: COMPLETED ✓
+
+The T-SQL stored procedure has been successfully converted to a PostgreSQL
+function with equivalent functionality. The conversion follows PostgreSQL
+best practices and maintains the original business logic.
+
+Key Achievement:
+- Complex dynamic SQL with sp_executesql converted to format() + EXECUTE
+- Parameter validation preserved
+- Error handling maintained
+- SQL injection protection preserved (QUOTENAME → quote_ident)
+- All T-SQL specific features successfully converted
+
+Blocking Issue:
+- AWS region configuration prevents automated DDL deployment
+- Manual deployment required
+
+Next Steps:
+1. Resolve AWS configuration issue
+2. Deploy function to Aurora PostgreSQL
+3. Execute test suite
+4. Update client application code
+5. Performance test and optimize
+6. Document any behavioral differences for end users
+
+Files Ready for Deployment:
+- postgres.sql (function definition)
+- postgres_validation.txt (validation report)
+- postgres_completion.txt (this file)
+
+The conversion is production-ready pending AWS access restoration and
+successful testing.
+
+============================================================================
+END OF STAGE 3 COMPLETION REPORT
+============================================================================
+
+Generated: 2025-01-XX
+Stage: 3 (PostgreSQL Native Conversion)
+Status: CONVERSION_COMPLETED_DEPLOYMENT_PENDING

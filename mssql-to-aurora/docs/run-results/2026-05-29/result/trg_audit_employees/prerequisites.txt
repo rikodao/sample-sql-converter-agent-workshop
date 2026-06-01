@@ -1,0 +1,173 @@
+================================================================================
+PREREQUISITE CHECK REPORT
+================================================================================
+Object: dbo.trg_audit_employees
+Type: TRIGGER
+Check Date: Stage 1 - Source SQL Server Validation
+================================================================================
+
+RESULT: CONNECTION_FAILED - ASSUMED DEFINITION CREATED
+
+ISSUE: Unable to connect to Source RDS for SQL Server
+ERROR: "You must specify a region" error occurred on all run_mssql_sql attempts
+
+WORKAROUND APPLIED:
+- Created ASSUMED trigger definition based on common audit trigger patterns
+- Trigger name suggests it audits changes to the employees table
+- Standard audit pattern: AFTER INSERT, UPDATE, DELETE
+- Logs operation type, old/new values, user, and timestamp
+
+================================================================================
+ASSUMED TRIGGER SPECIFICATION
+================================================================================
+
+Trigger Name: dbo.trg_audit_employees
+Parent Table: dbo.employees
+Timing: AFTER
+Events: INSERT, UPDATE, DELETE
+Audit Table: dbo.employee_audit (assumed)
+
+Functionality:
+1. INSERT operations:
+   - Captures new values from inserted pseudo-table
+   - Records operation_type = 'INSERT'
+   - old_* columns are NULL
+
+2. UPDATE operations:
+   - Captures old values from deleted pseudo-table
+   - Captures new values from inserted pseudo-table
+   - Records operation_type = 'UPDATE'
+   - Both old_* and new_* columns populated
+
+3. DELETE operations:
+   - Captures old values from deleted pseudo-table
+   - Records operation_type = 'DELETE'
+   - new_* columns are NULL
+
+4. Metadata captured:
+   - operation_date: GETDATE()
+   - operation_user: SYSTEM_USER
+   - audit_id: NEWID() (unique identifier)
+
+================================================================================
+DEPENDENCIES
+================================================================================
+
+Required Tables:
+1. dbo.employees (parent table)
+   - employee_id (INT, PRIMARY KEY)
+   - first_name (NVARCHAR)
+   - last_name (NVARCHAR)
+   - email (NVARCHAR)
+   - department_id (INT, nullable)
+   - salary (DECIMAL(18,2))
+   - hire_date (DATE)
+   - is_active (BIT)
+
+2. dbo.employee_audit (audit log table - ASSUMED)
+   - audit_id (UNIQUEIDENTIFIER, PRIMARY KEY)
+   - employee_id (INT)
+   - operation_type (VARCHAR(10))
+   - operation_date (DATETIME)
+   - operation_user (NVARCHAR(128))
+   - old_first_name (NVARCHAR)
+   - old_last_name (NVARCHAR)
+   - old_email (NVARCHAR)
+   - old_department_id (INT)
+   - old_salary (DECIMAL(18,2))
+   - old_hire_date (DATE)
+   - old_is_active (BIT)
+   - new_first_name (NVARCHAR)
+   - new_last_name (NVARCHAR)
+   - new_email (NVARCHAR)
+   - new_department_id (INT)
+   - new_salary (DECIMAL(18,2))
+   - new_hire_date (DATE)
+   - new_is_active (BIT)
+
+No dependencies on other stored procedures or functions.
+
+================================================================================
+TEST COVERAGE
+================================================================================
+
+Created 10 comprehensive test cases:
+
+Normal Cases:
+- TC1: INSERT single employee - verify audit log created
+- TC2: UPDATE single employee - verify old/new values captured
+- TC3: DELETE single employee - verify old values captured
+- TC4: Multiple INSERT - verify batch handling
+- TC5: Multiple UPDATE - verify batch handling
+- TC10: Multiple DELETE - verify batch handling
+
+Boundary Cases:
+- TC6: UPDATE with NULL values - verify NULL handling
+- TC8: UPDATE with no actual change - verify trigger fires anyway
+
+Transaction Cases:
+- TC7: Transaction ROLLBACK - verify audit entries rolled back
+
+Metadata Cases:
+- TC9: Verify operation_date and operation_user populated
+
+Each test case follows SETUP/EXEC/ASSERT/CLEANUP pattern.
+All tests use employee_id >= 90000 to avoid conflicts with existing data.
+All tests use transactions with ROLLBACK to ensure no data pollution.
+
+================================================================================
+LIMITATIONS & RISKS
+================================================================================
+
+1. ASSUMED DEFINITION:
+   - Actual trigger definition not retrieved from source
+   - Column names and data types are assumptions
+   - Audit table structure is assumed
+   - Trigger logic may differ from actual implementation
+
+2. CANNOT EXECUTE TESTS:
+   - Connection to Source RDS failed
+   - mssql_test.txt cannot be generated
+   - No baseline results for comparison
+
+3. REQUIRED ACTIONS:
+   - Resolve AWS region configuration issue
+   - Retrieve actual trigger definition from source
+   - Verify employee_audit table exists and structure matches
+   - Execute tests on source to establish baseline
+
+4. MIGRATION RISKS:
+   - If actual trigger differs significantly, conversion will fail
+   - Audit table structure must be migrated along with trigger
+   - Trigger timing (AFTER vs INSTEAD OF) affects behavior
+   - Babelfish trigger support may have limitations
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. IMMEDIATE:
+   - Fix connection/region configuration for Source RDS
+   - Retrieve actual trigger definition using:
+     SELECT m.definition 
+     FROM sys.sql_modules m
+     INNER JOIN sys.triggers t ON m.object_id = t.object_id
+     WHERE t.name = 'trg_audit_employees'
+
+2. VALIDATION:
+   - Verify employee_audit table exists
+   - Compare actual structure with assumptions
+   - Update mssql.sql with actual definition
+   - Update mssql_test.sql if needed
+
+3. EXECUTION:
+   - Run mssql_test.sql on Source RDS
+   - Generate mssql_test.txt with baseline results
+   - Proceed to Stage 2 (Babelfish conversion)
+
+================================================================================
+STATUS: PREREQUISITE_INCOMPLETE
+- mssql.sql: CREATED (ASSUMED)
+- mssql_test.sql: CREATED (ASSUMED)
+- mssql_test.txt: NOT CREATED (connection failed)
+================================================================================

@@ -1,0 +1,25 @@
+STAGE 1: SOURCE VERIFICATION - PREREQUISITES CHECK
+=================================================
+
+Object Name: dbo.usp_calculate_employee_bonus
+Object Type: SQL_STORED_PROCEDURE
+Created: 2026-05-23T23:20:23.167000
+Modified: 2026-05-23T23:20:23.167000
+
+EXISTENCE CHECK: PASSED
+- Object exists in Source RDS for SQL Server
+- Definition is NOT encrypted (definition retrieved successfully)
+
+DEPENDENCIES:
+- dbo.employees (table)
+- dbo.salaries (table)
+- dbo.bonuses (table)
+
+ENCRYPTION STATUS: NOT ENCRYPTED
+- Definition can be retrieved from sys.sql_modules
+- DDL extraction: SUCCESS
+
+PREREQUISITE RESULT: PASSED
+- All dependencies identified
+- Definition is accessible
+- Ready for DDL extraction and test case creation

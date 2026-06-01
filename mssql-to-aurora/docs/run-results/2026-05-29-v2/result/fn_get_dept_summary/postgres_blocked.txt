@@ -1,0 +1,65 @@
+================================================================================
+STAGE 3: T-SQL → PL/pgSQL CONVERSION
+================================================================================
+Object: FUNCTION dbo.fn_get_dept_summary
+Timestamp: 2025-01-10 (automated conversion)
+
+================================================================================
+SECTION 1: PREREQUISITE CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+- mssql.sql: NOT FOUND ❌
+
+Status: FAILED - Source DDL is missing
+
+1.2 Stage 2 Status Check
+------------------------
+- babelfish_attempt.txt: EXISTS
+- Result: CONNECTION_ERROR (Stage 1 artifacts missing + Babelfish connection failed)
+
+================================================================================
+SECTION 2: FAILURE ANALYSIS
+================================================================================
+
+Root Cause:
+-----------
+Stage 1 did not complete successfully. The source T-SQL DDL file (mssql.sql) 
+does not exist, which means there is no code to convert to PL/pgSQL.
+
+Impact:
+-------
+- Cannot read the original T-SQL function definition
+- Cannot perform T-SQL → PL/pgSQL conversion
+- Cannot generate postgres.sql
+
+Per Workflow Rules:
+-------------------
+**🚫 絶対禁止事項 — 接続失敗時の捏造禁止**
+
+When mssql.sql is missing, the following actions are STRICTLY PROHIBITED:
+- ❌ Writing postgres.sql with guessed/fabricated code
+- ❌ Creating postgres.sql with "might work" disclaimer
+- ❌ Treating postgres.sql as complete without Aurora PostgreSQL verification
+
+Correct Behavior:
+-----------------
+1. Log CONNECTION_ERROR in stage log (this file)
+2. Do NOT create postgres.sql
+3. Terminate Stage 3 immediately
+4. Let Stage 4 detect prerequisite failure and generate NG.txt
+
+================================================================================
+SECTION 3: STAGE 3 DECISION
+================================================================================
+
+RESULT: CONNECTION_ERROR
+
+Reason: Source DDL (mssql.sql) does not exist - cannot proceed with conversion
+
+Stage 3 terminated. No postgres.sql will be generated.
+
+================================================================================
+END OF REPORT
+================================================================================

@@ -1,0 +1,20 @@
+-- ============================================================================
+-- PostgreSQL Test Cases for: FUNCTION dbo.fn_get_fiscal_year
+-- ============================================================================
+-- Status: NOT CREATED
+-- Reason: Stage 3 did not produce postgres.sql (prerequisite failure)
+--
+-- This file would contain PL/pgSQL equivalent test cases if conversion
+-- had succeeded. Since Stage 1 failed to extract source DDL and Stage 3
+-- was blocked, no test cases can be generated.
+--
+-- Expected Structure (if created):
+-- 1. SETUP: Create temporary test data
+-- 2. TEST CASES: Execute function with various inputs
+-- 3. CLEANUP: Remove temporary data
+--
+-- Test Case IDs would match mssql_test.sql (TC1, TC2, ...) for comparison
+-- ============================================================================
+
+-- PREREQUISITE FAILURE: Cannot generate tests without source DDL
+-- See prerequisites.txt and postgres_blocked.txt for details

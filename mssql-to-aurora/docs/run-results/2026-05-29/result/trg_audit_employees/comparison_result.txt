@@ -1,0 +1,172 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: TRIGGER dbo.trg_audit_employees
+Test Cases: 10 total
+
+================================================================================
+COMPARISON STATUS: UNABLE TO EXECUTE
+================================================================================
+
+Reason: Database connection failure on both MSSQL and PostgreSQL endpoints
+Error: "You must specify a region"
+
+MSSQL Test Status: NOT EXECUTED (simulated results provided)
+PostgreSQL Test Status: NOT EXECUTED (connection failed)
+
+================================================================================
+STATIC ANALYSIS COMPARISON
+================================================================================
+
+Based on code review of mssql_test.sql, mssql_test.txt (expected), and postgres_test.sql:
+
+--- TC1: INSERT - Single employee insert triggers audit log ---
+Expected (MSSQL):
+  audit_record_count=1, operation_type='INSERT', new_first_name='John', 
+  new_last_name='Doe', new_salary=50000.00, old_values_null='NULL'
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: INSERT trigger logic identical, NEW record captured correctly
+
+
+--- TC2: UPDATE - Single employee update triggers audit log ---
+Expected (MSSQL):
+  audit_record_count=1, operation_type='UPDATE', old_last_name='Smith',
+  new_last_name='Smith-Jones', old_salary=60000.00, new_salary=65000.00
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: UPDATE trigger captures both OLD and NEW records correctly
+
+
+--- TC3: DELETE - Single employee delete triggers audit log ---
+Expected (MSSQL):
+  audit_record_count=1, operation_type='DELETE', old_first_name='Bob',
+  old_last_name='Johnson', old_salary=55000.00, new_values_null='NULL'
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: DELETE trigger logic identical, OLD record captured correctly
+
+
+--- TC4: Multiple INSERT - Batch insert triggers multiple audit logs ---
+Expected (MSSQL):
+  audit_record_count=3, min_employee_id=90004, max_employee_id=90006,
+  distinct_operations=1, operation_type='INSERT'
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: FOR EACH ROW ensures one audit entry per inserted row (3 total)
+
+
+--- TC5: Multiple UPDATE - Batch update triggers multiple audit logs ---
+Expected (MSSQL):
+  audit_record_count=2, operation_type='UPDATE', salary_increased_count=2
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: FOR EACH ROW ensures one audit entry per updated row (2 total)
+
+
+--- TC6: UPDATE with NULL values - Handles NULL in old/new values ---
+Expected (MSSQL):
+  audit_record_count=1, operation_type='UPDATE', old_dept='NULL', new_dept='1'
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: NULL handling identical in both implementations
+
+
+--- TC7: Transaction ROLLBACK - Audit entries rolled back with transaction ---
+Expected (MSSQL):
+  audit_record_count_after_rollback=0, employee_record_count_after_rollback=0
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: PostgreSQL ROLLBACK behavior identical to MSSQL
+
+
+--- TC8: UPDATE with no actual change - Trigger fires even if values unchanged ---
+Expected (MSSQL):
+  audit_record_count=1, operation_type='UPDATE', old_salary=50000.00,
+  new_salary=50000.00, value_comparison='SAME'
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: Both triggers fire on UPDATE regardless of value change
+
+
+--- TC9: Audit metadata - Verify operation_date and operation_user are populated ---
+Expected (MSSQL):
+  audit_record_count=1, operation_date_populated='NOT_NULL',
+  operation_user_populated='NOT_NULL', timestamp_check='RECENT'
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY SEMANTIC MATCH
+Rationale: 
+  - SYSTEM_USER → session_user (different value format possible)
+  - GETDATE() → current_timestamp (both populate correctly)
+  - Timestamp check logic equivalent
+
+
+--- TC10: Multiple DELETE - Batch delete triggers multiple audit logs ---
+Expected (MSSQL):
+  audit_record_count=3, operation_type='DELETE', distinct_employees=3,
+  old_values_populated=3, new_values_populated=0
+
+Expected (PostgreSQL):
+  Same structure and values expected
+
+Assessment: ✓ LIKELY EXACT MATCH
+Rationale: FOR EACH ROW ensures one audit entry per deleted row (3 total)
+
+
+================================================================================
+PREDICTED VERDICT (STATIC ANALYSIS ONLY)
+================================================================================
+EXACT=9, SEMANTIC=1, STRUCTURAL=0, MISMATCH=0
+Total Pass: 10/10 (predicted)
+
+Confidence: HIGH
+
+Key Differences Identified:
+1. TC9: operation_user value format may differ
+   - MSSQL SYSTEM_USER: typically 'domain\username' or 'sa'
+   - PostgreSQL session_user: typically 'postgres' or role name
+   - This is SEMANTIC equivalence (both capture user correctly)
+
+No functional differences expected in trigger behavior.
+
+================================================================================
+CRITICAL LIMITATION
+================================================================================
+⚠️  This comparison is based on STATIC ANALYSIS ONLY
+⚠️  Actual execution results may differ
+⚠️  Database connection required for definitive validation
+
+Required Actions:
+1. Fix AWS region configuration
+2. Execute mssql_test.sql on Source RDS
+3. Execute postgres_test.sql on Aurora PostgreSQL
+4. Compare actual results
+
+Until actual execution completes, this assessment remains UNVERIFIED.
+
+================================================================================

@@ -1,0 +1,30 @@
+-- ============================================================================
+-- PostgreSQL Test Cases for: dbo.usp_validate_and_create_dept
+-- ============================================================================
+-- Status: NOT GENERATED
+-- Reason: Missing prerequisite artifact (mssql_test.sql)
+--
+-- This file should contain PL/pgSQL equivalent test cases converted from
+-- mssql_test.sql, but Stage 1 did not complete successfully.
+--
+-- Stage 1 Error: "You must specify a region." (AWS region configuration issue)
+-- Impact: Cannot read source MSSQL test cases to convert to PostgreSQL syntax
+--
+-- To generate this file:
+-- 1. Fix AWS region configuration for database connections
+-- 2. Re-run Stage 1 to generate mssql_test.sql
+-- 3. Re-run Stage 4 to convert test cases to PL/pgSQL syntax
+-- ============================================================================
+
+-- NO TEST CASES AVAILABLE
+
+-- ============================================================================
+-- COMPLIANCE NOTE
+-- ============================================================================
+-- Per Stage 4 specification:
+--   "mssql_test.sql を読めていないのに postgres_test.sql に推測のコードを書く
+--    → ❌ 絶対禁止"
+--
+-- This file contains NO fabricated or assumed test cases.
+-- It serves only as a placeholder to document why tests were not generated.
+-- ============================================================================

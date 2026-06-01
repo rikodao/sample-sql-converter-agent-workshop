@@ -1,0 +1,61 @@
+---
+# =============================================================================
+# Prerequisite packages installation
+# =============================================================================
+
+- name: apt キャッシュを更新
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: 共通ユーティリティをインストール (curl, gnupg, ca, etc.)
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg
+      - apt-transport-https
+      - ca-certificates
+      - software-properties-common
+      - python3-pip            # community.aws / boto3 が要る場合
+      - unzip
+      - ufw
+      - python3-pymssql        # ansible.community.general.mssql_db を将来使うなら
+    state: present
+
+- name: AWS CLI (v2) のインストール (S3 から bak を取得する場合に必要)
+  block:
+    - name: aws CLI バイナリ存在確認
+      ansible.builtin.command: "/usr/local/bin/aws --version"
+      register: aws_cli_check
+      changed_when: false
+      failed_when: false
+
+    - name: AWS CLI v2 をダウンロードして展開
+      when: aws_cli_check.rc != 0
+      block:
+        - name: ダウンロード
+          ansible.builtin.get_url:
+            url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+            dest: "/tmp/awscliv2.zip"
+            mode: "0644"
+
+        - name: 展開
+          ansible.builtin.unarchive:
+            src: "/tmp/awscliv2.zip"
+            dest: "/tmp/"
+            remote_src: true
+
+        - name: インストール
+          ansible.builtin.command:
+            cmd: "/tmp/aws/install --update"
+          changed_when: true
+
+        - name: 後片付け
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /tmp/awscliv2.zip
+            - /tmp/aws
+
+  tags: [aws_cli]

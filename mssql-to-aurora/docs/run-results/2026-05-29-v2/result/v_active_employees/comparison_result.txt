@@ -1,0 +1,76 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: VIEW dbo.v_active_employees
+Test Cases: 0 total (COMPARISON NOT PERFORMED)
+
+================================================================================
+COMPARISON STATUS: NOT EXECUTED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Stage 4 requires the following files to perform comparison:
+1. mssql_test.txt - Baseline results from Source MSSQL
+2. postgres_test.txt - Results from Aurora PostgreSQL
+
+Actual Status:
+- mssql_test.txt: NOT FOUND (Stage 1 connection failure)
+- postgres.sql: NOT FOUND (Stage 3 blocked due to missing source DDL)
+- postgres_test.sql: NOT CREATED (cannot convert non-existent test cases)
+- postgres_test.txt: NOT CREATED (cannot execute non-existent tests)
+
+================================================================================
+ROOT CAUSE
+================================================================================
+
+Stage 1 failed to connect to Source RDS for SQL Server with error:
+"You must specify a region."
+
+This prevented:
+- Extraction of VIEW dbo.v_active_employees DDL from MSSQL
+- Creation of test cases based on actual object structure
+- Execution of tests against source MSSQL
+- Generation of baseline results (mssql_test.txt)
+
+Without the baseline, there is nothing to compare PostgreSQL results against.
+
+================================================================================
+COMPARISON RESULT
+================================================================================
+
+❌ COMPARISON NOT PERFORMED
+
+Test Case Breakdown:
+- EXACT: 0
+- SEMANTIC: 0
+- STRUCTURAL: 0
+- MISMATCH: 0
+- NOT EXECUTED: N/A (no test cases exist)
+
+Total Pass: 0/0 (no tests available)
+
+================================================================================
+VERDICT
+================================================================================
+
+Result: PREREQUISITE_FAILED
+
+This is NOT a conversion failure or result mismatch.
+This is a failure to obtain source data required for comparison.
+
+The comparison_result.txt file is created to document why comparison
+could not be performed, in compliance with Stage 4 workflow requirements.
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Resolve AWS region configuration for Source RDS connection
+2. Re-run Stage 1 to extract DDL and create test cases
+3. Execute mssql_test.sql on Source MSSQL to generate mssql_test.txt
+4. Re-run Stage 3 to convert DDL to PostgreSQL
+5. Re-run Stage 4 to execute tests and perform comparison
+
+Until these steps are completed, the PostgreSQL compatibility of
+VIEW dbo.v_active_employees remains UNKNOWN.
+
+================================================================================

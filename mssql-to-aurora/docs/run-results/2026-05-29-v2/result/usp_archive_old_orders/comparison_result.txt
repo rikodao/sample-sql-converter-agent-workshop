@@ -1,0 +1,117 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_archive_old_orders
+Test Cases: 0 total (comparison not possible)
+
+================================================================================
+COMPARISON STATUS: NOT EXECUTED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Stage 4 (PostgreSQL Native Verification) requires the following inputs:
+1. mssql_test.txt - Baseline test results from Source MSSQL
+2. postgres.sql - Converted PL/pgSQL DDL
+3. Working Aurora PostgreSQL connection
+
+Current Status:
+---------------
+✗ mssql_test.txt: NOT FOUND
+  - Stage 1 failed due to missing AWS region configuration
+  - Source MSSQL connection could not be established
+  - No baseline test results were generated
+
+✗ mssql_test.sql: NOT FOUND
+  - Test script was not created by Stage 1
+  - Cannot generate postgres_test.sql without reference
+
+✗ mssql.sql: NOT FOUND
+  - Source DDL was not extracted
+  - Stage 3 could not convert T-SQL to PL/pgSQL
+
+✗ postgres.sql: NOT FOUND
+  - Stage 3 was blocked due to missing mssql.sql
+  - No PL/pgSQL conversion available to test
+
+✗ postgres_test.sql: NOT CREATED
+  - Cannot create without mssql_test.sql as reference
+
+✗ postgres_test.txt: NOT EXECUTED
+  - Cannot execute tests without postgres_test.sql
+
+================================================================================
+UPSTREAM FAILURE CASCADE
+================================================================================
+
+Stage 1: FAILED
+- Error: "You must specify a region."
+- Impact: No DDL, no test scripts, no baseline results
+- Output: prerequisites.txt (failure documented)
+
+Stage 2: BLOCKED
+- Error: Same AWS region configuration issue
+- Impact: Babelfish compatibility unknown
+- Output: babelfish_attempt.txt (RESULT: CONNECTION_ERROR)
+
+Stage 3: BLOCKED
+- Error: Missing mssql.sql (Stage 1 artifact)
+- Impact: Cannot convert T-SQL to PL/pgSQL
+- Output: postgres_blocked.txt (RESULT: MISSING_INPUT_FILES)
+
+Stage 4: BLOCKED (current stage)
+- Error: All prerequisite files missing
+- Impact: Cannot verify PostgreSQL native conversion
+- Action: Generate NG.txt per error policy
+
+================================================================================
+COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 4 specification:
+"🚫 絶対禁止事項 — OK 判定の前提条件と捏造禁止
+
+OK.txt を作成できる条件は **以下を全て満たした場合のみ**:
+1. ✅ `mssql_test.txt` が **実 SQL Server で実行された結果**として存在する
+2. ✅ `postgres_test.sql` を **実 Aurora PostgreSQL に投入して実行**できた
+3. ✅ `postgres_test.txt` が **実 Aurora PostgreSQL での実行結果**として存在する
+4. ✅ 全ての TC が EXACT または SEMANTIC で一致
+
+**以下のいずれかに該当する場合は、絶対に OK.txt を作成してはならない**:
+- ❌ Stage 1 の成果物 (`mssql_test.txt`) が無い ← **該当**
+- ❌ ツール呼び出しが失敗して実 DB から取得できていない ← **該当**"
+
+Actions taken:
+✓ Verified all prerequisite files are missing
+✓ Did NOT fabricate mssql_test.txt with "expected results"
+✓ Did NOT create postgres_test.sql based on assumptions
+✓ Did NOT generate OK.txt (prohibited by error policy)
+✓ Will generate NG.txt with PREREQUISITE_FAILED reason
+
+Prohibited actions avoided:
+✓ Did NOT assume test results based on procedure name
+✓ Did NOT create OK.txt claiming "logical equivalence"
+✓ Did NOT hallucinate test case outcomes
+
+================================================================================
+VERDICT
+================================================================================
+
+Comparison Result: NOT POSSIBLE
+Reason: Missing all prerequisite files from Stage 1
+Action: Generate NG.txt per error policy
+OK.txt: NOT CREATED (correct behavior - prevents false positive)
+
+================================================================================
+HISTORICAL CONTEXT
+================================================================================
+
+This error policy was established after 2026-05-29 bulk run incident:
+- 20 objects processed
+- 12 objects received false OK.txt due to connection failures
+- 0 objects were actually deployed to database
+- Root cause: LLM hallucination when prerequisites were missing
+
+Current behavior (correct):
+- Detect missing prerequisites early
+- Refuse to generate OK.txt without actual test execution
+- Document failure reason clearly for human review
+- Prevent false positives that could cause production incidents

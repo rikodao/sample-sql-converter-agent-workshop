@@ -1,0 +1,38 @@
+---
+# =============================================================================
+# sql_server role - main tasks orchestrator
+# =============================================================================
+
+- name: 基本パッケージのインストール (curl, gnupg, awscli, etc.)
+  ansible.builtin.import_tasks: prereq.yml
+  tags: [sql_server, prereq]
+
+- name: SQL Server エンジンと CLI ツールのインストール
+  ansible.builtin.import_tasks: install.yml
+  tags: [sql_server, install]
+
+- name: SQL Server エンジンの初期セットアップ (edition + SA パスワード)
+  ansible.builtin.import_tasks: configure.yml
+  tags: [sql_server, configure]
+
+- name: ファイアウォール設定 (ufw で 1433/tcp 開放)
+  ansible.builtin.import_tasks: firewall.yml
+  when: mssql_open_firewall | bool
+  tags: [sql_server, firewall]
+
+- name: バックアップから DB を復元 (任意)
+  ansible.builtin.import_tasks: restore.yml
+  when: mssql_restore_enabled | bool
+  tags: [sql_server, restore]
+
+- name: 完了情報の表示
+  ansible.builtin.debug:
+    msg: |
+      ===================================================================
+      SQL Server {{ mssql_version }} {{ mssql_edition }} Edition セットアップ完了
+      ===================================================================
+      接続:    sqlcmd -S <this-host>,{{ mssql_listen_port }} -U SA -P '<password>' -C -N
+      確認:    SELECT @@VERSION;
+      Restore: {{ '実施 (' + mssql_restore_database_name + ')' if mssql_restore_enabled else 'スキップ' }}
+      ===================================================================
+  tags: [sql_server, summary]

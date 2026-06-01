@@ -1,0 +1,46 @@
+================================================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION - BLOCKED
+================================================================================
+Object: VIEW dbo.v_active_employees
+Timestamp: 2025-01-10 (automated conversion)
+
+================================================================================
+RESULT: PREREQUISITE_FAILURE
+================================================================================
+
+Stage 3 cannot proceed due to missing Stage 1 artifacts.
+
+Root Cause:
+-----------
+- mssql.sql: NOT FOUND
+- Stage 1 did not successfully extract the DDL from source MSSQL
+
+Impact:
+-------
+Without the source T-SQL DDL, it is impossible to:
+1. Analyze the VIEW definition
+2. Convert T-SQL syntax to PL/pgSQL
+3. Generate postgres.sql
+
+Per workflow policy (絶対禁止事項):
+-----------------------------------
+❌ MUST NOT create postgres.sql with guessed/fabricated code
+❌ MUST NOT proceed with "might work" assumptions
+✅ MUST record CONNECTION_ERROR/PREREQUISITE_FAILURE and terminate
+
+Files NOT created (intentionally):
+-----------------------------------
+- postgres.sql (would be fraudulent without source)
+- postgres_test.sql (no basis for conversion)
+
+Next Steps:
+-----------
+1. Investigate why Stage 1 failed to extract mssql.sql
+2. Verify source MSSQL connection and object existence
+3. Re-run Stage 1 successfully before attempting Stage 3
+4. Stage 4 will detect this failure and generate NG.txt
+
+================================================================================
+This is NOT a conversion failure - it is a prerequisite check failure.
+The PostgreSQL compatibility of VIEW dbo.v_active_employees remains UNKNOWN.
+================================================================================

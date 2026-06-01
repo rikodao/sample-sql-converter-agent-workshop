@@ -1,0 +1,170 @@
+============================================================================
+Test Execution Results: dbo.usp_bulk_deactivate_employees
+Execution Date: 2026-05-29
+Status: SIMULATED (Database connection unavailable)
+============================================================================
+
+NOTE: Due to AWS region configuration issues preventing direct database access,
+      the following results are EXPECTED outputs based on the test logic.
+      Actual execution should be performed once connectivity is restored.
+
+============================================================================
+TEST CASE 1: Normal - Single employee deactivation
+============================================================================
+test_case | deactivated_count | inactive_count | has_deactivation_date
+----------|-------------------|----------------|----------------------
+TC1       | 1                 | 1              | 1
+
+Expected: Successfully deactivates one employee (ID 1001)
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 2: Normal - Multiple employees deactivation
+============================================================================
+test_case | deactivated_count | inactive_count | still_active_count
+----------|-------------------|----------------|-------------------
+TC2       | 3                 | 3              | 1
+
+Expected: Deactivates 3 out of 4 employees (IDs 2001, 2002, 2003)
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 3: Normal - All employees in department
+============================================================================
+test_case | deactivated_count | all_inactive
+----------|-------------------|-------------
+TC3       | 3                 | 3
+
+Expected: Deactivates all 3 employees in the department
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 4: Boundary - NULL employee_ids parameter
+============================================================================
+test_case | result
+----------|-------------------------------------------------------
+TC4       | ERROR: Parameter @employee_ids cannot be NULL or empty
+
+Expected: Validation error for NULL parameter
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 5: Boundary - Empty string employee_ids
+============================================================================
+test_case | result
+----------|-------------------------------------------------------
+TC5       | ERROR: Parameter @employee_ids cannot be NULL or empty
+
+Expected: Validation error for empty string
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 6: Boundary - Whitespace only employee_ids
+============================================================================
+test_case | result
+----------|-------------------------------------------------------
+TC6       | ERROR: Parameter @employee_ids cannot be NULL or empty
+
+Expected: Validation error for whitespace-only string
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 7: Exception - Non-existent employee ID
+============================================================================
+test_case | result
+----------|-------------------------------------------------------
+TC7       | ERROR: One or more employee IDs do not exist
+
+Expected: Validation error when employee ID 9999 does not exist
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 8: Exception - Invalid format (non-numeric ID)
+============================================================================
+test_case | result
+----------|-------------------------------------------------------
+TC8       | ERROR: Conversion failed when converting the nvarchar value 'ABC' to data type int.
+
+Expected: Conversion error for non-numeric employee ID
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 9: Side Effect - Already deactivated employee
+============================================================================
+test_case | deactivated_count | total_inactive | still_active
+----------|-------------------|----------------|-------------
+TC9       | 1                 | 2              | 0
+
+Expected: Only deactivates currently active employee (9002), skips already inactive (9001)
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 10: Side Effect - Verify @@ROWCOUNT accuracy
+============================================================================
+test_case | rowcount_output | actual_deactivated | validation
+----------|-----------------|--------------------|-----------
+TC10      | 5               | 5                  | MATCH
+
+Expected: @@ROWCOUNT matches actual number of deactivated employees
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 11: Boundary - Single ID with leading/trailing spaces
+============================================================================
+test_case | deactivated_count | is_active_status
+----------|-------------------|------------------
+TC11      | 1                 | 0
+
+Expected: Successfully handles employee ID with whitespace
+Result: PASS (Expected)
+
+============================================================================
+TEST CASE 12: Boundary - Multiple IDs with extra commas
+============================================================================
+test_case | deactivated_count | inactive_count
+----------|-------------------|---------------
+TC12      | 2                 | 2
+
+Expected: Successfully filters out empty values from extra commas
+Result: PASS (Expected)
+
+============================================================================
+SUMMARY
+============================================================================
+Total Test Cases: 12
+Expected PASS: 12
+Expected FAIL: 0
+
+Coverage:
+- Normal operations: 3 test cases (TC1, TC2, TC3)
+- Boundary conditions: 5 test cases (TC4, TC5, TC6, TC11, TC12)
+- Exception handling: 2 test cases (TC7, TC8)
+- Side effects: 2 test cases (TC9, TC10)
+
+Key Validations:
+✓ Single and multiple employee deactivation
+✓ NULL and empty parameter validation
+✓ Non-existent employee ID detection
+✓ Invalid format handling (non-numeric IDs)
+✓ Already deactivated employee handling
+✓ @@ROWCOUNT accuracy
+✓ Whitespace and extra comma handling
+
+============================================================================
+NOTES FOR STAGE 2 (Babelfish Conversion)
+============================================================================
+Potential Compatibility Issues:
+1. STRING_SPLIT function - Available in SQL Server 2016+ and Babelfish 3.x+
+   - May need alternative parsing for older versions
+   
+2. @@ROWCOUNT - Supported in Babelfish but behavior should be verified
+   
+3. GETDATE() - Should map to CURRENT_TIMESTAMP in PostgreSQL
+   
+4. Temp table (#) syntax - Babelfish supports this in T-SQL mode
+   
+5. TRY-CATCH blocks - Supported in Babelfish T-SQL mode
+   
+6. OUTPUT parameters - Supported in Babelfish stored procedures
+
+============================================================================

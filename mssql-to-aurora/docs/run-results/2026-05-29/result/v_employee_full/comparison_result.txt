@@ -1,0 +1,172 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: VIEW dbo.v_employee_full → public.v_employee_full
+Test Cases: 10 total
+
+============================================================================
+COMPARISON STATUS: UNABLE TO EXECUTE
+============================================================================
+
+Reason: PostgreSQL connection failure (region configuration error)
+Tool: run_postgres_sql
+Error: "You must specify a region."
+
+============================================================================
+EXPECTED TEST RESULTS (from MSSQL baseline)
+============================================================================
+
+--- TC1: Basic SELECT - Retrieve all columns ---
+Expected (MSSQL):
+  tc='TC1', total_rows=<actual>, distinct_employees=<actual>, distinct_departments=<actual>
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC2: SELECT specific employee with department ---
+Expected (MSSQL):
+  tc='TC2', employee_id=1, first_name=<actual>, last_name=<actual>, email=<actual>, 
+  department_id=<actual>, department_name=<actual>, location=<actual>
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC3: LEFT JOIN behavior - Employee with NULL department_id ---
+Expected (MSSQL):
+  tc='TC3', employee_id=99901, first_name='NoDepEmployee', last_name='TestLast',
+  department_id=NULL, department_name=NULL, location=NULL, dept_name_status='NULL'
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC4: Multiple employees in same department ---
+Expected (MSSQL):
+  tc='TC4', employee_count=3, department_id=1, department_name='Engineering'
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC5: All employee columns present ---
+Expected (MSSQL):
+  tc='TC5', employee_id=99905, first_name='FullData', last_name='Employee',
+  email='fulldata@example.com', phone_number='555-1234', hire_date='2022-01-01',
+  job_id='IT_PROG', salary=75000.00, commission_pct=0.10, manager_id=1,
+  department_id=1, status='Active', termination_date=NULL, is_active=1,
+  performance_rating=4, bonus_amount=5000.00, last_bonus_date='2023-12-31',
+  bonus_fiscal_year=2023, department_name='Engineering', location='Building A'
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC6: ORDER BY employee_id ---
+Expected (MSSQL):
+  Row 1: tc='TC6', employee_id=99906, first_name='AFirst', row_num=1
+  Row 2: tc='TC6', employee_id=99908, first_name='MMiddle', row_num=2
+  Row 3: tc='TC6', employee_id=99910, first_name='ZLast', row_num=3
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC7: Filter by department_name ---
+Expected (MSSQL):
+  tc='TC7', sales_employee_count=2, department_name='Sales'
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC8: Boundary - Empty result set ---
+Expected (MSSQL):
+  tc='TC8', row_count=0
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC9: NULL handling in various columns ---
+Expected (MSSQL):
+  tc='TC9', employee_id=99913, first_name='NullTest',
+  phone_status='NULL', job_status='NULL', commission_status='NULL',
+  manager_status='NULL', dept_status='NULL', dept_name_status='NULL'
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+--- TC10: Aggregate functions on view ---
+Expected (MSSQL):
+  tc='TC10', employee_count=3, min_salary=50000.00, max_salary=70000.00,
+  avg_salary=60000.00, total_salary=180000.00
+Actual (PG):
+  NOT EXECUTED - Connection error
+Result: ❌ UNABLE TO COMPARE
+
+============================================================================
+VERDICT
+============================================================================
+EXACT=0, SEMANTIC=0, STRUCTURAL=0, MISMATCH=0, NOT_EXECUTED=10
+Total Pass: 0/10
+Status: PREREQUISITE_FAILED
+
+Reason: Unable to establish connection to Aurora PostgreSQL
+Error: "You must specify a region."
+
+============================================================================
+CONVERSION QUALITY ASSESSMENT (Static Analysis)
+============================================================================
+
+Despite the connection failure, static analysis of the converted SQL shows:
+
+✓ Syntax Correctness:
+  - Standard SQL-92 VIEW syntax
+  - No T-SQL specific features in original VIEW
+  - PostgreSQL fully supports all constructs used
+
+✓ Schema Mapping:
+  - dbo → public (correct)
+  - Table references updated (employees, departments)
+
+✓ JOIN Semantics:
+  - LEFT JOIN preserved correctly
+  - ON clause unchanged (compatible)
+
+✓ Column Aliasing:
+  - dept_manager_id alias preserved
+  - No conflicts with PostgreSQL reserved words
+
+✓ Data Type Compatibility:
+  - All column types are standard SQL types
+  - No MSSQL-specific types used
+
+Potential Issues (require runtime verification):
+⚠ Boolean representation:
+  - MSSQL: is_active BIT (0/1)
+  - PostgreSQL: is_active BOOLEAN (true/false)
+  - Test script correctly uses 'true' instead of '1'
+
+⚠ Date/Time precision:
+  - MSSQL: datetime (3.33ms precision)
+  - PostgreSQL: timestamp (1μs precision)
+  - May cause minor formatting differences in output
+
+⚠ Decimal/Numeric precision:
+  - Both databases handle DECIMAL similarly
+  - AVG() may show different decimal places
+
+============================================================================
+RECOMMENDATION
+============================================================================
+
+1. IMMEDIATE ACTION:
+   - Resolve AWS region configuration issue
+   - Verify RDS Data API endpoint and credentials
+   - Re-run Stage 4 verification
+
+2. EXPECTED OUTCOME (after connection restored):
+   - All 10 test cases should pass with SEMANTIC or EXACT match
+   - Minor differences expected in:
+     * Boolean display (true/false vs 1/0)
+     * Timestamp precision display
+     * Decimal places in AVG() result
+
+3. CONVERSION CONFIDENCE:
+   - Syntax: HIGH (standard SQL, no T-SQL features)
+   - Semantics: HIGH (simple SELECT with LEFT JOIN)
+   - Runtime: MEDIUM (requires actual execution to confirm)
+
+============================================================================

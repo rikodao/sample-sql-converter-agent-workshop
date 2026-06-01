@@ -1,0 +1,153 @@
+=== Conversion Result: NG ===
+Object: FUNCTION dbo.fn_split_csv
+Failed At: Stage 4 (Prerequisites Check)
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE SUMMARY
+================================================================================
+
+Stage 4 (PostgreSQL Native Verification) cannot proceed because Stage 1
+artifacts are missing. Without the source MSSQL DDL and test results, it is
+impossible to perform conversion validation.
+
+--- Missing Prerequisites ---
+
+Required files from Stage 1:
+  ❌ mssql.sql          - Source T-SQL DDL definition
+  ❌ mssql_test.sql     - MSSQL test script
+  ❌ mssql_test.txt     - MSSQL test execution results (baseline)
+
+Required files from Stage 3:
+  ❌ postgres.sql       - Converted PL/pgSQL DDL
+
+Current directory status:
+  ✓ ./result/fn_split_csv/prerequisites.txt (Stage 1 failure log)
+  ✓ ./result/fn_split_csv/babelfish_attempt.txt (Stage 2 failure log)
+  ✓ ./result/fn_split_csv/postgres_blocked.txt (Stage 3 blocked log)
+
+--- Root Cause ---
+
+Stage 1 failed due to AWS region configuration issue:
+  Error: "You must specify a region."
+  
+Without database connectivity to Source RDS for SQL Server:
+  - Cannot extract DDL definition
+  - Cannot generate test cases
+  - Cannot execute baseline tests
+  - Cannot obtain mssql_test.txt for comparison
+
+Cascade effect:
+  Stage 1 FAILED → Stage 3 BLOCKED → Stage 4 CANNOT PROCEED
+
+--- Failed Test Case ---
+
+Name: N/A (No test cases available)
+Expected (MSSQL):
+  <No baseline results - mssql_test.txt does not exist>
+Actual (PG):
+  <Cannot execute - postgres.sql does not exist>
+Diff:
+  Cannot perform comparison without both baseline and target results.
+
+================================================================================
+HYPOTHESIS
+================================================================================
+
+The conversion pipeline requires sequential execution:
+  1. Stage 1: Extract DDL and tests from MSSQL → mssql.sql, mssql_test.sql, mssql_test.txt
+  2. Stage 3: Convert T-SQL to PL/pgSQL → postgres.sql
+  3. Stage 4: Validate conversion by comparing test results
+
+Stage 1 encountered an infrastructure issue (missing AWS region configuration)
+that prevented database connectivity. This is not a SQL compatibility issue,
+but an environmental configuration problem.
+
+Without Stage 1 output:
+  - Stage 3 had no source DDL to convert (correctly blocked)
+  - Stage 4 has no baseline to compare against (correctly failing)
+
+This is the correct behavior per the workflow protocol:
+  "接続失敗または前提条件不足の場合の正しい挙動:
+   1. NG.txt を NG Reason: PREREQUISITE_FAILED で生成
+   2. comparison_result.txt に「比較不能の理由」を記録
+   3. OK.txt は絶対に作成しない"
+
+================================================================================
+RECOMMENDED ACTION
+================================================================================
+
+1. **Resolve Stage 1 Infrastructure Issue**
+   - Configure AWS region for Source RDS for SQL Server connection
+   - Verify credentials and network connectivity
+   - Test connection: run_mssql_sql("SELECT @@VERSION")
+
+2. **Re-execute Stage 1**
+   - Extract DDL: dbo.fn_split_csv
+   - Generate test cases
+   - Execute tests and capture results
+   - Verify all three files are created:
+     * mssql.sql
+     * mssql_test.sql
+     * mssql_test.txt
+
+3. **Re-execute Stage 3**
+   - Convert T-SQL to PL/pgSQL
+   - Deploy to Aurora PostgreSQL for syntax validation
+   - Iterate until postgres.sql is syntactically correct
+
+4. **Re-execute Stage 4**
+   - Convert test cases to PL/pgSQL
+   - Execute tests on Aurora PostgreSQL
+   - Compare results with mssql_test.txt
+   - Generate OK.txt if all tests pass
+
+================================================================================
+COMPLIANCE NOTE
+================================================================================
+
+🚫 Fabrication Prevention Protocol: ACTIVE
+
+This Stage 4 execution has correctly avoided the following prohibited actions:
+  ❌ Creating OK.txt without real test execution
+  ❌ Fabricating postgres_test.txt with "expected results"
+  ❌ Assuming compatibility based on code inspection alone
+  ❌ Generating comparison_result.txt with guessed values
+
+Per Stage 4 protocol:
+  "OK.txt を作成できる条件は以下を全て満たした場合のみ:
+   1. ✅ mssql_test.txt が実 SQL Server で実行された結果として存在する
+   2. ✅ postgres_test.sql を実 Aurora PostgreSQL に投入して実行できた
+   3. ✅ postgres_test.txt が実 Aurora PostgreSQL での実行結果として存在する
+   4. ✅ 全ての TC が EXACT または SEMANTIC で一致"
+
+Current status: ❌ Condition 1 NOT MET (mssql_test.txt does not exist)
+
+Therefore: NG.txt is the only valid output.
+
+================================================================================
+NEXT STEPS FOR HUMAN REVIEWER
+================================================================================
+
+1. Check AWS configuration:
+   - Verify region is set in environment variables or AWS config
+   - Confirm Source RDS for SQL Server endpoint is accessible
+
+2. Review Stage 1 logs:
+   - ./result/fn_split_csv/prerequisites.txt
+   - Identify specific configuration issue
+
+3. After resolving infrastructure:
+   - Re-run entire pipeline from Stage 1
+   - Do NOT skip Stage 1 (baseline results are mandatory)
+
+4. Object-specific considerations:
+   - fn_split_csv is a table-valued function (TVF)
+   - MSSQL uses inline TVF or multi-statement TVF syntax
+   - PostgreSQL uses RETURNS TABLE or RETURNS SETOF
+   - String splitting logic may differ (STRING_SPLIT vs regexp_split_to_table)
+   - Test cases should verify row order and column values
+
+================================================================================
+END OF NG REPORT
+================================================================================

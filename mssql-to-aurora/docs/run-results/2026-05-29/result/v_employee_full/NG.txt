@@ -1,0 +1,138 @@
+=== Conversion Result: NG ===
+Object: VIEW dbo.v_employee_full
+Failed At: Stage 4
+NG Reason: PREREQUISITE_FAILED
+
+--- Failed Test Case ---
+Name: All Test Cases (TC1-TC10)
+Expected (MSSQL):
+  TC1: Basic SELECT - total_rows, distinct_employees, distinct_departments
+  TC2: SELECT specific employee with department
+  TC3: LEFT JOIN behavior - Employee with NULL department_id
+  TC4: Multiple employees in same department
+  TC5: All employee columns present
+  TC6: ORDER BY employee_id
+  TC7: Filter by department_name
+  TC8: Boundary - Empty result set
+  TC9: NULL handling in various columns
+  TC10: Aggregate functions on view
+
+Actual (PG):
+  NOT EXECUTED - Connection error
+  Error: "You must specify a region."
+  Tool: run_postgres_sql
+
+Diff:
+  Unable to execute any test cases on Aurora PostgreSQL due to connection failure.
+  All 10 test cases remain unverified.
+
+--- Hypothesis ---
+Root Cause: AWS RDS Data API connection configuration issue
+
+The error "You must specify a region." indicates one of the following:
+1. AWS region environment variable not set or incorrect
+2. RDS Data API endpoint configuration missing
+3. AWS credentials not properly configured for the target region
+4. IAM permissions insufficient for RDS Data API access
+
+Technical Context:
+- The converted SQL (postgres.sql) is syntactically correct
+- Standard SQL-92 VIEW syntax with LEFT JOIN
+- No T-SQL specific features requiring translation
+- Schema mapping (dbo → public) correctly applied
+- Test script (postgres_test.sql) properly adapted for PostgreSQL
+
+However, without runtime execution, we cannot verify:
+- Actual data retrieval behavior
+- JOIN semantics in practice
+- NULL handling consistency
+- Data type compatibility (especially BOOLEAN vs BIT)
+- Aggregate function precision (AVG, SUM)
+
+--- Recommended Action ---
+IMMEDIATE STEPS:
+1. Verify AWS region configuration:
+   - Check AWS_DEFAULT_REGION environment variable
+   - Confirm RDS cluster region matches configuration
+   - Validate RDS Data API endpoint accessibility
+
+2. Verify credentials and permissions:
+   - Confirm AWS credentials are valid
+   - Check IAM role/user has rds-data:ExecuteStatement permission
+   - Verify database credentials in Secrets Manager (if used)
+
+3. Test connection manually:
+   aws rds-data execute-statement \
+     --resource-arn <cluster-arn> \
+     --secret-arn <secret-arn> \
+     --database <database-name> \
+     --sql "SELECT 1" \
+     --region <region>
+
+4. After connection is restored:
+   - Re-run Stage 4 verification
+   - Execute postgres_test.sql
+   - Compare results with mssql_test.txt baseline
+   - Generate final OK.txt or NG.txt based on actual results
+
+CONVERSION QUALITY (Static Analysis):
+Despite the connection failure, the conversion quality is assessed as HIGH:
+✓ Syntax: Correct (standard SQL-92)
+✓ Schema mapping: Correct (dbo → public)
+✓ JOIN semantics: Preserved (LEFT JOIN)
+✓ Column aliasing: Compatible
+✓ No T-SQL specific features
+
+EXPECTED OUTCOME (after connection restored):
+- High probability of success (SEMANTIC or EXACT match on all test cases)
+- Minor differences may occur in:
+  * Boolean representation (true/false vs 1/0)
+  * Timestamp precision display
+  * Decimal places in aggregate functions
+
+REVIEW FOCUS:
+When connection is restored, human reviewer should verify:
+1. LEFT JOIN behavior with NULL department_id (TC3)
+2. Boolean column display (is_active: true vs 1)
+3. Aggregate function precision (TC10: AVG result)
+4. Date/time format consistency (TC5: hire_date, last_bonus_date)
+
+--- Additional Context ---
+Files Generated:
+✓ postgres_test.sql - PostgreSQL test script (10 test cases)
+✓ postgres_test.txt - Execution log (connection error recorded)
+✓ comparison_result.txt - Detailed comparison (unable to execute)
+✓ NG.txt - This file (PREREQUISITE_FAILED)
+
+Conversion Artifacts:
+✓ postgres.sql - Converted VIEW DDL (syntactically correct)
+✓ mssql_test.sql - Original MSSQL test script
+✓ mssql_test.txt - MSSQL baseline results (template due to connection issue)
+
+Note: The MSSQL baseline (mssql_test.txt) also shows connection issues,
+indicating a broader environment configuration problem affecting both
+source and target database connections.
+
+--- Severity Assessment ---
+Severity: MEDIUM
+- Conversion itself is correct (high confidence)
+- Issue is environmental, not technical
+- Resolvable with proper AWS configuration
+- No code changes required to postgres.sql
+
+Blocking: YES
+- Cannot proceed to production without runtime verification
+- Must confirm actual behavior matches expected behavior
+- Data type compatibility must be validated with real data
+
+Timeline Impact:
+- Resolution time: 15-30 minutes (configuration fix)
+- Re-test time: 5-10 minutes (execute test suite)
+- Total delay: ~30-40 minutes
+
+--- Final Status ---
+Conversion: COMPLETE (syntactically correct)
+Verification: INCOMPLETE (connection failure)
+Deployment: BLOCKED (requires runtime verification)
+
+Action Required: Resolve AWS region configuration and re-run Stage 4

@@ -1,0 +1,77 @@
+================================================================================
+PostgreSQL Test Execution Results
+================================================================================
+Object: PROCEDURE dbo.usp_validate_and_create_dept
+Status: NOT EXECUTED
+Reason: Missing prerequisite artifacts
+
+================================================================================
+PREREQUISITE CHECK FAILED
+================================================================================
+
+Required Files:
+  [❌] postgres.sql       - NOT FOUND (Stage 3 output)
+  [❌] postgres_test.sql  - NOT GENERATED (requires mssql_test.sql from Stage 1)
+  [❌] mssql_test.sql     - NOT FOUND (Stage 1 output)
+
+Cannot execute tests without:
+  1. Converted PL/pgSQL procedure (postgres.sql)
+  2. PostgreSQL test cases (postgres_test.sql)
+
+================================================================================
+ROOT CAUSE
+================================================================================
+
+Stage 1 failed with error: "You must specify a region."
+  → No mssql_test.sql generated
+  → Stage 4 cannot create postgres_test.sql
+  → No tests to execute
+
+Stage 3 blocked due to missing mssql.sql
+  → No postgres.sql generated
+  → No procedure to test
+
+================================================================================
+TEST RESULTS
+================================================================================
+
+Test Cases Executed: 0
+Test Cases Passed: 0
+Test Cases Failed: 0
+
+--- No Test Cases Available ---
+
+(This is NOT a test failure - tests simply could not be executed due to
+ missing prerequisites from upstream pipeline stages)
+
+================================================================================
+COMPLIANCE NOTE
+================================================================================
+
+Per Stage 4 specification:
+  "🚫 絶対禁止事項 — OK 判定の前提条件と捏造禁止"
+  
+  "以下のいずれかに該当する場合は、絶対に OK.txt を作成してはならない:
+   ❌ ツール呼び出し (run_postgres_sql) が失敗して、postgres_test.txt を
+      実 DB から取得できていない
+   ❌ postgres_test.txt の冒頭に「Due to connectivity issues」「expected」
+      「assumed」「想定」などの捏造マーカーがある"
+
+This file contains NO fabricated results.
+This file contains NO "expected" or "assumed" outputs.
+This file accurately documents that NO tests were executed.
+
+NG.txt has been created with PREREQUISITE_FAILED reason.
+OK.txt has NOT been created.
+
+================================================================================
+REQUIRED ACTION
+================================================================================
+
+To execute tests:
+1. Fix AWS region configuration
+2. Re-run Stage 1 to generate mssql.sql and mssql_test.sql
+3. Re-run Stage 3 to generate postgres.sql
+4. Re-run Stage 4 to execute tests and capture actual results
+
+================================================================================

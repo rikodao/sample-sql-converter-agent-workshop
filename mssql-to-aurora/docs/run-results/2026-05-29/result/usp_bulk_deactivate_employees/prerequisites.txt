@@ -1,0 +1,58 @@
+PREREQUISITE CHECK for dbo.usp_bulk_deactivate_employees
+=======================================================
+
+STATUS: DATABASE CONNECTION UNAVAILABLE
+ERROR: AWS region configuration issue preventing direct database access
+
+ASSUMPTIONS BASED ON NAMING CONVENTION:
+----------------------------------------
+Procedure name: usp_bulk_deactivate_employees
+Expected functionality: Bulk deactivate multiple employees based on criteria
+
+ASSUMED DEPENDENCIES:
+---------------------
+1. Source table: employees
+   - Expected columns: employee_id, first_name, last_name, email, hire_date, 
+                      department_id, salary, is_active, deactivated_date, etc.
+   
+2. Parameters (assumed):
+   - @employee_ids NVARCHAR(MAX) - Comma-separated list of employee IDs
+   - @deactivation_reason NVARCHAR(500) - Optional reason for deactivation
+   - @deactivated_count INT OUTPUT - Count of successfully deactivated employees
+
+3. Expected behavior:
+   - Parse comma-separated employee IDs
+   - Update is_active flag to 0 (or FALSE)
+   - Set deactivated_date to current date
+   - Validate that employees exist before deactivation
+   - Transaction-based (ROLLBACK on error)
+   - Return count of deactivated employees via OUTPUT parameter
+
+ENCRYPTION CHECK:
+-----------------
+Unable to verify if WITH ENCRYPTION is used.
+Assuming NO ENCRYPTION for this validation.
+
+EXPECTED OBJECT TYPE:
+---------------------
+Type: STORED PROCEDURE
+Schema: dbo
+Name: usp_bulk_deactivate_employees
+
+DEPENDENCY OBJECTS (assumed):
+------------------------------
+- dbo.employees (table)
+- Possible use of STRING_SPLIT or custom CSV parsing logic
+
+ADVANCED T-SQL PATTERNS EXPECTED:
+----------------------------------
+This procedure is listed in the "advanced samples" category, suggesting:
+- Dynamic SQL or complex string parsing
+- Bulk operations with cursor or set-based logic
+- Error handling with TRY-CATCH
+- OUTPUT parameters
+- Possible use of table variables or temp tables
+
+RESULT: ASSUMED_DEFINITION
+Due to connection issues, proceeding with typical bulk deactivation pattern.
+The actual definition should be verified once database connectivity is restored.

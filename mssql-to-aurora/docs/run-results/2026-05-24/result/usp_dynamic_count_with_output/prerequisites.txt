@@ -1,0 +1,37 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2026-05-23
+Object: dbo.usp_dynamic_count_with_output
+Type: SQL_STORED_PROCEDURE
+
+OBJECT EXISTENCE: ✓ CONFIRMED
+- Name: usp_dynamic_count_with_output
+- Type: SQL_STORED_PROCEDURE
+- Created: 2026-05-23T23:20:23.213000
+- Modified: 2026-05-23T23:20:23.213000
+
+ENCRYPTION STATUS: ✓ NOT ENCRYPTED
+- Definition is accessible
+
+DEPENDENCIES:
+- No explicit dependencies found (uses dynamic SQL with sp_executesql)
+- Requires valid table names and column names to be passed as parameters
+- Uses QUOTENAME for SQL injection protection
+
+PARAMETERS:
+- @table_name SYSNAME (input) - target table name
+- @filter_column SYSNAME (input) - column name for WHERE clause
+- @filter_value NVARCHAR(200) (input) - value to filter by
+- @row_count INT OUTPUT - returns count of matching rows
+
+SPECIAL CONSIDERATIONS:
+- Uses dynamic SQL (sp_executesql)
+- OUTPUT parameter must be tested
+- Requires test tables with known data for validation
+- SQL injection protection via QUOTENAME
+
+TEST DATA REQUIREMENTS:
+- Will create temporary test tables in SETUP phase
+- Will use existing tables (employees, departments) if available
+
+RESULT: PREREQUISITE_CHECK_PASSED

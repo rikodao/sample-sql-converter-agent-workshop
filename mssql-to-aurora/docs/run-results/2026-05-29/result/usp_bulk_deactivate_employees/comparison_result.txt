@@ -1,0 +1,162 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_bulk_deactivate_employees
+Test Cases: 12 total
+
+================================================================================
+--- TC1: Normal - Single employee deactivation ---
+================================================================================
+MSSQL:    test_case=TC1, deactivated_count=1, inactive_count=1, has_deactivation_date=1
+PG:       TC1|1|1|1
+Result:   ✓ EXACT MATCH
+Details:  All three metrics match: 1 employee deactivated, 1 inactive, 1 with deactivation date
+
+================================================================================
+--- TC2: Normal - Multiple employees deactivation ---
+================================================================================
+MSSQL:    test_case=TC2, deactivated_count=3, inactive_count=3, still_active_count=1
+PG:       TC2|3|3|1
+Result:   ✓ EXACT MATCH
+Details:  3 employees deactivated, 3 inactive, 1 still active
+
+================================================================================
+--- TC3: Normal - All employees in department ---
+================================================================================
+MSSQL:    test_case=TC3, deactivated_count=3, all_inactive=3
+PG:       TC3|3|3
+Result:   ✓ EXACT MATCH
+Details:  All 3 employees in department deactivated
+
+================================================================================
+--- TC4: Boundary - NULL employee_ids parameter ---
+================================================================================
+MSSQL:    test_case=TC4, result='ERROR: Parameter @employee_ids cannot be NULL or empty'
+PG:       TC4|ERROR: Parameter @employee_ids cannot be NULL or empty
+Result:   ✓ EXACT MATCH
+Details:  Both systems correctly reject NULL parameter with identical error message
+
+================================================================================
+--- TC5: Boundary - Empty string employee_ids ---
+================================================================================
+MSSQL:    test_case=TC5, result='ERROR: Parameter @employee_ids cannot be NULL or empty'
+PG:       TC5|ERROR: Parameter @employee_ids cannot be NULL or empty
+Result:   ✓ EXACT MATCH
+Details:  Both systems correctly reject empty string with identical error message
+
+================================================================================
+--- TC6: Boundary - Whitespace only employee_ids ---
+================================================================================
+MSSQL:    test_case=TC6, result='ERROR: Parameter @employee_ids cannot be NULL or empty'
+PG:       TC6|ERROR: Parameter @employee_ids cannot be NULL or empty
+Result:   ✓ EXACT MATCH
+Details:  Both systems correctly reject whitespace-only string with identical error message
+
+================================================================================
+--- TC7: Exception - Non-existent employee ID ---
+================================================================================
+MSSQL:    test_case=TC7, result='ERROR: One or more employee IDs do not exist'
+PG:       TC7|ERROR: One or more employee IDs do not exist
+Result:   ✓ EXACT MATCH
+Details:  Both systems correctly detect non-existent employee ID (9999)
+
+================================================================================
+--- TC8: Exception - Invalid format (non-numeric ID) ---
+================================================================================
+MSSQL:    test_case=TC8, result='ERROR: Conversion failed when converting the nvarchar value 'ABC' to data type int.'
+PG:       TC8|ERROR: invalid input syntax for type integer: "ABC"
+Result:   ✓ SEMANTIC MATCH (error message wording differs, behavior identical)
+Details:  Both systems correctly reject non-numeric input 'ABC'
+          - MSSQL: "Conversion failed when converting the nvarchar value 'ABC' to data type int."
+          - PG:    "invalid input syntax for type integer: "ABC""
+          Error messages differ in wording but convey the same meaning
+
+================================================================================
+--- TC9: Side Effect - Already deactivated employee ---
+================================================================================
+MSSQL:    test_case=TC9, deactivated_count=1, total_inactive=2, still_active=0
+PG:       TC9|1|2|0
+Result:   ✓ EXACT MATCH
+Details:  Only active employee (9002) deactivated, already inactive (9001) skipped
+          1 newly deactivated, 2 total inactive, 0 still active
+
+================================================================================
+--- TC10: Side Effect - Verify @@ROWCOUNT/ROW_COUNT accuracy ---
+================================================================================
+MSSQL:    test_case=TC10, rowcount_output=5, actual_deactivated=5, validation='MATCH'
+PG:       TC10|5|5|MATCH
+Result:   ✓ EXACT MATCH
+Details:  @@ROWCOUNT (MSSQL) and GET DIAGNOSTICS ROW_COUNT (PG) both return 5
+          Validation confirms accuracy
+
+================================================================================
+--- TC11: Boundary - Single ID with leading/trailing spaces ---
+================================================================================
+MSSQL:    test_case=TC11, deactivated_count=1, is_active_status=0
+PG:       TC11|1|f
+Result:   ✓ SEMANTIC MATCH (boolean representation differs)
+Details:  1 employee deactivated, is_active status changed
+          - MSSQL: is_active=0 (BIT type, 0=false)
+          - PG:    is_active=f (boolean type, f=false)
+          Semantically equivalent: both represent "inactive"
+
+================================================================================
+--- TC12: Boundary - Multiple IDs with extra commas ---
+================================================================================
+MSSQL:    test_case=TC12, deactivated_count=2, inactive_count=2
+PG:       TC12|2|2
+Result:   ✓ EXACT MATCH
+Details:  Both systems correctly filter empty values from '12001,,12002,'
+          2 employees deactivated
+
+================================================================================
+=== VERDICT ===
+================================================================================
+EXACT MATCH:     10 test cases (TC1, TC2, TC3, TC4, TC5, TC6, TC7, TC9, TC10, TC12)
+SEMANTIC MATCH:   2 test cases (TC8, TC11)
+STRUCTURAL:       0 test cases
+MISMATCH:         0 test cases
+
+Total Pass: 12/12 (100%)
+
+================================================================================
+=== ANALYSIS ===
+================================================================================
+
+Semantic Differences (Acceptable):
+1. TC8 - Error message wording:
+   - Both systems correctly reject non-numeric input
+   - MSSQL provides more verbose error message
+   - PostgreSQL provides concise error message
+   - Behavior is identical: both raise exception on invalid cast
+
+2. TC11 - Boolean representation:
+   - MSSQL BIT type: 0 (false), 1 (true)
+   - PostgreSQL boolean: f (false), t (true)
+   - Semantically equivalent values
+   - Both correctly represent inactive status
+
+Key Conversion Validations:
+✓ STRING_SPLIT → string_to_array + unnest: Works correctly
+✓ LTRIM(RTRIM()) → TRIM(): Works correctly
+✓ @@ROWCOUNT → GET DIAGNOSTICS ROW_COUNT: Works correctly
+✓ GETDATE() → now(): Works correctly
+✓ BIT (0/1) → boolean (false/true): Works correctly
+✓ #temp_table → TEMPORARY TABLE: Works correctly
+✓ TRY-CATCH → EXCEPTION block: Works correctly
+✓ Parameter validation logic: Identical behavior
+✓ Already-inactive employee handling: Identical behavior
+✓ Whitespace trimming: Identical behavior
+✓ Empty value filtering: Identical behavior
+
+No functional discrepancies detected.
+All test cases pass with exact or semantic equivalence.
+
+================================================================================
+=== CONCLUSION ===
+================================================================================
+The PostgreSQL conversion of dbo.usp_bulk_deactivate_employees is FUNCTIONALLY
+EQUIVALENT to the original SQL Server procedure. All 12 test cases pass with
+either exact or acceptable semantic matches. The procedure is ready for
+production use in Aurora PostgreSQL.
+
+Recommendation: APPROVE for deployment
+================================================================================

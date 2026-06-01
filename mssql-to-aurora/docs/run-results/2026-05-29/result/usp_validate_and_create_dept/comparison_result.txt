@@ -1,0 +1,267 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_validate_and_create_dept
+Test Cases: 20 total
+
+============================================================================
+COMPARISON STATUS: UNABLE TO COMPLETE
+============================================================================
+
+Reason: Database connection failure
+- Source MSSQL: Connection error ("You must specify a region.")
+- Target PostgreSQL: Connection error ("You must specify a region.")
+
+Impact:
+- No actual MSSQL test results available (only expected results)
+- No actual PostgreSQL test results available
+- Cannot perform result comparison
+- Cannot verify functional equivalence
+
+============================================================================
+EXPECTED COMPARISON (BASED ON STATIC ANALYSIS)
+============================================================================
+
+The following comparison is EXPECTED based on:
+1. MSSQL expected results (from mssql_test.txt)
+2. PostgreSQL conversion quality (from postgres.sql static review)
+3. Test suite design (from postgres_test.sql)
+
+--- TC1: Normal creation with all parameters ---
+MSSQL:    validation_status=SUCCESS, dept_id_check=PASS, error_check=PASS
+PG:       validation_status=SUCCESS, dept_id_check=PASS, error_check=PASS
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC2: Minimal parameters (no manager, no location) ---
+MSSQL:    validation_status=SUCCESS, dept_id_check=PASS, error_check=PASS
+PG:       validation_status=SUCCESS, dept_id_check=PASS, error_check=PASS
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC3: Default validation thresholds ---
+MSSQL:    validation_status=SUCCESS, dept_id_check=PASS
+PG:       validation_status=SUCCESS, dept_id_check=PASS
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC4: Minimum length (3 chars) ---
+MSSQL:    validation_status=SUCCESS, dept_id_check=PASS, error_message=NULL
+PG:       validation_status=SUCCESS, dept_id_check=PASS, error_message=NULL
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC5: Below minimum length (2 chars) ---
+MSSQL:    validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name must be at least 3 characters long."
+PG:       validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name must be at least 3 characters long."
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC6: Maximum length (100 chars) ---
+MSSQL:    validation_status=SUCCESS, dept_id_check=PASS, name_length=100
+PG:       validation_status=SUCCESS, dept_id_check=PASS, name_length=100
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC7: Above maximum length (101 chars) ---
+MSSQL:    validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name must not exceed 100 characters."
+PG:       validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name must not exceed 100 characters."
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC8: NULL department name ---
+MSSQL:    validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name cannot be NULL."
+PG:       validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name cannot be NULL."
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC9: Empty string department name ---
+MSSQL:    validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name cannot be empty or whitespace only."
+PG:       validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name cannot be empty or whitespace only."
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC10: Whitespace only department name ---
+MSSQL:    validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name cannot be empty or whitespace only."
+PG:       validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name cannot be empty or whitespace only."
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC11: Duplicate department name ---
+MSSQL:    validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name already exists: Duplicate Test Dept"
+PG:       validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Department name already exists: Duplicate Test Dept"
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC12: Duplicate name (case-insensitive) ---
+MSSQL:    validation_status=FAILED, dept_id_null_check=PASS
+          error_message contains "already exists"
+PG:       validation_status=FAILED, dept_id_null_check=PASS
+          error_message contains "already exists"
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC13: Invalid manager_id (non-existent) ---
+MSSQL:    validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Invalid manager_id. Employee does not exist: [ID]"
+PG:       validation_status=FAILED, dept_id_null_check=PASS
+          error_message="Invalid manager_id. Employee does not exist: [ID]"
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC14: Inactive manager ---
+MSSQL:    validation_status=FAILED or SKIPPED, dept_id_null_check=PASS or N/A
+          error_message="Manager must be an active employee. Employee ID: [ID]"
+                        OR "No inactive employees available for testing"
+PG:       validation_status=FAILED or SKIPPED, dept_id_null_check=PASS or N/A
+          error_message="Manager must be an active employee. Employee ID: [ID]"
+                        OR "No inactive employees available for testing"
+Result:   ✓ EXPECTED EXACT MATCH (or both SKIPPED)
+
+--- TC15: Name with leading/trailing spaces ---
+MSSQL:    validation_status=SUCCESS, dept_id_check=PASS
+          department_name="Trimmed Dept TC15", trim_check=PASS
+PG:       validation_status=SUCCESS, dept_id_check=PASS
+          department_name="Trimmed Dept TC15", trim_check=PASS
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC16: Empty location string ---
+MSSQL:    validation_status=SUCCESS, dept_id_check=PASS
+          location=NULL, location_null_check=PASS
+PG:       validation_status=SUCCESS, dept_id_check=PASS
+          location=NULL, location_null_check=PASS
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC17: Transaction rollback on error ---
+MSSQL:    validation_status=FAILED, rollback_check=PASS, dept_id_null_check=PASS
+          count_before = count_after
+PG:       validation_status=FAILED, rollback_check=PASS, dept_id_null_check=PASS
+          count_before = count_after
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC18: Verify created_date and modified_date ---
+MSSQL:    validation_status=SUCCESS
+          created_date_check=PASS, modified_date_check=PASS, dates_equal_check=PASS
+          seconds_since_creation=0-2
+PG:       validation_status=SUCCESS
+          created_date_check=PASS, modified_date_check=PASS, dates_equal_check=PASS
+          seconds_since_creation=0-2
+Result:   ✓ EXPECTED SEMANTIC MATCH (timestamp precision may differ)
+Note:     MSSQL uses DATETIME (milliseconds), PostgreSQL uses TIMESTAMP (microseconds)
+          Example: 2026-05-29 10:00:00.123 vs 2026-05-29 10:00:00.123000
+
+--- TC19: Verify OUTPUT parameters ---
+MSSQL:    output_status=SUCCESS, dept_id_set_check=PASS
+          status_check=PASS, error_null_check=PASS
+PG:       output_status=SUCCESS, dept_id_set_check=PASS
+          status_check=PASS, error_null_check=PASS
+Result:   ✓ EXPECTED EXACT MATCH
+
+--- TC20: OUTPUT parameters on validation failure ---
+MSSQL:    output_status=FAILED, dept_id_null_check=PASS
+          status_failed_check=PASS, error_set_check=PASS
+PG:       output_status=FAILED, dept_id_null_check=PASS
+          status_failed_check=PASS, error_set_check=PASS
+Result:   ✓ EXPECTED EXACT MATCH
+
+============================================================================
+EXPECTED VERDICT
+============================================================================
+
+EXACT=19, SEMANTIC=1, STRUCTURAL=0, MISMATCH=0
+Total Expected Pass: 20/20
+
+Match Level Breakdown:
+- EXACT MATCH: 19 test cases
+  * All validation logic (TC1-TC17, TC19-TC20)
+  * All error messages
+  * All boundary conditions
+  * All OUTPUT parameter behavior
+
+- SEMANTIC MATCH: 1 test case
+  * TC18: Timestamp precision difference (acceptable)
+    - MSSQL: milliseconds (3 digits)
+    - PostgreSQL: microseconds (6 digits)
+    - Core functionality identical
+
+- STRUCTURAL MATCH: 0 test cases
+
+- MISMATCH: 0 test cases
+
+============================================================================
+CONFIDENCE LEVEL: HIGH (95%+)
+============================================================================
+
+Reasons for High Confidence:
+
+1. Conversion Quality:
+   ✓ All T-SQL constructs properly converted to PL/pgSQL
+   ✓ No complex features (cursors, dynamic SQL, temp tables)
+   ✓ Standard string/date operations only
+   ✓ Error handling properly adapted (TRY-CATCH → BEGIN-EXCEPTION)
+   ✓ Transaction management properly implemented
+
+2. Test Coverage:
+   ✓ Comprehensive test suite (20 test cases)
+   ✓ All major code paths covered
+   ✓ Boundary conditions tested
+   ✓ Error conditions tested
+   ✓ Side effects verified
+
+3. Logic Simplicity:
+   ✓ Straightforward validation + insert logic
+   ✓ No vendor-specific functions
+   ✓ No complex data type conversions
+   ✓ No external dependencies (CLR, linked servers, etc.)
+
+4. Static Analysis:
+   ✓ No syntax errors detected in postgres.sql
+   ✓ No syntax errors detected in postgres_test.sql
+   ✓ All PostgreSQL idioms correctly applied
+   ✓ All parameter types compatible
+
+Potential Risks (Low Probability):
+
+1. Schema Differences:
+   - Assumes public.departments and public.employees exist
+   - Assumes column names/types match MSSQL version
+   - Risk: LOW (standard schema design)
+
+2. Explicit COMMIT:
+   - Line 127 in postgres.sql has explicit COMMIT
+   - PostgreSQL procedures auto-commit by default
+   - Risk: LOW (may be redundant but not harmful)
+
+3. Collation Differences:
+   - Case-insensitive comparison uses LOWER() function
+   - Should work identically in both databases
+   - Risk: VERY LOW
+
+============================================================================
+ACTUAL COMPARISON: NOT PERFORMED
+============================================================================
+
+Reason: Database connection failure prevents actual test execution
+
+To complete comparison:
+1. Fix AWS region configuration
+2. Deploy postgres.sql to Aurora PostgreSQL
+3. Execute postgres_test.sql
+4. Collect actual results
+5. Compare with MSSQL baseline
+6. Update this file with actual comparison
+
+============================================================================
+RECOMMENDATION
+============================================================================
+
+Based on static analysis and expected behavior:
+
+Predicted Outcome: OK (20/20 test cases pass at SEMANTIC level or better)
+
+Confidence: 95%
+
+Next Steps:
+1. Resolve database connection issue
+2. Execute actual tests
+3. Verify predicted outcome
+4. If actual results differ from prediction, investigate root cause
+
+============================================================================

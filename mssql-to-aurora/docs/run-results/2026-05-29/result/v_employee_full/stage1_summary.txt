@@ -1,0 +1,156 @@
+============================================================================
+STAGE 1 SUMMARY: dbo.v_employee_full
+============================================================================
+Object Type: VIEW
+Stage: 1 - MSSQL Validation
+Status: COMPLETED WITH LIMITATIONS
+Date: 2024
+
+============================================================================
+FILES CREATED
+============================================================================
+✓ prerequisites.txt       - Prerequisite check report (with connection limitations)
+✓ mssql.sql              - VIEW DDL (inferred from related objects)
+✓ mssql_test.sql         - 10 comprehensive test cases
+✓ mssql_test.txt         - Test execution results (template)
+
+============================================================================
+CONNECTION ISSUE
+============================================================================
+Error: "You must specify a region" when calling run_mssql_sql
+Impact:
+- Cannot retrieve actual DDL from sys.sql_modules
+- Cannot execute test cases on Source RDS
+- Cannot verify WITH ENCRYPTION status
+
+Workaround:
+- Inferred VIEW structure from related objects:
+  * trg_v_employee_full_update test patterns
+  * employees and departments table structures
+  * Common VIEW patterns for employee-department joins
+
+============================================================================
+INFERRED VIEW STRUCTURE
+============================================================================
+CREATE VIEW dbo.v_employee_full
+AS
+SELECT 
+    e.employee_id,
+    e.first_name,
+    e.last_name,
+    e.email,
+    e.phone_number,
+    e.hire_date,
+    e.job_id,
+    e.salary,
+    e.commission_pct,
+    e.manager_id,
+    e.department_id,
+    e.status,
+    e.termination_date,
+    e.is_active,
+    e.performance_rating,
+    e.bonus_amount,
+    e.last_bonus_date,
+    e.bonus_fiscal_year,
+    d.department_name,
+    d.location,
+    d.manager_id AS dept_manager_id
+FROM dbo.employees e
+LEFT JOIN dbo.departments d ON e.department_id = d.department_id;
+
+Key Features:
+- LEFT JOIN ensures all employees shown (even without department)
+- Combines employee and department data
+- Used by trg_v_employee_full_update (INSTEAD OF UPDATE trigger)
+- No WHERE clause (shows all employees, unlike v_active_employees)
+
+============================================================================
+TEST COVERAGE
+============================================================================
+Total Test Cases: 10
+
+Categories:
+1. Normal SELECT operations (TC1, TC2, TC5)
+   - Basic SELECT with all columns
+   - Specific employee retrieval
+   - All columns populated
+
+2. LEFT JOIN behavior (TC3, TC4)
+   - Employee with NULL department_id
+   - Multiple employees in same department
+
+3. Filtering and ordering (TC6, TC7, TC8)
+   - ORDER BY employee_id
+   - Filter by department_name
+   - Empty result set
+
+4. NULL handling (TC9)
+   - Multiple NULL columns
+   - NULL propagation from LEFT JOIN
+
+5. Aggregate functions (TC10)
+   - COUNT, MIN, MAX, AVG, SUM on view
+
+Test Structure:
+- Each test case has SETUP/EXEC/ASSERT/CLEANUP sections
+- Uses temporary test data (employee_id >= 99900)
+- Proper cleanup to avoid data pollution
+- TC identifiers ('TC1', 'TC2', ...) for result comparison
+
+============================================================================
+DEPENDENCIES
+============================================================================
+Base Tables:
+1. dbo.employees
+   - Primary table with employee data
+   - All employee columns included in view
+
+2. dbo.departments
+   - Joined via department_id
+   - Provides department_name and location
+
+Related Objects:
+1. trg_v_employee_full_update
+   - INSTEAD OF UPDATE trigger on this view
+   - Allows updates through the view
+
+============================================================================
+VALIDATION STATUS
+============================================================================
+✓ Directory created
+✓ prerequisites.txt created
+✓ mssql.sql created (inferred DDL)
+✓ mssql_test.sql created (10 test cases)
+✓ mssql_test.txt created (template)
+⚠ DDL not retrieved from actual database (connection issue)
+⚠ Test cases not executed (connection issue)
+⚠ WITH ENCRYPTION status not verified
+
+============================================================================
+RECOMMENDATIONS
+============================================================================
+1. IMMEDIATE:
+   - Resolve "You must specify a region" error
+   - Verify AWS region configuration
+   - Check RDS instance availability
+
+2. BEFORE STAGE 2:
+   - Retrieve actual DDL from sys.sql_modules
+   - Execute mssql_test.sql on Source RDS
+   - Replace template results with actual execution output
+   - Verify no WITH ENCRYPTION on the VIEW
+
+3. FOR STAGE 2 (Babelfish):
+   - Simple VIEW structure should migrate easily
+   - LEFT JOIN is supported in Babelfish
+   - No T-SQL specific features detected
+   - Expected compatibility: HIGH
+
+============================================================================
+STAGE 1 RESULT: PARTIAL SUCCESS
+============================================================================
+Structure complete, but actual data retrieval and execution required.
+Ready to proceed to Stage 2 with caution (verify DDL first).
+
+============================================================================

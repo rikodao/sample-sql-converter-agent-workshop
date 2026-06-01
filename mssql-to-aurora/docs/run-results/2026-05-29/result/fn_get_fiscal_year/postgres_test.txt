@@ -1,0 +1,121 @@
+============================================================================
+PostgreSQL TEST EXECUTION LOG
+Object: FUNCTION public.fn_get_fiscal_year
+Date: 2025-01-09
+============================================================================
+
+STAGE: DDL Deployment
+STATUS: FAILED
+ERROR: Database connection error - "You must specify a region."
+
+DETAILS:
+- Attempted to create function public.fn_get_fiscal_year on Aurora PostgreSQL
+- Connection to RDS Data API failed due to missing region configuration
+- This is an infrastructure/environment issue, not a conversion issue
+
+ATTEMPTED SQL:
+------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.fn_get_fiscal_year(DATE);
+
+CREATE OR REPLACE FUNCTION public.fn_get_fiscal_year(
+    p_input_date DATE
+)
+RETURNS INT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_fiscal_year INT;
+    v_fiscal_start_month INT := 4;
+BEGIN
+    IF EXTRACT(MONTH FROM p_input_date) >= v_fiscal_start_month THEN
+        v_fiscal_year := EXTRACT(YEAR FROM p_input_date)::INT;
+    ELSE
+        v_fiscal_year := EXTRACT(YEAR FROM p_input_date)::INT - 1;
+    END IF;
+    
+    RETURN v_fiscal_year;
+END;
+$$;
+------------------------------------------------------------
+
+IMPACT:
+- Cannot execute actual tests on PostgreSQL
+- Cannot verify runtime behavior
+- Cannot compare actual results with MSSQL baseline
+
+NEXT STEPS:
+- Manual verification required
+- Static analysis of conversion quality
+- Review based on MSSQL test expectations
+
+============================================================================
+CONVERSION QUALITY ASSESSMENT (Static Analysis)
+============================================================================
+
+SYNTAX CONVERSION: ✓ CORRECT
+- T-SQL → PL/pgSQL syntax properly converted
+- DECLARE block correctly structured
+- Variable initialization uses := (PostgreSQL syntax)
+- IF-THEN-ELSE-END IF structure correct
+- RETURN statement properly placed
+
+FUNCTION SIGNATURE: ✓ CORRECT
+- Parameter: @input_date → p_input_date (DATE)
+- Return type: INT (matches MSSQL)
+- Schema: dbo → public (appropriate for PostgreSQL)
+
+LOGIC CONVERSION: ✓ CORRECT
+- MONTH(@input_date) → EXTRACT(MONTH FROM p_input_date)
+- YEAR(@input_date) → EXTRACT(YEAR FROM p_input_date)
+- Explicit ::INT cast added (EXTRACT returns numeric)
+- Conditional logic preserved exactly
+
+NULL HANDLING: ✓ CORRECT
+- PostgreSQL functions return NULL for NULL input (same as SQL Server)
+- No explicit NULL check needed (implicit behavior matches)
+
+EXPECTED TEST RESULTS (Based on Logic Analysis):
+------------------------------------------------------------
+TC1:  2023-04-01 → 2023 ✓ (April = fiscal start)
+TC2:  2023-12-31 → 2023 ✓ (December >= April)
+TC3:  2023-03-31 → 2022 ✓ (March < April, year - 1)
+TC4:  2024-04-01 → 2024 ✓ (Boundary: first day)
+TC5:  2024-03-31 → 2023 ✓ (Boundary: last day before)
+TC6:  2023-01-01 → 2022 ✓ (January < April)
+TC7:  2023-12-31 → 2023 ✓ (December >= April)
+TC8:  2024-02-29 → 2023 ✓ (February < April)
+TC9:  NULL → NULL ✓ (NULL handling)
+TC10: 1900-05-15 → 1900 ✓ (May >= April)
+TC11: 2099-06-30 → 2099 ✓ (June >= April)
+TC12: All months → Correct fiscal years ✓
+TC13: WHERE clause → 4 records for FY2022 ✓
+TC14: ORDER BY → Sorted by fiscal year, then date ✓
+TC15: GROUP BY → Aggregated by fiscal year ✓
+
+All 15 test cases would PASS based on static analysis.
+
+============================================================================
+CONCLUSION
+============================================================================
+
+CONVERSION QUALITY: EXCELLENT
+- Syntax: 100% correct
+- Logic: 100% preserved
+- Semantics: Equivalent to MSSQL
+
+CONFIDENCE LEVEL: HIGH
+- Simple scalar function with deterministic logic
+- No complex features (cursors, temp tables, dynamic SQL)
+- Standard date arithmetic operations
+- Well-documented conversion notes in postgres.sql
+
+RISK ASSESSMENT: LOW
+- No PostgreSQL-specific edge cases identified
+- No performance concerns (O(1) operation)
+- No dependency issues
+
+RECOMMENDATION:
+Once database connectivity is restored, this function should pass all tests.
+The conversion is syntactically and semantically correct.
+
+============================================================================

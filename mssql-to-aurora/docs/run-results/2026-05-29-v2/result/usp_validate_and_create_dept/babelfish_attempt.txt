@@ -1,0 +1,94 @@
+================================================================================
+STAGE 2: BABELFISH COMPATIBILITY VERIFICATION
+================================================================================
+Object: PROCEDURE dbo.usp_validate_and_create_dept
+Timestamp: 2025-01-10 (automated verification)
+
+================================================================================
+SECTION 1: PREREQUISITE CHECK
+================================================================================
+
+1.1 Stage 1 Artifacts Check
+----------------------------
+- mssql.sql: NOT FOUND
+- mssql_test.sql: NOT FOUND
+- mssql_test.txt: NOT FOUND
+
+Status: ❌ FAILED - Stage 1 artifacts are missing
+
+1.2 Babelfish Connection Check
+-------------------------------
+Attempted: SELECT @@VERSION via run_babelfish_tsql
+
+Error Details:
+  Tool: run_babelfish_tsql
+  Error Message: "You must specify a region."
+  
+Analysis:
+  - The Babelfish connection tool requires AWS region configuration
+  - This is a configuration/environment issue, not a SQL compatibility issue
+  - Cannot proceed with DDL deployment or test execution without connection
+
+Status: ❌ FAILED - Connection error
+
+================================================================================
+SECTION 2: IMPACT ASSESSMENT
+================================================================================
+
+Without Stage 1 artifacts:
+  - Cannot read the MSSQL DDL to deploy to Babelfish
+  - Cannot read the test SQL to execute compatibility tests
+  - Cannot read the baseline MSSQL test results for comparison
+
+Without Babelfish connection:
+  - Cannot deploy DDL via run_babelfish_tsql
+  - Cannot execute test cases
+  - Cannot verify T-SQL compatibility
+
+================================================================================
+SECTION 3: COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 2 specification:
+  "接続失敗時は `babelfish_attempt.txt` に詳細を記録、
+   末尾に `RESULT: CONNECTION_ERROR` を書いて Stage 2 を終了"
+
+Actions taken:
+  ✓ Detailed error recorded in this file
+  ✓ No fabrication of test results
+  ✓ No creation of BABELFISH_OK.txt
+  ✓ No creation of babelfish_test.sql or babelfish_test.txt
+  ✓ Stage 2 terminated immediately
+
+Prohibited actions NOT taken:
+  ✓ Did NOT create BABELFISH_OK.txt without actual verification
+  ✓ Did NOT fabricate "expected" test results
+  ✓ Did NOT assume compatibility without testing
+
+================================================================================
+SECTION 4: RECOMMENDATIONS
+================================================================================
+
+To resolve this issue:
+
+1. Environment Configuration:
+   - Verify AWS region is properly configured for Babelfish connection
+   - Check that run_babelfish_tsql tool has necessary credentials
+   - Ensure Babelfish endpoint is accessible
+
+2. Stage 1 Execution:
+   - Run Stage 1 first to generate mssql.sql, mssql_test.sql, mssql_test.txt
+   - Verify Stage 1 completed successfully before running Stage 2
+
+3. Retry Sequence:
+   - Fix environment configuration
+   - Re-run Stage 1 if artifacts are missing
+   - Re-run Stage 2 with proper prerequisites
+
+================================================================================
+RESULT: CONNECTION_ERROR
+================================================================================
+
+Stage 2 cannot proceed. Babelfish compatibility is UNDETERMINED.
+No BABELFISH_OK.txt will be generated.
+Stage 3 (PG-native conversion) may proceed independently if connection is restored.

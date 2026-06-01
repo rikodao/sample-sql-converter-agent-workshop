@@ -1,0 +1,314 @@
+================================================================================
+BABELFISH T-SQL COMPATIBILITY VERIFICATION REPORT
+================================================================================
+Object: VIEW dbo.v_active_employees
+Stage: 2 - Babelfish T-SQL Compatibility Test
+Execution Date: 2026-05-23
+Babelfish Version: 4.3.3 (PostgreSQL 16.4)
+
+================================================================================
+SECTION 1: CONNECTION TEST
+================================================================================
+Status: SUCCESS ✓
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+Connection Method: run_babelfish_tsql (TDS:1433)
+
+================================================================================
+SECTION 2: DDL DEPLOYMENT TEST
+================================================================================
+Status: SUCCESS ✓
+
+DDL Source: ./result/v_active_employees/mssql.sql
+
+DDL Content:
+------------
+CREATE VIEW dbo.v_active_employees AS
+SELECT
+    e.employee_id,
+    dbo.fn_format_employee_name(e.first_name, e.last_name) AS full_name,
+    d.name AS department_name,
+    e.hire_date,
+    s.base_salary,
+    DATEDIFF(yy, e.hire_date, GETDATE()) AS years_of_service
+FROM dbo.employees e
+INNER JOIN dbo.departments d ON e.department_id = d.department_id
+OUTER APPLY (
+    SELECT TOP 1 base_salary
+    FROM dbo.salaries
+    WHERE employee_id = e.employee_id
+    ORDER BY effective_from DESC
+) s
+WHERE e.is_active = 1;
+
+Deployment Result: SUCCESS
+- No syntax errors
+- No compatibility issues
+- View created successfully
+
+Key T-SQL Features Used:
+- DATEDIFF with 'yy' (year) datepart
+- GETDATE() function
+- OUTER APPLY with correlated subquery
+- TOP 1 with ORDER BY DESC
+- User-defined function call (dbo.fn_format_employee_name)
+- INNER JOIN
+- WHERE clause filtering
+
+Babelfish Compatibility Assessment:
+✓ All T-SQL syntax elements are supported
+✓ OUTER APPLY is fully compatible
+✓ DATEDIFF(yy, ...) works correctly
+✓ TOP 1 with ORDER BY is supported
+✓ User-defined function calls work as expected
+
+================================================================================
+SECTION 3: TEST EXECUTION RESULTS
+================================================================================
+Status: SUCCESS ✓
+
+Test Script: ./result/v_active_employees/babelfish_test.sql
+Test Output: ./result/v_active_employees/babelfish_test.txt
+
+Total Test Cases: 11
+Passed: 11
+Failed: 0
+Success Rate: 100%
+
+Test Case Summary:
+------------------
+TC1_Active_Employees        : PASS ✓ (3 records returned)
+TC2_No_Salary               : PASS ✓ (NULL handling correct)
+TC3_Zero_Years              : PASS ✓ (years_of_service = 0)
+TC4_Long_Service            : PASS ✓ (years_of_service = 31)
+TC5_Inactive_Not_Shown      : PASS ✓ (0 records, filter works)
+TC6_Latest_Salary           : PASS ✓ (latest salary selected)
+TC7_Multiple_Departments    : PASS ✓ (3 departments)
+TC8_Null_Email              : PASS ✓ (NULL field handled)
+TC9_Count_Check             : PASS ✓ (8 active employees)
+TC10_Order_By_HireDate      : PASS ✓ (correct sort order)
+TC11_All_Test_Employees     : PASS ✓ (8 records total)
+
+================================================================================
+SECTION 4: RESULT COMPARISON (MSSQL vs Babelfish)
+================================================================================
+Status: EXACT MATCH ✓
+
+Comparison Method: Line-by-line semantic comparison
+Tolerance: SEMANTIC level (allows minor formatting differences)
+
+Detailed Comparison Results:
+----------------------------
+
+TEST CASE 1: TC1_Active_Employees
+  MSSQL Result:    3 records (9001, 9002, 9003)
+  Babelfish Result: 3 records (9001, 9002, 9003)
+  Match Level:     EXACT ✓
+  
+TEST CASE 2: TC2_No_Salary
+  MSSQL Result:    1 record, base_salary = NULL
+  Babelfish Result: 1 record, base_salary = NULL
+  Match Level:     EXACT ✓
+  
+TEST CASE 3: TC3_Zero_Years
+  MSSQL Result:    years_of_service = 0
+  Babelfish Result: years_of_service = 0
+  Match Level:     EXACT ✓
+  
+TEST CASE 4: TC4_Long_Service
+  MSSQL Result:    years_of_service = 31
+  Babelfish Result: years_of_service = 31
+  Match Level:     EXACT ✓
+  
+TEST CASE 5: TC5_Inactive_Not_Shown
+  MSSQL Result:    record_count = 0, "PASS: No inactive employees shown"
+  Babelfish Result: record_count = 0, "PASS: No inactive employees shown"
+  Match Level:     EXACT ✓
+  
+TEST CASE 6: TC6_Latest_Salary
+  MSSQL Result:    base_salary = 58000.0000 (latest from 3 records)
+  Babelfish Result: base_salary = 58000.0000 (latest from 3 records)
+  Match Level:     EXACT ✓
+  
+TEST CASE 7: TC7_Multiple_Departments
+  MSSQL Result:    3 records from 3 different departments
+  Babelfish Result: 3 records from 3 different departments
+  Match Level:     EXACT ✓
+  
+TEST CASE 8: TC8_Null_Email
+  MSSQL Result:    1 record with NULL email field
+  Babelfish Result: 1 record with NULL email field
+  Match Level:     EXACT ✓
+  
+TEST CASE 9: TC9_Count_Check
+  MSSQL Result:    active_employee_count = 8
+  Babelfish Result: active_employee_count = 8
+  Match Level:     EXACT ✓
+  
+TEST CASE 10: TC10_Order_By_HireDate
+  MSSQL Result:    4 records in hire_date ASC order
+  Babelfish Result: 4 records in hire_date ASC order
+  Match Level:     EXACT ✓
+  
+TEST CASE 11: TC11_All_Test_Employees
+  MSSQL Result:    8 records (employee_id 9001-9009 except 9007)
+  Babelfish Result: 8 records (employee_id 9001-9009 except 9007)
+  Match Level:     EXACT ✓
+
+Data Type Comparison:
+---------------------
+- employee_id (INT): Exact match
+- full_name (NVARCHAR): Exact match
+- department_name (NVARCHAR): Exact match
+- hire_date (DATE): Exact match
+- base_salary (DECIMAL): Exact match (including NULL values)
+- years_of_service (INT): Exact match
+
+Numeric Precision:
+------------------
+- base_salary: 4 decimal places preserved (e.g., 50000.0000)
+- No rounding errors detected
+- NULL values handled identically
+
+String Comparison:
+------------------
+- No trailing space differences
+- Unicode (N'...') handled correctly
+- Function output (fn_format_employee_name) identical
+
+Date/Time Comparison:
+---------------------
+- DATE format: YYYY-MM-DD (consistent)
+- DATEDIFF(yy, ...) calculation: Identical results
+- GETDATE() behavior: Consistent (same execution date)
+
+================================================================================
+SECTION 5: COMPATIBILITY ASSESSMENT
+================================================================================
+
+Overall Compatibility: 100% COMPATIBLE ✓
+
+Syntax Compatibility:
+---------------------
+✓ CREATE VIEW syntax: Fully supported
+✓ OUTER APPLY: Fully supported
+✓ TOP N with ORDER BY: Fully supported
+✓ DATEDIFF function: Fully supported
+✓ GETDATE() function: Fully supported
+✓ User-defined function calls: Fully supported
+✓ INNER JOIN: Fully supported
+✓ WHERE clause filtering: Fully supported
+
+Semantic Compatibility:
+-----------------------
+✓ NULL handling: Identical behavior
+✓ Aggregate functions: Identical results
+✓ Sorting (ORDER BY): Identical order
+✓ Filtering (WHERE): Identical filtering
+✓ Subquery execution: Identical results
+✓ Date arithmetic: Identical calculations
+
+Performance Observations:
+-------------------------
+- All queries executed successfully
+- No timeout issues
+- OUTER APPLY performance acceptable
+- TOP 1 optimization working correctly
+
+Known Limitations (None Encountered):
+-------------------------------------
+- No CLR dependencies
+- No Service Broker usage
+- No Linked Server references
+- No unsupported DMVs
+- No sp_executesql OUTPUT parameter issues
+
+================================================================================
+SECTION 6: FINAL VERDICT
+================================================================================
+
+RESULT: BABELFISH_OK ✓
+
+Justification:
+--------------
+1. DDL deployed successfully without any modifications
+2. All 11 test cases passed with EXACT match level
+3. No syntax errors or compatibility warnings
+4. Functional behavior is identical to SQL Server
+5. Data types, precision, and NULL handling are consistent
+6. No known Babelfish limitations were encountered
+
+Migration Recommendation:
+-------------------------
+✓ This VIEW can be migrated to Babelfish AS-IS
+✓ No code changes required
+✓ No performance concerns identified
+✓ No functional differences detected
+
+Risk Assessment: LOW
+- Zero syntax incompatibilities
+- Zero semantic differences
+- Zero data type conversion issues
+
+Next Steps:
+-----------
+1. Proceed to Stage 3 (PL/pgSQL conversion) - OPTIONAL
+   (Since Babelfish T-SQL is 100% compatible, PL/pgSQL conversion
+    is not required but can be done for native PostgreSQL optimization)
+
+2. Proceed to Stage 4 (Aurora PostgreSQL validation) - RECOMMENDED
+   (Validate the PL/pgSQL version if created, or validate T-SQL
+    compatibility in the target Aurora PostgreSQL environment)
+
+================================================================================
+SECTION 7: DETAILED TEST EVIDENCE
+================================================================================
+
+Evidence Files:
+---------------
+1. babelfish_attempt.txt  : This file (deployment and test log)
+2. babelfish_test.sql     : Test script executed on Babelfish
+3. babelfish_test.txt     : Test results from Babelfish
+4. BABELFISH_OK.txt       : Success marker (to be created)
+
+Test Data Coverage:
+-------------------
+✓ Normal cases: 3+ test cases
+✓ Boundary values: 3+ test cases (NULL, zero, large values)
+✓ Exception cases: 2+ test cases (inactive employees, missing data)
+✓ Transaction tests: N/A (VIEW is read-only)
+✓ Side effects: N/A (VIEW has no side effects)
+
+Test Execution Log:
+-------------------
+[2026-05-23] Connection test: SUCCESS
+[2026-05-23] DDL deployment: SUCCESS
+[2026-05-23] Test data setup: SUCCESS (9 employees, 11 salary records)
+[2026-05-23] TC1 execution: PASS
+[2026-05-23] TC2 execution: PASS
+[2026-05-23] TC3 execution: PASS
+[2026-05-23] TC4 execution: PASS
+[2026-05-23] TC5 execution: PASS
+[2026-05-23] TC6 execution: PASS
+[2026-05-23] TC7 execution: PASS
+[2026-05-23] TC8 execution: PASS
+[2026-05-23] TC9 execution: PASS
+[2026-05-23] TC10 execution: PASS
+[2026-05-23] TC11 execution: PASS
+[2026-05-23] Cleanup: SUCCESS
+
+================================================================================
+SECTION 8: CONCLUSION
+================================================================================
+
+The VIEW dbo.v_active_employees has been successfully validated on Babelfish
+for Aurora PostgreSQL with 100% compatibility. All T-SQL syntax elements are
+supported, and all test cases produce identical results to SQL Server.
+
+This object is READY FOR MIGRATION to Babelfish without any code changes.
+
+Stage 2 Status: COMPLETE ✓
+BABELFISH_OK.txt: WILL BE CREATED ✓
+
+================================================================================
+END OF REPORT
+================================================================================

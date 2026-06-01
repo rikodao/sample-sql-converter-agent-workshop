@@ -1,0 +1,191 @@
+================================================================================
+TEST RESULTS: VIEW dbo.v_active_employees
+Source: Babelfish for Aurora PostgreSQL
+Execution Date: 2026-05-23
+================================================================================
+
+================================================================================
+TEST CASE 1: 正常系 - アクティブ従業員の基本取得
+================================================================================
+Description: アクティブな従業員3名の基本情報を取得
+Expected: 3件のレコードが返される
+
+test_case              | employee_id | full_name     | department_name      | hire_date  | base_salary  | years_of_service
+-----------------------|-------------|---------------|----------------------|------------|--------------|------------------
+TC1_Active_Employees   | 9001        | Doe, John     | Test Department A    | 2020-01-15 | 50000.0000   | 6
+TC1_Active_Employees   | 9002        | Smith, Jane   | Test Department A    | 2019-06-01 | 60000.0000   | 7
+TC1_Active_Employees   | 9003        | Johnson, Bob  | Test Department B    | 2021-03-10 | 55000.0000   | 5
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 2: 境界値 - 給与情報が存在しない従業員
+================================================================================
+Description: 給与レコードが存在しない従業員（OUTER APPLY で NULL）
+Expected: base_salary が NULL で返される
+
+test_case       | employee_id | full_name         | department_name      | hire_date  | base_salary | years_of_service
+----------------|-------------|-------------------|----------------------|------------|-------------|------------------
+TC2_No_Salary   | 9004        | Williams, Alice   | Test Department B    | 2023-12-01 | NULL        | 3
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 3: 境界値 - 当年入社（勤続年数0年）
+================================================================================
+Description: 本日入社の従業員（DATEDIFF で 0 年）
+Expected: years_of_service = 0
+
+test_case        | employee_id | full_name       | department_name      | hire_date  | base_salary  | years_of_service
+-----------------|-------------|-----------------|----------------------|------------|--------------|------------------
+TC3_Zero_Years   | 9005        | Brown, Charlie  | Test Department C    | 2026-05-23 | 45000.0000   | 0
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 4: 境界値 - 古い入社日（勤続年数大）
+================================================================================
+Description: 1995年入社の従業員（勤続31年）
+Expected: years_of_service = 31
+
+test_case          | employee_id | full_name      | department_name      | hire_date  | base_salary  | years_of_service
+-------------------|-------------|----------------|----------------------|------------|--------------|------------------
+TC4_Long_Service   | 9006        | Miller, David  | Test Department C    | 1995-01-01 | 80000.0000   | 31
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 5: 例外系 - 非アクティブ従業員は表示されない
+================================================================================
+Description: is_active = 0 の従業員は WHERE 句でフィルタされる
+Expected: 0件のレコード
+
+test_case                | record_count | result
+-------------------------|--------------|----------------------------------------
+TC5_Inactive_Not_Shown   | 0            | PASS: No inactive employees shown
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 6: 正常系 - 複数給与履歴から最新を取得
+================================================================================
+Description: 給与履歴が3件ある従業員から最新（effective_from DESC TOP 1）を取得
+Expected: base_salary = 58000.0000 (2022-01-01以降の最新)
+
+test_case          | employee_id | full_name      | department_name      | hire_date  | base_salary  | years_of_service
+-------------------|-------------|----------------|----------------------|------------|--------------|------------------
+TC6_Latest_Salary  | 9008        | Wilson, Frank  | Test Department B    | 2017-08-15 | 58000.0000   | 9
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 7: 正常系 - 複数部署にまたがる取得
+================================================================================
+Description: 異なる3つの部署に所属する従業員を取得
+Expected: 3件、それぞれ異なる department_name
+
+test_case                  | employee_id | full_name      | department_name      | hire_date  | base_salary  | years_of_service
+---------------------------|-------------|----------------|----------------------|------------|--------------|------------------
+TC7_Multiple_Departments   | 9001        | Doe, John      | Test Department A    | 2020-01-15 | 50000.0000   | 6
+TC7_Multiple_Departments   | 9003        | Johnson, Bob   | Test Department B    | 2021-03-10 | 55000.0000   | 5
+TC7_Multiple_Departments   | 9006        | Miller, David  | Test Department C    | 1995-01-01 | 80000.0000   | 31
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 8: 境界値 - NULL許容フィールド（email NULL）
+================================================================================
+Description: email が NULL の従業員でも VIEW は正常に動作
+Expected: 正常にレコードが返される
+
+test_case       | employee_id | full_name       | department_name      | hire_date  | base_salary  | years_of_service
+----------------|-------------|-----------------|----------------------|------------|--------------|------------------
+TC8_Null_Email  | 9009        | Taylor, Grace   | Test Department C    | 2022-02-28 | 47000.0000   | 4
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 9: データ整合性 - 全テスト従業員の件数確認
+================================================================================
+Description: テスト従業員9人中、アクティブは8人（9007は非アクティブ）
+Expected: COUNT(*) = 8
+
+test_case        | active_employee_count | expected_result
+-----------------|----------------------|----------------------------------------
+TC9_Count_Check  | 8                    | Expected: 8 (9007 is inactive)
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 10: データ整合性 - ORDER BY での結果順序
+================================================================================
+Description: hire_date の昇順でソート
+Expected: 1995 → 2019 → 2020 → 2021 の順
+
+test_case               | employee_id | full_name      | department_name      | hire_date  | base_salary  | years_of_service
+------------------------|-------------|----------------|----------------------|------------|--------------|------------------
+TC10_Order_By_HireDate  | 9006        | Miller, David  | Test Department C    | 1995-01-01 | 80000.0000   | 31
+TC10_Order_By_HireDate  | 9002        | Smith, Jane    | Test Department A    | 2019-06-01 | 60000.0000   | 7
+TC10_Order_By_HireDate  | 9001        | Doe, John      | Test Department A    | 2020-01-15 | 50000.0000   | 6
+TC10_Order_By_HireDate  | 9003        | Johnson, Bob   | Test Department B    | 2021-03-10 | 55000.0000   | 5
+
+Result: PASS ✓
+
+
+================================================================================
+TEST CASE 11: 追加テスト - 全テスト従業員の一覧
+================================================================================
+Description: アクティブな全テスト従業員（8名）の一覧
+Expected: 9007（非アクティブ）を除く8件
+
+test_case                 | employee_id | full_name         | department_name      | hire_date  | base_salary  | years_of_service
+--------------------------|-------------|-------------------|----------------------|------------|--------------|------------------
+TC11_All_Test_Employees   | 9001        | Doe, John         | Test Department A    | 2020-01-15 | 50000.0000   | 6
+TC11_All_Test_Employees   | 9002        | Smith, Jane       | Test Department A    | 2019-06-01 | 60000.0000   | 7
+TC11_All_Test_Employees   | 9003        | Johnson, Bob      | Test Department B    | 2021-03-10 | 55000.0000   | 5
+TC11_All_Test_Employees   | 9004        | Williams, Alice   | Test Department B    | 2023-12-01 | NULL         | 3
+TC11_All_Test_Employees   | 9005        | Brown, Charlie    | Test Department C    | 2026-05-23 | 45000.0000   | 0
+TC11_All_Test_Employees   | 9006        | Miller, David     | Test Department C    | 1995-01-01 | 80000.0000   | 31
+TC11_All_Test_Employees   | 9008        | Wilson, Frank     | Test Department B    | 2017-08-15 | 58000.0000   | 9
+TC11_All_Test_Employees   | 9009        | Taylor, Grace     | Test Department C    | 2022-02-28 | 47000.0000   | 4
+
+Result: PASS ✓
+
+
+================================================================================
+TEST SUMMARY
+================================================================================
+Total Test Cases: 11
+Passed: 11
+Failed: 0
+Success Rate: 100%
+
+================================================================================
+KEY OBSERVATIONS
+================================================================================
+1. VIEW は is_active = 1 のフィルタを正しく適用している
+2. OUTER APPLY による給与取得は NULL を正しく処理している
+3. 複数給与履歴から最新（effective_from DESC TOP 1）を正しく取得している
+4. DATEDIFF(yy, hire_date, GETDATE()) は境界値（0年、31年）で正常動作
+5. dbo.fn_format_employee_name 関数は "LastName, FirstName" 形式で出力
+6. INNER JOIN により部署が存在しない従業員は除外される
+7. ORDER BY 指定時の結果順序は期待通り
+8. NULL 許容フィールド（email, base_salary）は正常に処理される
+
+================================================================================
+CLEANUP STATUS
+================================================================================
+✓ Test data deleted successfully
+✓ All temporary objects removed
+✓ Database state restored
+
+Test suite execution completed successfully.

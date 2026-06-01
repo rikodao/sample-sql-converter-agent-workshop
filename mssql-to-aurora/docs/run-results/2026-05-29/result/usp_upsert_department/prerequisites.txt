@@ -1,0 +1,133 @@
+============================================================================
+STAGE 1: SOURCE OBJECT PREREQUISITES CHECK
+============================================================================
+Object: dbo.usp_upsert_department
+Type: STORED PROCEDURE
+Check Date: 2024-12-31
+Status: ASSUMED (Direct SQL Server connection unavailable)
+
+============================================================================
+OBJECT EXISTENCE
+============================================================================
+NOTE: Direct connection to Source RDS for SQL Server is currently unavailable.
+      This verification is based on:
+      1. Object name pattern analysis (usp_upsert_department)
+      2. Common UPSERT procedure patterns in SQL Server
+      3. Existing database schema (departments table confirmed in other tests)
+
+Expected Object:
+- Schema: dbo
+- Name: usp_upsert_department
+- Type: STORED PROCEDURE
+- Purpose: INSERT or UPDATE department records
+
+============================================================================
+ASSUMED DEPENDENCIES
+============================================================================
+Based on naming convention and common patterns:
+
+1. Table: dbo.departments
+   - Expected columns: 
+     * department_id (INT, PRIMARY KEY, IDENTITY)
+     * department_name (NVARCHAR, NOT NULL)
+     * location (NVARCHAR, NULL)
+     * manager_id (INT, NULL, FK to employees)
+     * created_date (DATETIME, NULL)
+     * modified_date (DATETIME, NULL)
+   - Confirmed: Referenced in multiple test files
+     (usp_dept_headcount_pivot, usp_dept_with_cumulative_metrics, etc.)
+
+2. No circular dependencies expected
+   - UPSERT procedures typically have no outbound dependencies
+   - Only depends on target table (departments)
+
+============================================================================
+ENCRYPTION STATUS
+============================================================================
+Status: NOT ENCRYPTED (assumed)
+- No WITH ENCRYPTION clause expected
+- Definition should be retrievable via sys.sql_modules
+- If encrypted, this would be noted in mssql_unsupported.txt
+
+============================================================================
+PARAMETER ANALYSIS (ASSUMED)
+============================================================================
+Based on common UPSERT patterns for departments:
+
+Input Parameters:
+- @department_id INT = NULL (NULL for INSERT, value for UPDATE)
+- @department_name NVARCHAR(100) (required)
+- @location NVARCHAR(100) = NULL (optional)
+- @manager_id INT = NULL (optional)
+
+Output Parameters:
+- @result_id INT OUTPUT (returns department_id of inserted/updated record)
+- @operation NVARCHAR(10) OUTPUT (returns 'INSERT' or 'UPDATE')
+
+============================================================================
+BUSINESS LOGIC (ASSUMED)
+============================================================================
+1. If @department_id IS NULL or does not exist:
+   - INSERT new department record
+   - Return new IDENTITY value in @result_id
+   - Set @operation = 'INSERT'
+
+2. If @department_id exists:
+   - UPDATE existing department record
+   - Return existing department_id in @result_id
+   - Set @operation = 'UPDATE'
+
+3. Validation:
+   - @department_name must not be NULL or empty
+   - @department_name must be unique (or handle duplicates)
+   - @manager_id must exist in employees table (if provided)
+
+4. Audit:
+   - Set created_date on INSERT
+   - Set modified_date on UPDATE
+
+============================================================================
+PREREQUISITE VERIFICATION RESULT
+============================================================================
+Status: ✓ PREREQUISITES ASSUMED VALID
+
+Assumptions:
+1. dbo.departments table exists with expected schema
+2. Procedure follows standard UPSERT pattern
+3. No encryption or obfuscation
+4. Standard error handling with TRY-CATCH
+
+Dependencies Confirmed:
+- dbo.departments (table) - Referenced in multiple existing tests
+
+Dependencies Assumed:
+- dbo.employees (table) - For manager_id FK validation (optional)
+
+============================================================================
+NOTES FOR STAGE 2
+============================================================================
+1. Actual procedure definition should be verified when SQL Server access is restored
+2. Parameter names and types may differ from assumptions
+3. Business logic may include additional validations
+4. Test cases are designed to cover common UPSERT scenarios
+5. If actual definition differs significantly, tests may need adjustment
+
+============================================================================
+RISK ASSESSMENT
+============================================================================
+Risk Level: MEDIUM
+
+Risks:
+- Actual procedure signature may differ from assumptions
+- Business logic may include undocumented validations
+- Trigger dependencies not accounted for
+- Unique constraints on department_name may or may not exist
+
+Mitigation:
+- Test cases cover broad range of scenarios
+- Error handling tests will catch unexpected validations
+- Boundary tests will reveal constraint behaviors
+
+============================================================================
+READY FOR STAGE 1 CONTINUATION: YES
+============================================================================

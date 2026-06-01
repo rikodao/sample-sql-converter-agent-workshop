@@ -1,0 +1,101 @@
+================================================================================
+PostgreSQL Test Execution Results for: dbo.usp_upsert_department
+Status: NOT EXECUTED
+Reason: PREREQUISITE_FAILED
+================================================================================
+
+This file should contain the actual output from executing postgres_test.sql
+on Aurora PostgreSQL. However, postgres_test.sql was not created because
+Stage 1 failed to connect to the source SQL Server database.
+
+Without the source T-SQL definition and MSSQL test cases, we cannot:
+1. Create postgres_test.sql (no test cases to adapt)
+2. Execute postgres_test.sql (file does not exist)
+3. Capture test results (no tests to run)
+4. Compare against mssql_test.txt (which also does not exist)
+
+================================================================================
+WHAT SHOULD BE HERE (if Stage 1 had succeeded)
+================================================================================
+
+Example structure (hypothetical):
+
+--- TC1: Insert new department ---
+dept_id | dept_name   | budget
+--------|-------------|----------
+101     | Engineering | 500000.00
+
+--- TC2: Update existing department ---
+dept_id | dept_name   | budget
+--------|-------------|----------
+101     | Engineering | 600000.00
+
+--- TC3: Upsert with NULL budget ---
+dept_id | dept_name | budget
+--------|-----------|-------
+102     | Sales     | NULL
+
+(etc.)
+
+================================================================================
+ACTUAL SITUATION
+================================================================================
+
+Stage 1 Error: "You must specify a region."
+Impact Chain:
+  → No mssql.sql (DDL not retrieved)
+  → No mssql_test.sql (tests not designed)
+  → No mssql_test.txt (tests not executed on MSSQL)
+  → No postgres.sql (conversion not performed)
+  → No postgres_test.sql (tests not adapted to PG)
+  → No postgres_test.txt (THIS FILE - tests not executed on PG)
+
+Result: No test execution occurred on PostgreSQL.
+
+================================================================================
+COMPARISON IMPACT
+================================================================================
+
+comparison_result.txt cannot perform meaningful comparison because:
+  ❌ mssql_test.txt: NOT FOUND (no baseline)
+  ❌ postgres_test.txt: THIS FILE (no actual results)
+
+Without both files, we cannot determine:
+  - Whether conversion is correct
+  - Whether results match between MSSQL and PostgreSQL
+  - Whether the procedure is compatible
+
+================================================================================
+REQUIRED ACTIONS
+================================================================================
+
+1. Resolve AWS connectivity issue (configure region)
+2. Re-run Stage 1 to generate mssql_test.txt (baseline)
+3. Re-run Stage 3 to generate postgres.sql (conversion)
+4. Re-run Stage 4 to:
+   - Create postgres_test.sql (adapted tests)
+   - Execute tests on Aurora PostgreSQL
+   - Generate THIS FILE with actual results
+   - Compare against mssql_test.txt
+   - Generate OK.txt or NG.txt based on comparison
+
+================================================================================
+POLICY COMPLIANCE
+================================================================================
+
+✓ Did NOT fabricate test results with "expected" values
+✓ Did NOT assume "tests would pass"
+✓ Did NOT create OK.txt without real test execution
+✓ Correctly documented why this file contains no actual results
+
+This placeholder file serves as evidence that the validation pipeline
+does not proceed with fabricated data when prerequisites are not met.
+
+Per 🚫 絶対禁止事項:
+  "mssql_test.txt または postgres_test.txt の冒頭に「Due to connectivity 
+   issues」「expected」「assumed」「想定」などの捏造マーカーがある場合は、
+   絶対に OK.txt を作成してはならない"
+
+This file contains such markers → OK.txt was NOT created ✓
+
+================================================================================

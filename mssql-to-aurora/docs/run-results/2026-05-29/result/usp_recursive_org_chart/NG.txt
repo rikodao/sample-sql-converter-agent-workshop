@@ -1,0 +1,156 @@
+=== Conversion Result: NG ===
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Failed At: Stage 4
+NG Reason: PREREQUISITE_FAILED
+
+--- Failed Test Case ---
+Name: All Test Cases (TC1-TC12)
+Expected (MSSQL):
+  Unable to execute - connection failure to Source RDS for SQL Server
+  Expected results documented in mssql_test.txt based on procedure definition
+Actual (PG):
+  Unable to execute - connection failure to Aurora PostgreSQL
+  Error: "You must specify a region" - boto3 configuration issue
+Diff:
+  Cannot compare results - both source and target databases are unreachable
+
+--- Hypothesis ---
+The validation process cannot proceed due to infrastructure/configuration issues:
+
+1. Database Connectivity:
+   - Source MSSQL RDS: Connection failed with boto3 SecretsManager error
+   - Target PostgreSQL: Connection failed with same boto3 region configuration error
+   - Root cause: AWS SDK configuration missing required region parameter
+
+2. Test Execution Status:
+   - MSSQL tests: Not executed (expected results documented only)
+   - PostgreSQL tests: Not executed (cannot deploy function or run tests)
+   - Comparison: Impossible without actual execution results
+
+3. Conversion Quality Assessment:
+   - Syntax conversion: Appears correct based on code review
+   - Semantic equivalence: Cannot verify without execution
+   - Runtime behavior: Unknown
+
+--- Technical Analysis ---
+
+The PostgreSQL conversion (postgres.sql) includes the following changes:
+✓ PROCEDURE → FUNCTION with RETURNS TABLE (correct pattern)
+✓ Parameter naming: @param → p_param (PostgreSQL convention)
+✓ BIT → INT for is_active (compatible approach)
+✓ RAISERROR → RAISE EXCEPTION (correct syntax)
+✓ ISNULL() → COALESCE() (standard SQL)
+✓ String concatenation: + → || (correct)
+✓ NVARCHAR → VARCHAR (appropriate for PostgreSQL)
+✓ TRY-CATCH → EXCEPTION WHEN OTHERS (correct pattern)
+✓ ERROR_MESSAGE() → SQLERRM (correct)
+✓ Schema: dbo → public (standard)
+✓ RETURN QUERY pattern (correct for table-returning functions)
+
+Potential Issues Identified (Code Review):
+1. Calling syntax change: EXEC proc → SELECT * FROM function()
+   - This is documented but requires application code changes
+   - Not a conversion error, but a behavioral difference
+
+2. NULL handling in full_name concatenation:
+   - MSSQL: last_name + ', ' + first_name (NULL propagates)
+   - PostgreSQL: last_name || ', ' || first_name (NULL propagates)
+   - Behavior should be equivalent, but edge cases with NULL last_name need testing
+
+3. CAST to VARCHAR(10) for employee_id in path:
+   - May truncate if employee_id > 9999999999
+   - Same issue would exist in MSSQL version
+   - Not a conversion issue
+
+--- Recommended Action ---
+
+IMMEDIATE (Infrastructure):
+1. Configure AWS SDK with proper region:
+   - Set AWS_DEFAULT_REGION environment variable
+   - Or configure ~/.aws/config with default region
+   - Or pass region explicitly in boto3 client initialization
+
+2. Verify database connectivity:
+   - Test connection to Source RDS for SQL Server
+   - Test connection to Aurora PostgreSQL
+   - Ensure security groups and network ACLs allow connections
+
+3. Validate credentials:
+   - Check AWS Secrets Manager access
+   - Verify database credentials are current
+   - Test manual connection with psql/sqlcmd
+
+NEXT (After Connectivity Restored):
+1. Re-run Stage 1 (MSSQL test execution):
+   - Execute mssql_test.sql against Source RDS
+   - Capture actual results in mssql_test.txt
+   - Verify all 12 test cases execute successfully
+
+2. Re-run Stage 4 (PostgreSQL validation):
+   - Deploy postgres.sql to Aurora PostgreSQL
+   - Execute postgres_test.sql
+   - Capture results in postgres_test.txt
+   - Compare with MSSQL results
+
+3. Manual verification (if automated tests pass):
+   - Test with production-like data volumes
+   - Verify performance characteristics
+   - Test edge cases (very deep hierarchies, circular references if possible)
+   - Validate NULL handling in all columns
+
+ALTERNATIVE (If Connectivity Cannot Be Restored):
+1. Use local PostgreSQL instance for syntax validation:
+   - Install PostgreSQL locally
+   - Create minimal schema (employees, departments tables)
+   - Deploy function and run basic smoke tests
+   - This validates syntax but not semantic equivalence
+
+2. Code review by DBA:
+   - Manual review of conversion logic
+   - Verify recursive CTE behavior matches MSSQL
+   - Check edge cases and error handling
+   - Approve based on code inspection
+
+--- Conversion Confidence Level ---
+Based on code review alone: MEDIUM-HIGH
+
+Reasons for confidence:
+✓ All T-SQL constructs have direct PostgreSQL equivalents
+✓ Recursive CTE syntax is nearly identical
+✓ Error handling properly converted
+✓ No use of MSSQL-specific features (CLR, linked servers, etc.)
+✓ Comprehensive conversion notes document all changes
+
+Reasons for uncertainty:
+✗ Cannot verify runtime behavior without execution
+✗ NULL handling edge cases not tested
+✗ Performance characteristics unknown
+✗ Integration with existing schema not validated
+✗ Calling syntax change requires application updates
+
+--- Risk Assessment ---
+LOW RISK for syntax errors (code review shows correct conversion)
+MEDIUM RISK for semantic differences (NULL handling, edge cases)
+HIGH RISK for deployment (cannot test in target environment)
+
+--- Conclusion ---
+The conversion appears syntactically correct and follows PostgreSQL best practices.
+However, validation cannot be completed without database connectivity.
+
+This is a PREREQUISITE_FAILED scenario, not a conversion failure.
+The conversion itself is likely correct, but cannot be verified.
+
+Recommendation: RESOLVE INFRASTRUCTURE ISSUES BEFORE PROCEEDING TO PRODUCTION.
+
+--- Files Generated ---
+✓ postgres.sql - PostgreSQL function definition (conversion complete)
+✓ postgres_test.sql - PostgreSQL test suite (ready to execute)
+✗ postgres_test.txt - Not generated (cannot execute tests)
+✗ comparison_result.txt - Not generated (no results to compare)
+
+--- Next Steps ---
+1. Fix AWS region configuration
+2. Restore database connectivity
+3. Re-run validation workflow
+4. If tests pass, proceed to Stage 5 (Babelfish compatibility check)
+5. If tests fail, analyze differences and update postgres.sql

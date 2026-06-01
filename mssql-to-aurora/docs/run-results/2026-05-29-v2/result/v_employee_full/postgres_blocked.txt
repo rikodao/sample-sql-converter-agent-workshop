@@ -1,0 +1,125 @@
+================================================================================
+STAGE 3: POSTGRESQL NATIVE CONVERSION - BLOCKED
+================================================================================
+Target Object: VIEW dbo.v_employee_full
+Timestamp: Stage 3 Execution
+Agent: T-SQL to PL/pgSQL Conversion Specialist
+
+================================================================================
+SECTION 1: PRE-FLIGHT CHECKS
+================================================================================
+
+[CHECK 1] Stage 1 Artifacts Verification
+-----------------------------------------
+Required Input: mssql.sql (T-SQL DDL from Stage 1)
+
+File Check Result: NOT FOUND ❌
+
+Error Details:
+  File read error: "No files found matching pattern(s): ./result/v_employee_full/mssql.sql"
+
+Root Cause:
+  Stage 1 (MSSQL extraction) did not complete successfully or did not produce
+  the required mssql.sql file. Without the source T-SQL DDL, Stage 3 cannot
+  perform any conversion work.
+
+[CHECK 2] Stage 2 Status Review
+--------------------------------
+Reference File: babelfish_attempt.txt
+
+Stage 2 Result: CONNECTION_ERROR
+
+Key Findings from Stage 2:
+  - Babelfish connection failed (AWS region configuration error)
+  - Stage 1 artifacts were also missing at Stage 2 execution time
+  - No Babelfish compatibility verification was possible
+  - No BABELFISH_OK.txt was created (correctly, per error policy)
+
+Impact on Stage 3:
+  While Stage 3 can theoretically proceed without Stage 2 success (if we have
+  mssql.sql), the absence of Stage 1 artifacts is a blocking condition.
+
+================================================================================
+SECTION 2: COMPLIANCE WITH STAGE 3 ERROR POLICY
+================================================================================
+
+Per the Stage 3 specification, when Stage 1 artifacts are missing or database
+connections fail, the agent MUST:
+
+  ✅ NOT fabricate or guess the contents of mssql.sql
+  ✅ NOT create postgres.sql with speculative code
+  ✅ NOT claim "the code might be correct but untested"
+  ✅ Record detailed error information in a log file
+  ✅ Set RESULT to CONNECTION_ERROR or MISSING_INPUT
+  ✅ Terminate Stage 3 immediately
+
+This report complies with all of the above requirements.
+
+================================================================================
+SECTION 3: WHAT STAGE 3 CANNOT DO
+================================================================================
+
+Without mssql.sql, Stage 3 cannot perform ANY of its required tasks:
+
+  ❌ Cannot read the T-SQL DDL to convert
+  ❌ Cannot apply conversion rules (no source to convert)
+  ❌ Cannot generate postgres.sql
+  ❌ Cannot test syntax by deploying to Aurora PostgreSQL
+  ❌ Cannot iterate on syntax errors (no initial code to test)
+  ❌ Cannot verify functional equivalence
+
+Attempting any of the above would violate the "no fabrication" policy.
+
+================================================================================
+SECTION 4: RECOMMENDED ACTIONS
+================================================================================
+
+To enable Stage 3 execution:
+
+1. **Fix Stage 1 Execution**
+   - Verify MSSQL source database connectivity
+   - Confirm VIEW dbo.v_employee_full exists in the source database
+   - Re-run Stage 1 agent to extract the DDL
+   - Verify mssql.sql is created in ./result/v_employee_full/
+
+2. **Fix Database Connections (for Stage 3 testing)**
+   - Configure AWS region environment variable for Aurora PostgreSQL
+   - Verify Aurora PostgreSQL instance is running and accessible
+   - Test connection using: run_postgres_sql("SELECT version()")
+   - Ensure RDS Data API is properly configured
+
+3. **Re-run Stage 3**
+   - Only after mssql.sql exists AND Aurora PostgreSQL connection works
+   - Stage 3 will read mssql.sql, convert to PL/pgSQL, and test syntax
+
+Note: Stage 2 (Babelfish) success is NOT required for Stage 3 to proceed,
+      but Stage 1 success (mssql.sql exists) IS required.
+
+================================================================================
+SECTION 5: FINAL DETERMINATION
+================================================================================
+
+RESULT: MISSING_INPUT
+
+Reason: Stage 1 artifact (mssql.sql) does not exist. Cannot perform T-SQL
+        to PL/pgSQL conversion without source DDL.
+
+Conversion Status: NOT ATTEMPTED (no source available)
+
+Files Created:
+  ✅ postgres_blocked.txt (this file)
+
+Files NOT Created (as required by error policy):
+  ❌ postgres.sql (would be fabricated without source)
+  ❌ postgres_unsupported.txt (cannot assess unsupported features without source)
+
+Stage 3 Status: TERMINATED
+
+Next Steps:
+  - Human intervention required to fix Stage 1 execution
+  - Do NOT proceed to Stage 4 until Stage 3 can complete successfully
+  - Stage 4 will detect the absence of postgres.sql and generate NG.txt
+
+================================================================================
+END OF REPORT
+================================================================================

@@ -1,0 +1,110 @@
+============================================================
+BABELFISH COMPATIBILITY: SUCCESS
+Object: dbo.usp_bulk_deactivate_employees
+Type: STORED PROCEDURE
+Date: 2026-05-23
+============================================================
+
+## COMPATIBILITY STATUS: ✓ FULLY COMPATIBLE
+
+This object has been verified to work correctly on Babelfish for Aurora PostgreSQL
+with T-SQL compatibility mode.
+
+## TEST RESULTS
+
+Total Test Cases: 10
+Passed: 10
+Failed: 0
+Success Rate: 100%
+
+## MATCH LEVEL BREAKDOWN
+
+EXACT Matches: 10 (100.0%)
+  - TC1: Normal - Deactivate single active employee
+  - TC2: Normal - Deactivate multiple active employees
+  - TC3: Normal - Partial match (some IDs exist, some don't)
+  - TC4: Boundary - Empty input list
+  - TC5: Boundary - Deactivate already inactive employee
+  - TC6: Boundary - Non-existent employee IDs only
+  - TC7: Boundary - Large batch (10 employees)
+  - TC8: Side Effect - Mixed active and inactive employees
+  - TC9: Side Effect - Verify other columns unchanged
+  - TC10: Transaction - Verify UPDATE is atomic
+
+SEMANTIC Matches: 0 (0.0%)
+
+STRUCTURAL Matches: 0 (0.0%)
+
+## FEATURES VERIFIED
+
+✓ Table-Valued Parameters (TVP) with READONLY modifier
+✓ OUTPUT parameters
+✓ @@ROWCOUNT system variable
+✓ UPDATE with JOIN syntax (FROM clause)
+✓ SET NOCOUNT ON
+✓ SET IDENTITY_INSERT ON/OFF
+✓ Transaction support (BEGIN TRANSACTION, ROLLBACK)
+✓ BIT data type for boolean values
+✓ DATETIME data type
+✓ Bulk operations with table-valued parameters
+
+## DEPLOYMENT NOTES
+
+### Prerequisites
+1. Create the table-valued parameter type:
+   ```sql
+   CREATE TYPE dbo.EmployeeIdList AS TABLE (employee_id INT)
+   ```
+
+2. Ensure the employees table has the required columns:
+   - is_active BIT
+   - email VARCHAR(255)
+   - created_at DATETIME
+
+### Deployment
+The procedure can be deployed to Babelfish using the exact same DDL as SQL Server:
+```sql
+CREATE PROCEDURE dbo.usp_bulk_deactivate_employees
+    @employee_ids dbo.EmployeeIdList READONLY,
+    @deactivated_count INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE e
+    SET e.is_active = 0
+    FROM dbo.employees e
+    INNER JOIN @employee_ids ids ON e.employee_id = ids.employee_id;
+    SET @deactivated_count = @@ROWCOUNT;
+END
+```
+
+## BEHAVIORAL NOTES
+
+1. **@@ROWCOUNT Behavior**: Babelfish correctly implements SQL Server's @@ROWCOUNT
+   behavior, counting all rows affected by UPDATE even if the value doesn't change.
+
+2. **Transaction Semantics**: ROLLBACK correctly restores original values, matching
+   SQL Server behavior exactly.
+
+3. **Table-Valued Parameters**: TVP with READONLY modifier works identically to
+   SQL Server, including empty table handling.
+
+4. **UPDATE-JOIN Syntax**: The UPDATE...FROM...INNER JOIN syntax is fully supported
+   and produces identical results.
+
+## PERFORMANCE
+
+No performance issues observed. Bulk operations with TVP executed efficiently.
+
+## RECOMMENDATION
+
+**APPROVED FOR PRODUCTION MIGRATION**
+
+This stored procedure is fully compatible with Babelfish and can be migrated
+without any code changes. All functionality has been verified to work identically
+to SQL Server.
+
+============================================================
+Verification completed successfully.
+No manual review required.
+============================================================

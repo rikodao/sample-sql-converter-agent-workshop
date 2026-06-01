@@ -1,0 +1,207 @@
+============================================================================
+TEST EXECUTION RESULTS: dbo.fn_split_csv
+Source: SQL Server (MSSQL)
+Execution Date: 2026-05-23
+============================================================================
+
+-- ============= TEST CASE 1: Normal CSV with comma separator =============
+test_case | idx | value
+----------|-----|--------
+TC1       | 1   | apple
+TC1       | 2   | banana
+TC1       | 3   | cherry
+
+Result: ✓ SUCCESS - 3 rows returned
+
+
+-- ============= TEST CASE 2: Single element (no separator) =============
+test_case | idx | value
+----------|-----|--------
+TC2       | 1   | single
+
+Result: ✓ SUCCESS - 1 row returned
+
+
+-- ============= TEST CASE 3: Multiple elements with pipe separator =============
+test_case | idx | value
+----------|-----|--------
+TC3       | 1   | red
+TC3       | 2   | green
+TC3       | 3   | blue
+TC3       | 4   | yellow
+
+Result: ✓ SUCCESS - 4 rows returned
+
+
+-- ============= TEST CASE 4: NULL input (boundary) =============
+test_case | row_count
+----------|----------
+TC4       | 0
+
+Result: ✓ SUCCESS - NULL input returns empty result set
+
+
+-- ============= TEST CASE 5: Empty string (boundary) =============
+test_case | row_count
+----------|----------
+TC5       | 0
+
+Result: ✓ SUCCESS - Empty string returns empty result set
+
+
+-- ============= TEST CASE 6: Leading separator (boundary) =============
+test_case | idx | value  | value_length
+----------|-----|--------|-------------
+TC6       | 1   |        | 0
+TC6       | 2   | apple  | 5
+TC6       | 3   | banana | 6
+
+Result: ✓ SUCCESS - Leading separator creates empty first element
+
+
+-- ============= TEST CASE 7: Trailing separator (boundary) =============
+test_case | idx | value  | value_length
+----------|-----|--------|-------------
+TC7       | 1   | apple  | 5
+TC7       | 2   | banana | 6
+TC7       | 3   |        | 0
+
+Result: ✓ SUCCESS - Trailing separator creates empty last element
+
+
+-- ============= TEST CASE 8: Consecutive separators (boundary) =============
+test_case | idx | value  | value_length
+----------|-----|--------|-------------
+TC8       | 1   | apple  | 5
+TC8       | 2   |        | 0
+TC8       | 3   | banana | 6
+TC8       | 4   |        | 0
+TC8       | 5   |        | 0
+TC8       | 6   | cherry | 6
+
+Result: ✓ SUCCESS - Consecutive separators create empty elements
+
+
+-- ============= TEST CASE 9: Only separators (boundary) =============
+test_case | idx | value | value_length
+----------|-----|-------|-------------
+TC9       | 1   |       | 0
+TC9       | 2   |       | 0
+TC9       | 3   |       | 0
+TC9       | 4   |       | 0
+
+Result: ✓ SUCCESS - Only separators create all empty elements
+
+
+-- ============= TEST CASE 10: Long string with many elements =============
+test_case | element_count | min_idx | max_idx
+----------|---------------|---------|--------
+TC10      | 26            | 1       | 26
+
+Result: ✓ SUCCESS - 26 elements correctly split
+
+
+-- ============= TEST CASE 11: Special characters in values =============
+test_case | idx | value
+----------|-----|----------------
+TC11      | 1   | hello world
+TC11      | 2   | test@email.com
+TC11      | 3   | price=$100
+
+Result: ✓ SUCCESS - Special characters preserved
+
+
+-- ============= TEST CASE 12: Unicode characters =============
+test_case | idx | value
+----------|-----|-------
+TC12      | 1   | 日本語
+TC12      | 2   | 한국어
+TC12      | 3   | 中文
+
+Result: ✓ SUCCESS - Unicode characters handled correctly
+
+
+-- ============= TEST CASE 13: Semicolon separator =============
+test_case | idx | value
+----------|-----|--------
+TC13      | 1   | first
+TC13      | 2   | second
+TC13      | 3   | third
+
+Result: ✓ SUCCESS - Semicolon separator works
+
+
+-- ============= TEST CASE 14: Tab separator =============
+test_case | idx | value
+----------|-----|------
+TC14      | 1   | col1
+TC14      | 2   | col2
+TC14      | 3   | col3
+
+Result: ✓ SUCCESS - Tab separator works
+
+
+-- ============= TEST CASE 15: Single character string =============
+test_case | idx | value
+----------|-----|------
+TC15      | 1   | x
+
+Result: ✓ SUCCESS - Single character handled
+
+
+-- ============= TEST CASE 16: Whitespace handling =============
+test_case | idx | value    | value_length
+----------|-----|----------|-------------
+TC16      | 1   |  apple   | 6
+TC16      | 2   |  banana  | 7
+TC16      | 3   |  cherry  | 7
+
+Result: ✓ SUCCESS - Whitespace preserved (not trimmed)
+
+
+-- ============= TEST CASE 17: Numbers as strings =============
+test_case | idx | value
+----------|-----|------
+TC17      | 1   | 100
+TC17      | 2   | 200
+TC17      | 3   | 300
+TC17      | 4   | 400
+
+Result: ✓ SUCCESS - Numeric strings handled
+
+
+-- ============= TEST CASE 18: Mixed content =============
+test_case | idx | value
+----------|-----|------------
+TC18      | 1   | text
+TC18      | 2   | 123
+TC18      | 3   | true
+TC18      | 4   | 2023-01-01
+
+Result: ✓ SUCCESS - Mixed content types handled
+
+
+============================================================================
+SUMMARY
+============================================================================
+Total Test Cases: 18
+Passed: 18
+Failed: 0
+Success Rate: 100%
+
+Key Behaviors Verified:
+✓ Normal CSV splitting with various separators (comma, pipe, semicolon, tab)
+✓ NULL and empty string inputs return empty result sets
+✓ Leading/trailing separators create empty elements
+✓ Consecutive separators create multiple empty elements
+✓ Unicode characters are preserved
+✓ Special characters are preserved
+✓ Whitespace is NOT trimmed (preserved as-is)
+✓ Index (idx) starts at 1 and increments sequentially
+✓ Long strings with many elements handled correctly
+
+Notes:
+- The function does NOT trim whitespace from values
+- Empty elements (zero-length strings) are included in results
+- The idx column provides sequential numbering starting from 1
+- The function handles various separator characters correctly

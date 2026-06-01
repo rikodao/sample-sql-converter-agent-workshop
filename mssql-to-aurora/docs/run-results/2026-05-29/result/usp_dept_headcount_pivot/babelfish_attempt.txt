@@ -1,0 +1,307 @@
+============================================================================
+BABELFISH COMPATIBILITY VERIFICATION - Stage 2
+============================================================================
+Object: PROCEDURE dbo.usp_dept_headcount_pivot
+Verification Date: 2024
+Agent: Babelfish T-SQL Compatibility Validator
+
+============================================================================
+SECTION 1: CONNECTION TEST
+============================================================================
+
+Test: SELECT @@VERSION via run_babelfish_tsql
+Status: FAILED
+Error: "You must specify a region."
+
+Root Cause Analysis:
+- The Babelfish TDS endpoint (port 1433) requires AWS region configuration
+- The run_babelfish_tsql tool is not properly configured with region parameter
+- This is an infrastructure/configuration issue, not a SQL compatibility issue
+
+Impact:
+- Cannot proceed with DDL deployment to Babelfish
+- Cannot execute test cases against Babelfish
+- Cannot perform result comparison between MSSQL and Babelfish
+
+============================================================================
+SECTION 2: PLANNED VERIFICATION STEPS (NOT EXECUTED)
+============================================================================
+
+The following steps were planned but could not be executed due to connection failure:
+
+Step 1: DDL Deployment
+- Read mssql.sql containing CREATE PROCEDURE statement
+- Execute via run_babelfish_tsql
+- Verify successful creation or capture syntax errors
+
+Step 2: Known Compatibility Concerns
+Based on the DDL content, the following Babelfish compatibility risks were identified:
+
+HIGH RISK AREAS:
+1. **PIVOT Operator**
+   - Location: Main query uses PIVOT with dynamic column list
+   - Risk Level: MEDIUM
+   - Reason: Babelfish supports PIVOT but may have edge cases with dynamic SQL
+   - Expected: Should work, but needs verification
+
+2. **sp_executesql with Parameters**
+   - Location: Line ~60 - EXEC sp_executesql @sql, N'@as_of_date DATETIME, @include_inactive BIT'
+   - Risk Level: LOW-MEDIUM
+   - Reason: Babelfish supports sp_executesql but parameter passing needs testing
+   - Expected: Should work correctly
+
+3. **FOR XML PATH with STUFF**
+   - Location: Column list generation using FOR XML PATH(''), TYPE
+   - Risk Level: MEDIUM
+   - Reason: Babelfish has partial XML support; FOR XML PATH is supported but .value() method may differ
+   - Expected: Should work, but XML handling may have subtle differences
+
+4. **QUOTENAME Function**
+   - Location: Used to quote department names for dynamic SQL
+   - Risk Level: LOW
+   - Reason: Babelfish supports QUOTENAME
+   - Expected: Should work correctly
+
+5. **Dynamic SQL with CROSS APPLY**
+   - Location: Total count calculation using CROSS APPLY
+   - Risk Level: LOW
+   - Reason: Babelfish supports CROSS APPLY
+   - Expected: Should work correctly
+
+6. **Temporary Tables in Stored Procedures**
+   - Location: Test cases use #temp tables
+   - Risk Level: LOW
+   - Reason: Babelfish supports temp tables
+   - Expected: Should work correctly
+
+MEDIUM RISK AREAS:
+- GETDATE() function (supported)
+- SET NOCOUNT ON (supported)
+- ISNULL function (supported)
+- LEFT JOIN (supported)
+- ORDER BY in subquery for XML (may affect ordering)
+
+Step 3: Test Execution
+- Adapt mssql_test.sql for Babelfish (minimal changes expected)
+- Execute all 8 test cases
+- Capture results in babelfish_test.txt
+
+Step 4: Result Comparison
+- Compare mssql_test.txt vs babelfish_test.txt
+- Apply SEMANTIC level matching (allow timestamp precision, whitespace differences)
+- Identify any mismatches
+
+============================================================================
+SECTION 3: OBJECT ANALYSIS
+============================================================================
+
+Object Type: STORED PROCEDURE
+Complexity: HIGH (uses dynamic SQL, PIVOT, XML functions)
+Lines of Code: ~70
+Dependencies:
+- Tables: dbo.employees, dbo.departments
+- Functions: GETDATE, QUOTENAME, ISNULL, STUFF
+- Operators: PIVOT, FOR XML PATH
+- System Procedures: sp_executesql
+
+Key Features:
+1. Dynamic column generation based on department names
+2. PIVOT transformation for cross-tab reporting
+3. Date-based filtering with default to current date
+4. Active/inactive employee filtering
+5. NULL handling for job titles and departments
+6. Total count calculation via CROSS APPLY
+
+Test Coverage (from mssql_test.sql):
+- TC1: Basic pivot with active employees
+- TC2: Include inactive employees parameter
+- TC3: Date filtering with multiple time points
+- TC4: NULL as_of_date default behavior
+- TC5: Empty result set handling
+- TC6: Multiple departments with varying counts
+- TC7: NULL job_title handling
+- TC8: NULL department_id handling
+
+Total Test Cases: 8
+Expected Assertions: 8
+
+============================================================================
+SECTION 4: BABELFISH COMPATIBILITY ASSESSMENT (THEORETICAL)
+============================================================================
+
+Based on static analysis of the DDL without actual execution:
+
+LIKELY COMPATIBLE:
+✓ Basic T-SQL syntax (SET NOCOUNT, DECLARE, IF/ELSE)
+✓ DATETIME parameter handling
+✓ BIT parameter type
+✓ String concatenation with +
+✓ NVARCHAR(MAX) for dynamic SQL
+✓ STUFF function
+✓ DISTINCT in subquery
+✓ INNER JOIN and LEFT JOIN
+✓ WHERE clause filtering
+✓ ORDER BY
+✓ COUNT aggregate
+✓ ISNULL function
+✓ QUOTENAME function
+✓ sp_executesql with named parameters
+
+NEEDS VERIFICATION:
+? FOR XML PATH(''), TYPE with .value() method
+  - Babelfish supports FOR XML PATH but behavior may differ
+  - The .value('.', 'NVARCHAR(MAX)') pattern needs testing
+
+? PIVOT with dynamic column list
+  - Babelfish supports PIVOT but dynamic SQL generation needs testing
+  - Column list built from QUOTENAME may need verification
+
+? CROSS APPLY with inline calculation
+  - Should work but needs verification with dynamic columns
+
+? REPLACE function on dynamic column list
+  - Used to convert comma-separated list to addition expression
+  - Should work but needs testing
+
+POTENTIAL ISSUES:
+⚠ XML PATH ordering
+  - ORDER BY in FOR XML PATH subquery may not guarantee order in Babelfish
+  - May affect column order in PIVOT (cosmetic issue)
+
+⚠ Error handling
+  - No explicit TRY-CATCH in procedure
+  - Errors from dynamic SQL will bubble up
+  - Babelfish error messages may differ from SQL Server
+
+⚠ Performance characteristics
+  - Dynamic SQL compilation may differ
+  - PIVOT performance may differ
+  - Not a compatibility issue but worth noting
+
+============================================================================
+SECTION 5: RECOMMENDED NEXT STEPS
+============================================================================
+
+IMMEDIATE ACTIONS:
+1. Fix AWS region configuration for Babelfish connection
+   - Configure run_babelfish_tsql tool with proper region
+   - Verify connectivity with simple SELECT @@VERSION test
+   - Confirm TDS endpoint is accessible
+
+2. Re-run Stage 2 verification once connectivity is restored
+   - Deploy DDL to Babelfish
+   - Execute test suite
+   - Capture actual results
+
+ALTERNATIVE APPROACHES (if connection cannot be established):
+1. Manual verification
+   - Connect to Babelfish using SQL Server Management Studio or Azure Data Studio
+   - Manually execute mssql.sql
+   - Manually run test cases
+   - Document results
+
+2. Skip to Stage 3 (PL/pgSQL conversion)
+   - Assume Babelfish compatibility issues exist
+   - Proceed with native PostgreSQL conversion
+   - Use PL/pgSQL instead of T-SQL
+
+3. Use Babelfish PostgreSQL port (5432) instead
+   - Try run_babelfish_pg tool
+   - Query Babelfish system catalogs to verify object creation
+   - Note: This would test PostgreSQL compatibility, not T-SQL compatibility
+
+============================================================================
+SECTION 6: HYPOTHESIS - EXPECTED OUTCOME IF CONNECTION WORKED
+============================================================================
+
+Based on the object analysis, if connection were available:
+
+MOST LIKELY OUTCOME: PARTIAL SUCCESS with minor issues
+
+Expected Scenario:
+1. DDL Deployment: LIKELY SUCCESS (80% confidence)
+   - Basic T-SQL syntax is well-supported
+   - PIVOT is supported in Babelfish
+   - sp_executesql is supported
+   - FOR XML PATH is partially supported
+
+2. Potential Syntax Issues:
+   - FOR XML PATH .value() method may require adjustment
+   - Column ordering in dynamic PIVOT may differ
+   - Error messages will differ in wording
+
+3. Test Execution: LIKELY SUCCESS with SEMANTIC differences (70% confidence)
+   - Test cases should execute
+   - Results should be functionally equivalent
+   - Minor differences expected:
+     * Column order in pivot may vary
+     * Whitespace in dynamic SQL output
+     * Error message text (if any errors occur)
+     * Timestamp precision in GETDATE() results
+
+4. Result Comparison: SEMANTIC MATCH expected
+   - Exact byte-level match: Unlikely
+   - Semantic match (same data, different formatting): Likely
+   - Structural match (same schema, different values): Possible if XML PATH differs
+
+ALTERNATIVE OUTCOME: SYNTAX_FAILED (20% probability)
+
+Potential Failure Points:
+1. FOR XML PATH .value() method not supported in Babelfish
+   - Would fail during column list generation
+   - Error: "method 'value' not supported" or similar
+
+2. PIVOT with dynamic column list edge case
+   - May fail if column names have special characters
+   - QUOTENAME handling may differ
+
+3. sp_executesql parameter passing issue
+   - Parameter type mismatch between T-SQL and Babelfish
+   - Unlikely but possible
+
+If SYNTAX_FAILED occurs:
+- Document specific error message
+- Identify which T-SQL feature is not supported
+- Recommend Stage 3 (PL/pgSQL conversion) as solution
+
+============================================================================
+SECTION 7: CONCLUSION
+============================================================================
+
+Status: CONNECTION_ERROR
+Reason: AWS region not specified for Babelfish TDS endpoint
+Impact: Cannot verify T-SQL compatibility at this time
+
+Compatibility Assessment (Theoretical): LIKELY COMPATIBLE with minor adjustments
+Confidence Level: MEDIUM (based on static analysis only)
+
+Recommendation: 
+1. Fix connection configuration and re-run Stage 2
+2. If connection cannot be fixed, proceed to Stage 3 (PL/pgSQL conversion)
+3. Consider using Babelfish PostgreSQL port (5432) as alternative verification method
+
+Next Stage Readiness:
+- Stage 3 (PL/pgSQL conversion): READY (can proceed without Stage 2 results)
+- Stage 4 (PostgreSQL testing): BLOCKED (requires either Stage 2 or Stage 3 completion)
+
+============================================================================
+RESULT: CONNECTION_ERROR
+============================================================================
+
+Error Details:
+- Tool: run_babelfish_tsql
+- Command: SELECT @@VERSION
+- Error Message: "You must specify a region."
+- Error Type: Configuration/Infrastructure
+- Timestamp: 2024
+
+This is NOT a SQL compatibility issue. This is an infrastructure configuration issue
+that prevents any T-SQL from being executed against Babelfish.
+
+Stage 2 cannot be completed until connectivity is restored.
+
+BABELFISH_OK.txt: NOT CREATED (connection required for verification)
+
+============================================================================
+END OF REPORT
+============================================================================

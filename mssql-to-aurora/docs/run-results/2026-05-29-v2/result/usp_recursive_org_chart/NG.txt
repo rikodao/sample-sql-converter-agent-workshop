@@ -1,0 +1,148 @@
+=== Conversion Result: NG ===
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE SUMMARY
+================================================================================
+
+Stage 1 (MSSQL DDL Extraction & Test Execution) failed to complete due to
+missing AWS region configuration for Source RDS for SQL Server connection.
+
+As a result, the following critical artifacts were not created:
+  - mssql.sql          (Source DDL definition)
+  - mssql_test.sql     (MSSQL test script)
+  - mssql_test.txt     (MSSQL test execution results)
+
+Without these artifacts, subsequent stages cannot proceed:
+  - Stage 2: Cannot verify Babelfish compatibility (also reported CONNECTION_ERROR)
+  - Stage 3: Cannot convert T-SQL to PL/pgSQL (blocked, postgres.sql not created)
+  - Stage 4: Cannot execute PostgreSQL tests or perform comparison
+
+================================================================================
+ERROR DETAILS
+================================================================================
+
+Source: prerequisites.txt (Stage 1 output)
+
+Tool: run_mssql_sql
+Error Message: "You must specify a region."
+Description: Cannot connect to Source RDS for SQL Server due to missing AWS region configuration.
+
+Impact:
+  - Cannot verify object existence in source database
+  - Cannot retrieve DDL definition from sys.sql_modules
+  - Cannot identify dependencies from sys.sql_expression_dependencies
+  - Cannot execute test cases against actual MSSQL database
+
+================================================================================
+FAILED TEST CASE
+================================================================================
+
+Name: N/A (no tests executed)
+Expected (MSSQL):
+  <not available - mssql_test.txt does not exist>
+Actual (PG):
+  <not available - postgres_test.txt does not exist>
+Diff:
+  Cannot perform comparison without baseline results from both databases.
+
+================================================================================
+HYPOTHESIS
+================================================================================
+
+Root Cause:
+  AWS region configuration is missing or not properly set in the environment
+  where the run_mssql_sql tool is executed. This is an infrastructure/
+  configuration issue, not a SQL compatibility or conversion issue.
+
+Why This Blocks Conversion:
+  The conversion workflow requires actual execution results from the source
+  MSSQL database to establish a baseline for comparison. Without connecting
+  to the source database:
+    1. We cannot extract the actual DDL definition
+    2. We cannot design appropriate test cases
+    3. We cannot execute tests to capture expected behavior
+    4. We cannot validate that the converted PostgreSQL code produces
+       equivalent results
+
+Per workflow specification (絶対禁止事項):
+  ❌ Cannot create OK.txt without actual DB execution results
+  ❌ Cannot assume "logical equivalence" based on code inspection alone
+  ❌ Cannot fabricate or simulate test results
+  ✓ Must generate NG.txt with PREREQUISITE_FAILED when Stage 1 artifacts are missing
+
+================================================================================
+RECOMMENDED ACTION
+================================================================================
+
+Immediate Steps:
+  1. Configure AWS region for Source RDS for SQL Server connection
+     - Set AWS_REGION environment variable, or
+     - Configure AWS CLI default region, or
+     - Specify region in tool configuration
+
+  2. Verify connectivity to Source RDS for SQL Server
+     - Test connection using: SELECT @@VERSION
+     - Confirm credentials and network access
+
+  3. Re-run Stage 1 (MSSQL DDL Extraction & Test Execution)
+     - Verify mssql.sql is created with actual DDL from source database
+     - Verify mssql_test.sql is created with appropriate test cases
+     - Verify mssql_test.txt is created with actual execution results
+
+  4. Re-run Stage 2 (Babelfish Compatibility Verification)
+     - Also requires region configuration (reported CONNECTION_ERROR)
+     - Verify Babelfish endpoint connectivity
+
+  5. Re-run Stage 3 (T-SQL → PL/pgSQL Conversion)
+     - Should proceed once mssql.sql is available
+     - Verify postgres.sql is created
+
+  6. Re-run Stage 4 (PostgreSQL Test Execution & Comparison)
+     - Execute tests on actual Aurora PostgreSQL database
+     - Compare results with mssql_test.txt baseline
+     - Generate OK.txt or NG.txt based on actual comparison
+
+Review Considerations:
+  - This is NOT a SQL compatibility issue
+  - This is NOT a conversion logic issue
+  - This is an infrastructure/configuration prerequisite
+  - No manual SQL review is needed until Stage 1 completes successfully
+
+Expected Outcome After Remediation:
+  Once AWS region is configured and Stage 1 completes:
+    - If the stored procedure uses standard T-SQL features (CTE, recursion),
+      conversion should succeed
+    - If it uses MSSQL-specific features (CLR, linked servers, etc.),
+      Stage 3 may report UNSUPPORTED
+    - Final verdict depends on actual test execution results
+
+================================================================================
+STAGE COMPLETION STATUS
+================================================================================
+
+Stage 1: FAILED (PREREQUISITE_FAILED - AWS region not configured)
+Stage 2: FAILED (CONNECTION_ERROR - AWS region not configured)
+Stage 3: BLOCKED (PREREQUISITE_MISSING - mssql.sql not available)
+Stage 4: BLOCKED (PREREQUISITE_MISSING - no artifacts to test)
+
+Artifacts Created:
+  ✓ prerequisites.txt (Stage 1 - documents failure)
+  ✓ babelfish_attempt.txt (Stage 2 - documents connection failure)
+  ✓ postgres_blocked.txt (Stage 3 - documents blocking condition)
+  ✓ comparison_result.txt (Stage 4 - documents comparison not possible)
+  ✓ NG.txt (Stage 4 - final verdict)
+
+Artifacts NOT Created (as expected):
+  ✗ mssql.sql (Stage 1 - requires DB connection)
+  ✗ mssql_test.sql (Stage 1 - requires DDL)
+  ✗ mssql_test.txt (Stage 1 - requires DB connection)
+  ✗ postgres.sql (Stage 3 - requires mssql.sql)
+  ✗ postgres_test.sql (Stage 4 - requires postgres.sql)
+  ✗ postgres_test.txt (Stage 4 - requires postgres.sql)
+  ✗ OK.txt (Stage 4 - cannot be created without test results)
+  ✗ BABELFISH_OK.txt (Stage 2 - cannot be created without connection)
+
+================================================================================

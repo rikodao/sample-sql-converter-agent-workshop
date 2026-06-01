@@ -1,0 +1,250 @@
+============================================================================
+BABELFISH COMPATIBILITY VERIFICATION REPORT
+============================================================================
+Object Type: FUNCTION (Table-Valued Function)
+Object Name: dbo.fn_split_csv
+Verification Date: 2026-05-23
+Babelfish Version: 4.3.3 (PostgreSQL 16.4)
+
+============================================================================
+STAGE 2: DDL DEPLOYMENT TO BABELFISH
+============================================================================
+
+CONNECTION TEST
+---------------
+Status: ✓ SUCCESS
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+PostgreSQL Version: 16.4
+Connection Method: TDS (T-SQL endpoint)
+
+DDL DEPLOYMENT
+--------------
+Status: ✓ SUCCESS
+Deployment Method: Direct T-SQL execution via run_babelfish_tsql
+Modifications Required: NONE
+Syntax Compatibility: 100%
+
+DDL Details:
+- Function Type: Inline Table-Valued Function (iTVF) with table variable RETURN
+- Parameters: @csv NVARCHAR(MAX), @sep CHAR(1)
+- Return Type: TABLE (idx INT, value NVARCHAR(200))
+- Key Features Used:
+  * DECLARE with inline initialization (@i INT = 1)
+  * Table variable (@result TABLE)
+  * CHARINDEX function
+  * SUBSTRING function
+  * LEN function
+  * WHILE loop
+  * Conditional RETURN (early exit)
+
+Babelfish Compatibility Notes:
+✓ Table-valued functions with table variables are fully supported
+✓ CHARINDEX, SUBSTRING, LEN functions work identically
+✓ WHILE loops and control flow statements are compatible
+✓ Early RETURN from function body is supported
+✓ NVARCHAR(MAX) parameter type is supported
+
+============================================================================
+STAGE 2: TEST EXECUTION
+============================================================================
+
+TEST EXECUTION SUMMARY
+----------------------
+Total Test Cases: 18
+Executed Successfully: 18
+Execution Failures: 0
+Success Rate: 100%
+
+TEST CATEGORIES COVERED
+-----------------------
+✓ Normal Operations (TC1, TC2, TC3, TC11, TC13, TC14, TC15, TC17, TC18): 9 tests
+✓ Boundary Conditions (TC4, TC5, TC6, TC7, TC8, TC9, TC16): 7 tests
+✓ Edge Cases (TC10 - long string with 26 elements): 1 test
+✓ Unicode Support (TC12): 1 test
+
+DETAILED TEST RESULTS
+---------------------
+
+TC1: Normal CSV with comma separator
+  MSSQL Result: 3 rows (apple, banana, cherry)
+  Babelfish Result: 3 rows (apple, banana, cherry)
+  Match Level: EXACT ✓
+
+TC2: Single element (no separator)
+  MSSQL Result: 1 row (single)
+  Babelfish Result: 1 row (single)
+  Match Level: EXACT ✓
+
+TC3: Multiple elements with pipe separator
+  MSSQL Result: 4 rows (red, green, blue, yellow)
+  Babelfish Result: 4 rows (red, green, blue, yellow)
+  Match Level: EXACT ✓
+
+TC4: NULL input (boundary)
+  MSSQL Result: 0 rows
+  Babelfish Result: 0 rows
+  Match Level: EXACT ✓
+
+TC5: Empty string (boundary)
+  MSSQL Result: 0 rows
+  Babelfish Result: 0 rows
+  Match Level: EXACT ✓
+
+TC6: Leading separator (boundary)
+  MSSQL Result: 3 rows (empty, apple, banana) with lengths (0, 5, 6)
+  Babelfish Result: 3 rows (empty, apple, banana) with lengths (0, 5, 6)
+  Match Level: EXACT ✓
+
+TC7: Trailing separator (boundary)
+  MSSQL Result: 3 rows (apple, banana, empty) with lengths (5, 6, 0)
+  Babelfish Result: 3 rows (apple, banana, empty) with lengths (5, 6, 0)
+  Match Level: EXACT ✓
+
+TC8: Consecutive separators (boundary)
+  MSSQL Result: 6 rows with correct empty element handling
+  Babelfish Result: 6 rows with correct empty element handling
+  Match Level: EXACT ✓
+
+TC9: Only separators (boundary)
+  MSSQL Result: 4 empty elements
+  Babelfish Result: 4 empty elements
+  Match Level: EXACT ✓
+
+TC10: Long string with many elements
+  MSSQL Result: 26 elements, idx range 1-26
+  Babelfish Result: 26 elements, idx range 1-26
+  Match Level: EXACT ✓
+
+TC11: Special characters in values
+  MSSQL Result: 3 rows with spaces, @, $ preserved
+  Babelfish Result: 3 rows with spaces, @, $ preserved
+  Match Level: EXACT ✓
+
+TC12: Unicode characters
+  MSSQL Result: 3 rows (日本語, 한국어, 中文)
+  Babelfish Result: 3 rows (日本語, 한국어, 中文)
+  Match Level: EXACT ✓
+
+TC13: Semicolon separator
+  MSSQL Result: 3 rows (first, second, third)
+  Babelfish Result: 3 rows (first, second, third)
+  Match Level: EXACT ✓
+
+TC14: Tab separator
+  MSSQL Result: 3 rows (col1, col2, col3)
+  Babelfish Result: 3 rows (col1, col2, col3)
+  Match Level: EXACT ✓
+
+TC15: Single character string
+  MSSQL Result: 1 row (x)
+  Babelfish Result: 1 row (x)
+  Match Level: EXACT ✓
+
+TC16: Whitespace handling
+  MSSQL Result: 3 rows with preserved whitespace, lengths (6, 7, 7)
+  Babelfish Result: 3 rows with preserved whitespace, lengths (6, 7, 7)
+  Match Level: EXACT ✓
+
+TC17: Numbers as strings
+  MSSQL Result: 4 rows (100, 200, 300, 400)
+  Babelfish Result: 4 rows (100, 200, 300, 400)
+  Match Level: EXACT ✓
+
+TC18: Mixed content
+  MSSQL Result: 4 rows (text, 123, true, 2023-01-01)
+  Babelfish Result: 4 rows (text, 123, true, 2023-01-01)
+  Match Level: EXACT ✓
+
+============================================================================
+RESULT COMPARISON ANALYSIS
+============================================================================
+
+MATCH LEVEL DISTRIBUTION
+-------------------------
+EXACT (byte-level match): 18 tests (100%)
+SEMANTIC (value equivalent): 0 tests (0%)
+STRUCTURAL (schema match): 0 tests (0%)
+MISMATCH: 0 tests (0%)
+
+BEHAVIORAL COMPATIBILITY
+-------------------------
+✓ String manipulation functions (CHARINDEX, SUBSTRING, LEN) behave identically
+✓ Empty string handling is consistent
+✓ NULL handling is consistent (early return with empty result set)
+✓ Unicode (NVARCHAR) support is identical
+✓ Whitespace preservation matches exactly
+✓ Index sequencing (starting from 1) is identical
+✓ Various separator characters (comma, pipe, semicolon, tab) all work correctly
+
+DIFFERENCES DETECTED
+--------------------
+NONE - All test cases show exact behavioral match between MSSQL and Babelfish
+
+============================================================================
+FINAL VERDICT
+============================================================================
+
+COMPATIBILITY STATUS: ✓ FULLY COMPATIBLE
+
+Summary:
+--------
+The table-valued function dbo.fn_split_csv demonstrates 100% compatibility
+between SQL Server and Babelfish for Aurora PostgreSQL. All 18 test cases
+passed with EXACT match level, indicating that:
+
+1. The DDL syntax is fully supported without any modifications
+2. All T-SQL string functions used (CHARINDEX, SUBSTRING, LEN) behave identically
+3. Control flow statements (WHILE, IF, RETURN) work as expected
+4. Table variable return type is fully supported
+5. Unicode handling is consistent
+6. Edge cases (NULL, empty string, consecutive separators) behave identically
+
+Migration Risk: NONE
+Recommended Action: Deploy as-is to Babelfish without modifications
+
+============================================================================
+TECHNICAL DETAILS
+============================================================================
+
+Function Characteristics:
+- Complexity: Medium (iterative string parsing with state management)
+- Dependencies: None (uses only built-in T-SQL functions)
+- Side Effects: None (read-only function)
+- Performance Considerations: O(n) where n is string length
+
+Babelfish Features Validated:
+✓ Table-valued function with table variable return
+✓ NVARCHAR(MAX) parameter support
+✓ Inline variable initialization (DECLARE @i INT = 1)
+✓ CHARINDEX with 3-parameter form (string, search, start_position)
+✓ SUBSTRING function
+✓ LEN function (with consistent NULL/empty string behavior)
+✓ WHILE loop control flow
+✓ Conditional RETURN (early exit)
+✓ INSERT INTO table variable
+
+Known Limitations (None Apply):
+- No CLR dependencies
+- No Service Broker usage
+- No linked server references
+- No dynamic SQL (sp_executesql)
+- No table-valued parameters
+- No PIVOT/UNPIVOT
+- No JSON/XML functions
+- No MERGE statements
+- No triggers involved
+
+============================================================================
+CONCLUSION
+============================================================================
+
+The function dbo.fn_split_csv is PRODUCTION-READY for Babelfish deployment.
+No code changes, workarounds, or special considerations are required.
+
+Test Coverage: Comprehensive (18 test cases covering normal, boundary, and edge cases)
+Code Quality: High (clean T-SQL with proper NULL handling)
+Compatibility: Perfect (100% match across all test dimensions)
+
+RESULT: BABELFISH_OK
+
+============================================================================

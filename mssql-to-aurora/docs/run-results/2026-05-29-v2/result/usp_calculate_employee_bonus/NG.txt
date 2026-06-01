@@ -1,0 +1,108 @@
+=== Conversion Result: NG ===
+Object: PROCEDURE dbo.usp_calculate_employee_bonus
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE DETAILS
+================================================================================
+
+Stage 1 (Source MSSQL Verification) did not complete successfully.
+Required artifacts are missing:
+  ❌ mssql.sql (T-SQL DDL)
+  ❌ mssql_test.sql (Test queries)
+  ❌ mssql_test.txt (Baseline results from MSSQL)
+
+Stage 3 (PostgreSQL Native Conversion) was blocked:
+  ❌ postgres.sql (PL/pgSQL DDL) - Cannot create without source DDL
+
+Root Cause:
+Connection to Source RDS for SQL Server failed with error:
+"You must specify a region."
+
+This is an AWS configuration/authentication error, not a conversion issue.
+
+================================================================================
+IMPACT ON STAGE 4 (FINAL VERIFICATION)
+================================================================================
+
+Stage 4 cannot proceed because:
+
+1. No Source Baseline
+   - mssql_test.txt does not exist
+   - Cannot establish "Expected" results for comparison
+
+2. No Target Code
+   - postgres.sql does not exist
+   - Cannot deploy to Aurora PostgreSQL
+   - Cannot generate postgres_test.txt
+
+3. No Comparison Possible
+   - Without both mssql_test.txt and postgres_test.txt, comparison is impossible
+   - Creating OK.txt in this state would be fraudulent (LLM hallucination)
+
+================================================================================
+ANTI-FABRICATION POLICY ENFORCEMENT
+================================================================================
+
+Per Stage 4 Protocol - 🚫 絶対禁止事項:
+
+✓ Did NOT create OK.txt (no actual test execution occurred)
+✓ Did NOT fabricate postgres_test.txt with "expected" results
+✓ Did NOT assume "would probably work" based on code reading
+✓ Did NOT create comparison_result.txt with mock data
+
+This NG.txt is the ONLY valid output when prerequisites are missing.
+
+================================================================================
+HYPOTHESIS
+================================================================================
+
+This is NOT a SQL Server → PostgreSQL conversion difficulty.
+The object may be perfectly convertible to PL/pgSQL.
+
+The issue is purely infrastructural:
+- AWS region not configured for Source RDS connection
+- Stage 1 agent could not extract DDL from sys.sql_modules
+- Subsequent stages cannot proceed without source code
+
+================================================================================
+RECOMMENDED ACTION
+================================================================================
+
+1. Fix AWS Configuration
+   - Configure AWS region for Source RDS for SQL Server
+   - Verify credentials and network connectivity
+   - Test connection: run_mssql_sql("SELECT @@VERSION")
+
+2. Re-run Stage 1
+   - Extract DDL for dbo.usp_calculate_employee_bonus
+   - Generate mssql.sql, mssql_test.sql, mssql_test.txt
+   - Verify object exists in source database
+
+3. Re-run Stage 3
+   - Convert T-SQL to PL/pgSQL
+   - Generate postgres.sql
+   - Deploy to Aurora PostgreSQL
+
+4. Re-run Stage 4 (This Stage)
+   - Execute postgres_test.sql on Aurora PostgreSQL
+   - Compare results with mssql_test.txt
+   - Generate OK.txt or NG.txt based on actual test results
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+Human Review Required:
+- Verify that "dbo.usp_calculate_employee_bonus" exists in source database
+- Check if object name is correct
+- Confirm AWS infrastructure is properly configured
+- Re-run entire pipeline after fixing prerequisites
+
+Do NOT attempt manual conversion without Stage 1 baseline.
+Do NOT mark this object as "OK" without actual test execution.
+
+================================================================================
+END OF NG REPORT
+================================================================================

@@ -1,0 +1,48 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2026-05-23
+Object: dbo.usp_archive_old_orders
+Type: SQL_STORED_PROCEDURE
+
+OBJECT EXISTENCE: ✓ CONFIRMED
+- Schema: dbo
+- Name: usp_archive_old_orders
+- Type: SQL_STORED_PROCEDURE
+- Created: 2026-05-23T23:20:23.173000
+- Modified: 2026-05-23T23:20:23.173000
+
+ENCRYPTION STATUS: ✓ NOT ENCRYPTED
+- Definition successfully retrieved via OBJECT_DEFINITION()
+
+DEPENDENCIES:
+1. dbo.orders (table)
+   - order_id INT IDENTITY NOT NULL
+   - customer_id INT NOT NULL
+   - order_date DATETIME2(7) NOT NULL
+   - total_amount MONEY NOT NULL
+   - status NVARCHAR(20) NOT NULL
+
+2. dbo.orders_archive (table)
+   - order_id INT NOT NULL
+   - customer_id INT NOT NULL
+   - order_date DATETIME2(7) NOT NULL
+   - total_amount MONEY NOT NULL
+   - status NVARCHAR(20) NOT NULL
+   - archived_at DATETIME2(7) NOT NULL (with DEFAULT constraint)
+
+PROCEDURE SIGNATURE:
+- Input: @cutoff_date DATE
+- Output: @rows_archived INT OUTPUT
+
+PROCEDURE BEHAVIOR:
+- Deletes orders from dbo.orders WHERE order_date < @cutoff_date AND status = 'COMPLETED'
+- Uses OUTPUT clause to insert deleted rows into dbo.orders_archive
+- Returns count of archived rows via OUTPUT parameter
+- Wrapped in explicit transaction with TRY-CATCH error handling
+- Throws custom error (50001) on failure
+
+RESULT: ✓ ALL PREREQUISITES MET
+- Object exists and is accessible
+- Definition is not encrypted
+- All dependent objects (orders, orders_archive) are available
+- Ready for DDL extraction and test case creation

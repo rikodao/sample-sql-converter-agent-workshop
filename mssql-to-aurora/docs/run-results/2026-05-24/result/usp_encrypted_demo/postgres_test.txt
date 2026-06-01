@@ -1,0 +1,212 @@
+================================================================================
+PostgreSQL Test Execution Results
+================================================================================
+Object: PROCEDURE dbo.usp_encrypted_demo
+Test Date: 2026-05-23
+Target: Aurora PostgreSQL (native PL/pgSQL)
+Status: TESTS NOT EXECUTED
+================================================================================
+
+EXECUTION STATUS: NOT PERFORMED
+
+Reason: SOURCE CODE NOT AVAILABLE (WITH ENCRYPTION)
+
+The stored procedure 'dbo.usp_encrypted_demo' was created with the WITH ENCRYPTION
+option in SQL Server, which prevents extraction of the DDL definition.
+
+Without the source code:
+- postgres.sql does not exist (no conversion performed)
+- postgres_test.sql cannot be created (no test cases defined)
+- Tests cannot be executed (no procedure to test)
+- Results cannot be compared with MSSQL baseline
+
+================================================================================
+PREREQUISITE CHECK
+================================================================================
+
+Required Files:
+- postgres.sql:        NOT FOUND (Stage 3 blocked - no source to convert)
+- postgres_test.sql:   PLACEHOLDER ONLY (cannot create real tests without source)
+
+PostgreSQL Connection:
+- Status: Available (but no tests to execute)
+- Version: Aurora PostgreSQL 16.4
+
+Procedure Existence:
+- Status: DOES NOT EXIST (cannot create without source DDL)
+- Expected Schema: dbo (or public in PostgreSQL)
+- Expected Name: usp_encrypted_demo
+
+================================================================================
+TEST EXECUTION ATTEMPT
+================================================================================
+
+Attempt: NOT MADE
+
+Reason:
+The procedure definition is encrypted in SQL Server and cannot be retrieved.
+Stage 3 (PL/pgSQL conversion) was blocked because there is no source DDL to
+convert. Therefore, there is no postgres.sql file to deploy, and no procedure
+to test.
+
+Expected Workflow (if source code were available):
+1. Stage 3 converts mssql.sql → postgres.sql
+2. Stage 4 deploys postgres.sql to Aurora PostgreSQL
+3. Stage 4 creates postgres_test.sql based on mssql_test.sql
+4. Stage 4 executes tests and saves results to postgres_test.txt (this file)
+5. Stage 4 compares postgres_test.txt with mssql_test.txt
+
+Actual Workflow (with encrypted source):
+1. Stage 1 fails to extract DDL (WITH ENCRYPTION blocks extraction)
+2. Stage 2 blocked (no DDL to test on Babelfish)
+3. Stage 3 blocked (no DDL to convert to PL/pgSQL)
+4. Stage 4 blocked (no converted code to test)
+
+================================================================================
+TEST RESULTS
+================================================================================
+
+Total Test Cases: 0 (no tests defined)
+Passed: 0
+Failed: 0
+Errors: 0
+
+Test Case Details: N/A (no tests executed)
+
+================================================================================
+ERROR LOG
+================================================================================
+
+No errors during test execution (tests were not executed).
+
+Blocking Error at Stage 1:
+- Error Type: PREREQUISITE_FAILED
+- Error Code: WITH_ENCRYPTION
+- Error Message: Object definition is encrypted and cannot be retrieved
+- SQL Server Message: "The text for object 'dbo.usp_encrypted_demo' is encrypted."
+
+Impact:
+- sys.sql_modules.definition returns NULL
+- OBJECT_DEFINITION() returns NULL
+- sp_helptext returns error message
+- Cannot extract DDL for migration
+
+================================================================================
+COMPARISON WITH MSSQL BASELINE
+================================================================================
+
+Comparison Status: NOT PERFORMED
+
+Reason:
+- mssql_test.txt does not exist (Stage 1 could not create tests)
+- postgres_test.txt cannot be generated (no tests to execute)
+- No baseline to compare against
+
+Expected Comparison (if source code were available):
+- Load mssql_test.txt (MSSQL baseline results)
+- Load postgres_test.txt (PostgreSQL test results)
+- Compare test case by test case
+- Identify EXACT, SEMANTIC, or STRUCTURAL matches
+- Report any mismatches
+
+Actual Comparison:
+- NOT APPLICABLE (no test results available)
+
+================================================================================
+TECHNICAL DETAILS
+================================================================================
+
+WITH ENCRYPTION - SQL Server Proprietary Feature:
+- Encrypts object definitions in sys.sql_modules
+- Encryption is one-way (no official decryption method)
+- Designed to protect intellectual property
+- Incompatible with migration to other database platforms
+
+PostgreSQL Equivalent:
+- PostgreSQL does NOT support WITH ENCRYPTION
+- Source code protection is achieved through:
+  * File system permissions on PostgreSQL data directory
+  * Schema-level access control (REVOKE USAGE on schema)
+  * SECURITY DEFINER attribute for privilege elevation
+  * Row-Level Security (RLS) policies
+
+Migration Impact:
+- Cannot extract source code from SQL Server
+- Cannot convert T-SQL to PL/pgSQL
+- Cannot create test cases
+- Cannot validate functional equivalence
+- Blocks entire migration workflow
+
+================================================================================
+REQUIRED ACTION
+================================================================================
+
+To proceed with testing on PostgreSQL:
+
+1. Obtain the original unencrypted source code from:
+   - Source control repository (Git, SVN, TFS, Azure DevOps, etc.)
+   - Original deployment scripts
+   - Database documentation
+   - Development team archives
+   - Pre-encryption database backups
+   - Change management system records
+
+2. Once source code is obtained:
+   - Remove WITH ENCRYPTION clause
+   - Place unencrypted DDL in ./result/usp_encrypted_demo/mssql.sql
+   - Create test cases in ./result/usp_encrypted_demo/mssql_test.sql
+   - Re-run Stage 1 (MSSQL validation)
+   - Re-run Stage 2 (Babelfish compatibility)
+   - Re-run Stage 3 (PL/pgSQL conversion)
+   - Re-run Stage 4 (PostgreSQL validation) to generate this file
+
+3. If source code cannot be found:
+   - Reverse engineer through black-box testing
+   - Analyze calling applications for usage patterns
+   - Review business requirements documentation
+   - Recreate procedure from scratch
+   - Validate with stakeholders
+
+================================================================================
+MIGRATION STATUS
+================================================================================
+
+Status: BLOCKED at Stage 1
+
+Blocking Issue: WITH ENCRYPTION (SQL Server proprietary feature)
+
+Files Generated:
+- postgres_test.sql (placeholder only)
+- postgres_test.txt (this file - status report only)
+- comparison_result.txt (comparison not performed)
+- NG.txt (detailed failure report)
+
+Files NOT Generated:
+- postgres.sql (no source to convert)
+- OK.txt (no successful conversion)
+
+Next Steps:
+- Escalate to migration team for source code retrieval
+- Contact database owner/development team
+- Check source control and deployment repositories
+- Once source code is available, restart from Stage 1
+
+Action Required: OBTAIN ORIGINAL SOURCE CODE BEFORE TESTING CAN PROCEED
+
+================================================================================
+CONCLUSION
+================================================================================
+
+PostgreSQL testing for 'dbo.usp_encrypted_demo' cannot be performed because
+the object is encrypted with WITH ENCRYPTION in SQL Server. This is a known
+migration blocker that requires human intervention to resolve.
+
+The migration workflow is blocked at Stage 1 (DDL extraction) and cannot proceed
+to Stage 4 (PostgreSQL testing) until the original unencrypted source code is
+obtained and provided.
+
+No tests were executed. No results are available for comparison.
+
+================================================================================
+END OF REPORT
+================================================================================

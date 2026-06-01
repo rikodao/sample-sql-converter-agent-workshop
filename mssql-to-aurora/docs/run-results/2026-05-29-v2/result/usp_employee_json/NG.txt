@@ -1,0 +1,59 @@
+=== Conversion Result: NG ===
+Object: PROCEDURE dbo.usp_employee_json
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+--- Failed Test Case ---
+Name: Stage 1 Artifact Generation
+Expected (MSSQL):
+  - mssql.sql (source T-SQL DDL)
+  - mssql_test.sql (MSSQL test script)
+  - mssql_test.txt (MSSQL test execution results)
+Actual (PG):
+  - All Stage 1 artifacts: NOT FOUND
+  - postgres.sql: NOT FOUND (Stage 3 blocked)
+  - postgres_test.sql: NOT CREATED (Stage 4 cannot proceed)
+  - postgres_test.txt: NOT CREATED (no test execution possible)
+Diff:
+  Stage 1 failed with AWS region configuration error.
+  Error message: "You must specify a region."
+  Cannot connect to Source RDS for SQL Server.
+  Without source DDL and test baseline, conversion pipeline cannot proceed.
+
+--- Hypothesis ---
+Root Cause: AWS connectivity/infrastructure failure at Stage 1
+- The `run_mssql_sql` tool requires AWS region configuration
+- Region parameter is missing or invalid in the execution environment
+- This is NOT an object-level issue (e.g., unsupported T-SQL syntax)
+- This is an infrastructure/configuration issue preventing database access
+
+Impact Chain:
+1. Stage 1: Cannot retrieve object definition from sys.sql_modules
+2. Stage 1: Cannot execute test cases against actual MSSQL database
+3. Stage 2: Cannot verify Babelfish compatibility (no source DDL)
+4. Stage 3: Cannot convert T-SQL to PL/pgSQL (no source code)
+5. Stage 4: Cannot validate conversion (no baseline results)
+
+--- Recommended Action ---
+Infrastructure Team:
+1. Verify AWS region environment variable is set correctly
+2. Check IAM permissions for RDS access
+3. Confirm Source RDS for SQL Server endpoint is accessible
+4. Test connectivity with: aws rds describe-db-instances --region <region>
+
+After connectivity is restored:
+1. Re-run Stage 1 to extract DDL and execute test cases
+2. Re-run Stage 2 (Babelfish verification)
+3. Re-run Stage 3 (T-SQL → PL/pgSQL conversion)
+4. Re-run Stage 4 (final validation) - this stage
+
+Human Review Required:
+- This is a blocking infrastructure issue, not a code conversion issue
+- Object 'dbo.usp_employee_json' may be perfectly convertible once connectivity is restored
+- Do NOT attempt manual conversion without verified MSSQL baseline results
+- Retry entire pipeline after AWS configuration is fixed
+
+================================================================================
+CRITICAL: This NG is due to PREREQUISITE_FAILED, not conversion incompatibility.
+The object has NOT been evaluated for PostgreSQL compatibility.
+================================================================================

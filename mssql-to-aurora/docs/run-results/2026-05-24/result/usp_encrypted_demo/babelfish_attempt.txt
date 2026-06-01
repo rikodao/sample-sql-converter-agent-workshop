@@ -1,0 +1,264 @@
+================================================================================
+BABELFISH COMPATIBILITY VERIFICATION - STAGE 2
+================================================================================
+Object: dbo.usp_encrypted_demo
+Type: STORED PROCEDURE
+Test Date: 2026-05-23
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+                    (Babelfish 4.3.3 on PostgreSQL 16.4)
+================================================================================
+
+STAGE 2 OBJECTIVE:
+Verify if the MSSQL DDL can be executed on Babelfish without modification,
+and if test results match between MSSQL and Babelfish.
+
+================================================================================
+SECTION 1: PREREQUISITE VERIFICATION
+================================================================================
+
+1.1 Babelfish Connection Check
+   ✓ Connection successful
+   - Version: Babelfish 4.3.3 on PostgreSQL 16.4
+   - TDS endpoint responding correctly
+
+1.2 Source DDL Availability Check
+   ✗ CRITICAL FAILURE: mssql.sql NOT FOUND
+   
+   Expected location: ./result/usp_encrypted_demo/mssql.sql
+   Actual status: File does not exist
+   
+   Root cause analysis:
+   - Checked mssql_unsupported.txt: Object is encrypted with WITH ENCRYPTION
+   - Checked prerequisites.txt: PREREQUISITE_FAILED due to encryption
+   - Stage 1 was unable to extract the procedure definition because:
+     * sys.sql_modules.definition returns NULL for encrypted objects
+     * OBJECT_DEFINITION() returns NULL
+     * sp_helptext returns "The text for object 'dbo.usp_encrypted_demo' is encrypted."
+
+1.3 Test File Availability Check
+   ✗ mssql_test.txt NOT FOUND
+   
+   Expected location: ./result/usp_encrypted_demo/mssql_test.txt
+   Actual status: File does not exist
+   
+   Reason: Without DDL, Stage 1 could not generate test cases
+
+================================================================================
+SECTION 2: ENCRYPTION ANALYSIS
+================================================================================
+
+2.1 WITH ENCRYPTION - Known Babelfish Limitation
+
+Category: STRUCTURAL NON-SUPPORT (DDL-level incompatibility)
+
+Description:
+SQL Server's WITH ENCRYPTION option encrypts the procedure definition in the
+system catalog, making it impossible to retrieve the source code through
+standard metadata queries. This is a SQL Server proprietary encryption mechanism.
+
+Babelfish Impact:
+- Babelfish does NOT support WITH ENCRYPTION syntax
+- Even if it did, the encryption is SQL Server-specific and cannot be decrypted
+- Migration requires the original unencrypted source code
+
+Technical Details:
+- SQL Server stores encrypted definitions in sys.sql_modules with definition = NULL
+- The encryption algorithm is proprietary and not documented
+- No official Microsoft tool exists to decrypt these objects
+- Third-party decryption tools exist but violate licensing terms
+
+2.2 Migration Path for Encrypted Objects
+
+The standard migration workflow is:
+
+  Stage 1: Extract DDL from MSSQL → BLOCKED (encryption prevents extraction)
+  Stage 2: Test on Babelfish → BLOCKED (no DDL to test)
+  Stage 3: Convert to PL/pgSQL → BLOCKED (no DDL to convert)
+  Stage 4: Validate on PostgreSQL → BLOCKED (no converted code)
+
+Required Actions:
+1. Obtain original source code from:
+   - Source control repository (Git, SVN, TFS, Azure DevOps, etc.)
+   - Original deployment scripts
+   - Database documentation
+   - Development team archives
+   - Pre-encryption database backups
+   - Change management system records
+
+2. Once source code is obtained:
+   - Remove WITH ENCRYPTION clause
+   - Place unencrypted DDL in mssql.sql
+   - Create appropriate test cases in mssql_test.sql
+   - Re-run Stage 1 validation
+   - Proceed with normal Stage 2 → Stage 3 → Stage 4 workflow
+
+3. If source code cannot be found:
+   - Reverse engineer through black-box testing
+   - Analyze calling applications for usage patterns
+   - Review business requirements documentation
+   - Recreate procedure from scratch
+   - Validate with stakeholders
+
+================================================================================
+SECTION 3: BABELFISH DDL EXECUTION ATTEMPT
+================================================================================
+
+Status: NOT ATTEMPTED
+
+Reason: No DDL available to execute
+
+Expected behavior if DDL were available:
+- If the procedure contained WITH ENCRYPTION clause:
+  * Babelfish would reject the syntax with error
+  * Error message: "WITH ENCRYPTION is not supported"
+  * Result: SYNTAX_FAILED
+
+- If the procedure did NOT contain WITH ENCRYPTION:
+  * Babelfish would attempt to parse and execute the DDL
+  * Success/failure would depend on procedure content
+  * (e.g., use of CLR, Service Broker, Linked Server, etc.)
+
+================================================================================
+SECTION 4: TEST EXECUTION ATTEMPT
+================================================================================
+
+Status: NOT ATTEMPTED
+
+Reason: No DDL to create the object, therefore no object to test
+
+Expected workflow if DDL were available:
+1. Execute DDL on Babelfish to create procedure
+2. Load mssql_test.sql and adapt for Babelfish
+3. Execute test cases via run_babelfish_tsql
+4. Compare results with mssql_test.txt
+5. Generate BABELFISH_OK.txt if all tests match
+
+================================================================================
+SECTION 5: RESULT COMPARISON
+================================================================================
+
+Status: NOT APPLICABLE
+
+Reason: No test results to compare
+
+================================================================================
+SECTION 6: ROOT CAUSE HYPOTHESIS
+================================================================================
+
+Primary Cause: WITH ENCRYPTION (SQL Server proprietary feature)
+
+Category: STRUCTURAL NON-SUPPORT
+
+Explanation:
+WITH ENCRYPTION is a SQL Server-specific feature that encrypts object definitions
+in the system catalog. This is fundamentally incompatible with migration because:
+
+1. Definition Extraction Impossible:
+   - sys.sql_modules.definition = NULL
+   - OBJECT_DEFINITION() = NULL
+   - sp_helptext returns error message
+   - No metadata query can retrieve the source code
+
+2. Babelfish Non-Support:
+   - Babelfish does not implement WITH ENCRYPTION syntax
+   - Even if syntax were accepted, the encryption is SQL Server proprietary
+   - PostgreSQL has no equivalent feature (uses file system permissions instead)
+
+3. Migration Blocker:
+   - Cannot extract → Cannot test → Cannot convert → Cannot migrate
+   - Requires manual intervention to obtain source code
+
+Known Babelfish Limitations Related to Encryption:
+- WITH ENCRYPTION on procedures: NOT SUPPORTED
+- WITH ENCRYPTION on functions: NOT SUPPORTED
+- WITH ENCRYPTION on views: NOT SUPPORTED
+- WITH ENCRYPTION on triggers: NOT SUPPORTED
+
+Alternative Security Approaches in PostgreSQL:
+- File system permissions on PostgreSQL data directory
+- Row-level security (RLS) policies
+- Schema-level permissions
+- Function SECURITY DEFINER attribute
+- Application-level encryption
+- Transparent Data Encryption (TDE) at storage layer
+
+================================================================================
+SECTION 7: RECOMMENDATIONS
+================================================================================
+
+Immediate Actions:
+1. Contact database owner/development team for original source code
+2. Check source control systems (Git, SVN, TFS, Azure DevOps)
+3. Review deployment scripts and change management records
+4. Search for database backups created before encryption was applied
+
+If Source Code is Found:
+1. Remove WITH ENCRYPTION clause from the DDL
+2. Place unencrypted DDL in ./result/usp_encrypted_demo/mssql.sql
+3. Create test cases in ./result/usp_encrypted_demo/mssql_test.sql
+4. Re-run Stage 1 to validate the DDL
+5. Re-run Stage 2 (this stage) to test on Babelfish
+6. Proceed with Stage 3 (PL/pgSQL conversion) if needed
+
+If Source Code Cannot be Found:
+1. Reverse engineer the procedure through:
+   - Black-box testing with various inputs
+   - Analysis of calling applications
+   - Review of business requirements
+   - Database transaction log analysis (if available)
+2. Recreate the procedure from scratch
+3. Validate with business stakeholders
+4. Document the recreation process for audit purposes
+
+Security Considerations:
+- If encryption was used for security, ensure equivalent controls in PostgreSQL
+- Restrict access to source code during migration
+- Use PostgreSQL's SECURITY DEFINER if privilege elevation is needed
+- Consider application-level encryption for sensitive logic
+- Document security requirements in migration plan
+
+================================================================================
+SECTION 8: STAGE 2 CONCLUSION
+================================================================================
+
+RESULT: DDL_NOT_AVAILABLE
+
+Summary:
+- Babelfish connection: SUCCESSFUL
+- DDL availability: FAILED (encrypted object, definition not extractable)
+- DDL execution: NOT ATTEMPTED (no DDL to execute)
+- Test execution: NOT ATTEMPTED (no object to test)
+- Result comparison: NOT APPLICABLE (no results to compare)
+
+Root Cause:
+The stored procedure was created with WITH ENCRYPTION in SQL Server, which
+prevents extraction of the definition. This is a known limitation that blocks
+the entire migration workflow at Stage 1.
+
+Migration Status: BLOCKED
+
+Blocking Issue: WITH ENCRYPTION (SQL Server proprietary feature)
+
+Resolution Required:
+Obtain original unencrypted source code from source control or development team.
+
+Next Steps:
+1. DO NOT proceed to Stage 3 (no DDL to convert)
+2. DO NOT create BABELFISH_OK.txt (no successful test to report)
+3. Escalate to migration team for source code retrieval
+4. Once source code is obtained, restart from Stage 1
+
+Files Generated:
+- babelfish_attempt.txt (this file)
+
+Files NOT Generated (and why):
+- babelfish_test.sql (no DDL to create test environment)
+- babelfish_test.txt (no tests to execute)
+- BABELFISH_OK.txt (no successful compatibility verification)
+
+================================================================================
+RESULT: DDL_NOT_AVAILABLE
+Reason: Object encrypted with WITH ENCRYPTION - Stage 1 could not extract definition
+Action Required: Obtain original source code before Stage 2 can proceed
+Migration Status: BLOCKED at Stage 1
+================================================================================

@@ -1,0 +1,128 @@
+============================================================================
+TEST EXECUTION RESULTS - dbo.fn_format_employee_name
+Source: SQL Server (MSSQL)
+Execution Date: 2026-05-23
+============================================================================
+
+-- ============= TEST CASE 1: Normal input with typical names =============
+Result:
+{
+  "tc": "TC1",
+  "result": "Doe, John"
+}
+
+-- ============= TEST CASE 2: Normal input with Unicode characters =============
+Result:
+{
+  "tc": "TC2",
+  "result": "山田, 太郎"
+}
+
+-- ============= TEST CASE 3: Normal input with special characters =============
+Result:
+{
+  "tc": "TC3",
+  "result": "O'Brien, Mary-Jane"
+}
+
+-- ============= TEST CASE 4: Boundary - NULL first name =============
+Result:
+{
+  "tc": "TC4",
+  "result": "(unknown)"
+}
+
+-- ============= TEST CASE 5: Boundary - NULL last name =============
+Result:
+{
+  "tc": "TC5",
+  "result": "(unknown)"
+}
+
+-- ============= TEST CASE 6: Boundary - Both NULL =============
+Result:
+{
+  "tc": "TC6",
+  "result": "(unknown)"
+}
+
+-- ============= TEST CASE 7: Boundary - Empty string first name =============
+Result:
+{
+  "tc": "TC7",
+  "result": "Johnson, "
+}
+
+-- ============= TEST CASE 8: Boundary - Empty string last name =============
+Result:
+{
+  "tc": "TC8",
+  "result": ", Bob"
+}
+
+-- ============= TEST CASE 9: Boundary - Both empty strings =============
+Result:
+{
+  "tc": "TC9",
+  "result": ", "
+}
+
+-- ============= TEST CASE 10: Boundary - Single character names =============
+Result:
+{
+  "tc": "TC10",
+  "result": "B, A"
+}
+
+-- ============= TEST CASE 11: Boundary - Maximum length names (50 chars each) =============
+Result:
+{
+  "tc": "TC11",
+  "result": "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJ, 12345678901234567890123456789012345678901234567890"
+}
+
+-- ============= TEST CASE 12: Boundary - Names with leading/trailing spaces =============
+Result:
+{
+  "tc": "TC12",
+  "result": "  Doe  ,   John  "
+}
+
+-- ============= TEST CASE 13: Edge case - Names with only spaces =============
+Result:
+{
+  "tc": "TC13",
+  "result": "   ,    "
+}
+
+-- ============= TEST CASE 14: Edge case - Names with newline characters =============
+Result:
+{
+  "tc": "TC14",
+  "result": "Doe\r, John\n"
+}
+
+-- ============= TEST CASE 15: Verify return type length (NVARCHAR(105)) =============
+Result:
+{
+  "tc": "TC15",
+  "result_length": 102,
+  "result_value": "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJ, 12345678901234567890123456789012345678901234567890"
+}
+
+============================================================================
+TEST EXECUTION SUMMARY
+============================================================================
+Total Test Cases: 15
+All tests executed successfully.
+
+Key Observations:
+- NULL inputs (either or both) return "(unknown)"
+- Empty strings are treated as valid values (not NULL)
+- Unicode characters are properly handled
+- Special characters (apostrophes, hyphens) work correctly
+- Maximum length: 50 + 2 (", ") + 50 = 102 characters (fits in NVARCHAR(105))
+- Spaces and newline characters are preserved in output
+- Function does not trim input values
+
+============================================================================

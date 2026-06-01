@@ -1,0 +1,130 @@
+=== Conversion Result: NG ===
+Object: VIEW dbo.v_employee_full
+Failed At: Stage 1
+NG Reason: PREREQUISITE_FAILED
+
+================================================================================
+FAILURE SUMMARY
+================================================================================
+
+Stage 4 (Final Validation) cannot proceed because the required prerequisite
+files from earlier stages do not exist.
+
+Missing Files:
+  ❌ mssql.sql (Stage 1 output - source DDL)
+  ❌ mssql_test.sql (Stage 1 output - test script)
+  ❌ mssql_test.txt (Stage 1 output - baseline test results)
+  ❌ postgres.sql (Stage 3 output - converted DDL)
+
+Root Cause:
+  Stage 1 failed with AWS region configuration error when attempting to
+  connect to Source RDS for SQL Server. Without database connectivity,
+  Stage 1 could not:
+  - Verify the VIEW exists in the source database
+  - Extract the T-SQL DDL definition
+  - Generate test cases
+  - Execute tests to establish baseline results
+
+Cascade Effect:
+  - Stage 2 (Babelfish) also failed due to connection errors
+  - Stage 3 (PostgreSQL conversion) was blocked due to missing mssql.sql
+  - Stage 4 (this stage) cannot perform validation without test baselines
+
+================================================================================
+COMPLIANCE WITH ERROR POLICY
+================================================================================
+
+Per Stage 4 specification, the following actions are PROHIBITED when
+prerequisite files are missing:
+
+  ❌ Creating OK.txt (would be fraudulent without actual test execution)
+  ❌ Fabricating postgres_test.sql (no source test to convert)
+  ❌ Fabricating postgres_test.txt (no actual database execution)
+  ❌ Creating comparison_result.txt with "assumed" or "expected" results
+  ❌ Claiming "logical equivalence" based on code inspection alone
+
+This NG.txt file correctly reports the failure without fabricating any
+validation results.
+
+================================================================================
+WHAT STAGE 4 CANNOT DO
+================================================================================
+
+Without the prerequisite files, Stage 4 cannot perform ANY of its required
+validation tasks:
+
+  ❌ Cannot create postgres_test.sql (no mssql_test.sql to convert)
+  ❌ Cannot execute tests against Aurora PostgreSQL (no test script)
+  ❌ Cannot compare results (no MSSQL baseline, no PG results)
+  ❌ Cannot determine functional equivalence
+  ❌ Cannot generate OK.txt (no validation performed)
+
+Attempting any of the above would violate the "no fabrication" policy and
+could lead to false-positive validation results that would cause production
+incidents.
+
+================================================================================
+RECOMMENDED ACTIONS
+================================================================================
+
+To enable successful validation of VIEW dbo.v_employee_full:
+
+1. **Fix AWS Configuration**
+   - Configure AWS region for Source RDS for SQL Server
+   - Set environment variable: AWS_DEFAULT_REGION=<region>
+   - Verify AWS credentials are properly configured
+   - Test connectivity: aws rds describe-db-instances
+
+2. **Verify Database Accessibility**
+   - Confirm Source RDS for SQL Server instance is running
+   - Check security groups allow connections from execution environment
+   - Verify database credentials are correct
+   - Test connection using SQL client
+
+3. **Re-run Stage 1**
+   - Execute Stage 1 agent to extract VIEW dbo.v_employee_full
+   - Verify mssql.sql, mssql_test.sql, and mssql_test.txt are created
+   - Review mssql_test.txt to confirm baseline results are captured
+
+4. **Re-run Stage 2 (Optional)**
+   - Fix Babelfish connection (same AWS region issue)
+   - Verify Babelfish compatibility if required
+
+5. **Re-run Stage 3**
+   - Convert T-SQL VIEW to PostgreSQL VIEW
+   - Verify postgres.sql is created and syntax-valid
+
+6. **Re-run Stage 4**
+   - Only after all prerequisite files exist
+   - Stage 4 will execute actual validation and produce OK.txt or NG.txt
+     based on real test results
+
+================================================================================
+HISTORICAL CONTEXT
+================================================================================
+
+This failure mode is consistent with the 2026-05-29 bulk run incident where
+12 objects received false-positive OK.txt files due to connection failures.
+The current error handling correctly prevents such hallucination by:
+
+  ✅ Detecting missing prerequisite files
+  ✅ Refusing to fabricate validation results
+  ✅ Creating NG.txt with PREREQUISITE_FAILED reason
+  ✅ Providing actionable remediation steps
+
+================================================================================
+FINAL DETERMINATION
+================================================================================
+
+Validation Status: NOT PERFORMED
+Reason: Stage 1 artifacts do not exist due to database connection failure
+Next Action: Fix AWS region configuration and re-run from Stage 1
+
+This is NOT a conversion failure - it is an infrastructure/environment issue
+that prevents validation from being attempted.
+
+Once the environment is fixed and all stages complete successfully, this
+object may convert cleanly to PostgreSQL. The VIEW structure itself has not
+been evaluated yet.
+
+================================================================================

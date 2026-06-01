@@ -1,0 +1,169 @@
+============================================================
+TEST EXECUTION RESULTS: dbo.usp_bulk_deactivate_employees
+Target: Babelfish for Aurora PostgreSQL
+Execution Date: 2026-05-23
+============================================================
+
+============= TEST CASE 1: Normal - Deactivate single active employee =============
+SETUP: Created test employee 99901 with is_active = 1
+EXEC: Called procedure with single employee ID
+ASSERT:
+tc   | deactivated_count | is_active
+-----|-------------------|----------
+TC1  | 1                 | 0
+
+CLEANUP: Deleted test employee 99901
+RESULT: PASS - Single active employee successfully deactivated, count = 1
+
+============= TEST CASE 2: Normal - Deactivate multiple active employees =============
+SETUP: Created 3 test employees (99902, 99903, 99904) with is_active = 1
+EXEC: Called procedure with 3 employee IDs
+ASSERT:
+tc   | deactivated_count
+-----|------------------
+TC2  | 3
+
+tc   | employee_id | is_active
+-----|-------------|----------
+TC2  | 99902       | 0
+TC2  | 99903       | 0
+TC2  | 99904       | 0
+
+CLEANUP: Deleted test employees 99902-99904
+RESULT: PASS - All 3 employees deactivated, count = 3
+
+============= TEST CASE 3: Normal - Partial match (some IDs exist, some don't) =============
+SETUP: Created 2 test employees (99905, 99906) with is_active = 1
+EXEC: Called procedure with 3 IDs (99905, 99906, 99999 - non-existent)
+ASSERT:
+tc   | deactivated_count
+-----|------------------
+TC3  | 2
+
+tc   | employee_id | is_active
+-----|-------------|----------
+TC3  | 99905       | 0
+TC3  | 99906       | 0
+
+CLEANUP: Deleted test employees 99905-99906
+RESULT: PASS - Only existing employees deactivated, count = 2 (non-existent ID ignored)
+
+============= TEST CASE 4: Boundary - Empty input list =============
+SETUP: No test data created
+EXEC: Called procedure with empty table-valued parameter
+ASSERT:
+tc   | deactivated_count
+-----|------------------
+TC4  | 0
+
+CLEANUP: None needed
+RESULT: PASS - Empty input handled correctly, count = 0
+
+============= TEST CASE 5: Boundary - Deactivate already inactive employee =============
+SETUP: Created test employee 99907 with is_active = 0
+EXEC: Called procedure with already inactive employee ID
+ASSERT:
+tc   | deactivated_count | is_active
+-----|-------------------|----------
+TC5  | 1                 | 0
+
+CLEANUP: Deleted test employee 99907
+RESULT: PASS - Already inactive employee updated (@@ROWCOUNT still counts it), count = 1
+
+============= TEST CASE 6: Boundary - Non-existent employee IDs only =============
+SETUP: No test data created
+EXEC: Called procedure with 2 non-existent employee IDs (88888, 88889)
+ASSERT:
+tc   | deactivated_count
+-----|------------------
+TC6  | 0
+
+CLEANUP: None needed
+RESULT: PASS - Non-existent IDs handled correctly, count = 0
+
+============= TEST CASE 7: Boundary - Large batch (10 employees) =============
+SETUP: Created 10 test employees (99910-99919) with is_active = 1
+EXEC: Called procedure with 10 employee IDs
+ASSERT:
+tc   | deactivated_count
+-----|------------------
+TC7  | 10
+
+tc   | inactive_count
+-----|---------------
+TC7  | 10
+
+CLEANUP: Deleted test employees 99910-99919
+RESULT: PASS - All 10 employees deactivated in bulk, count = 10
+
+============= TEST CASE 8: Side Effect - Mixed active and inactive employees =============
+SETUP: Created 3 test employees (99920=active, 99921=inactive, 99922=active)
+EXEC: Called procedure with all 3 employee IDs
+ASSERT:
+tc   | deactivated_count
+-----|------------------
+TC8  | 3
+
+tc   | employee_id | is_active
+-----|-------------|----------
+TC8  | 99920       | 0
+TC8  | 99921       | 0
+TC8  | 99922       | 0
+
+CLEANUP: Deleted test employees 99920-99922
+RESULT: PASS - All employees updated regardless of initial state, count = 3
+
+============= TEST CASE 9: Side Effect - Verify other columns unchanged =============
+SETUP: Created test employee 99923 with specific values in all columns
+EXEC: Called procedure with employee ID 99923
+ASSERT:
+tc   | deactivated_count
+-----|------------------
+TC9  | 1
+
+tc   | employee_id | department_id | first_name | last_name | hire_date  | is_active | email
+-----|-------------|---------------|------------|-----------|------------|-----------|--------------------
+TC9  | 99923       | 5             | Original   | Name      | 2019-06-15 | 0         | original@example.com
+
+CLEANUP: Deleted test employee 99923
+RESULT: PASS - Only is_active column changed, all other columns preserved
+
+============= TEST CASE 10: Transaction - Verify UPDATE is atomic =============
+SETUP: Created 2 test employees (99924, 99925) with is_active = 1
+EXEC: Called procedure within transaction, then rolled back
+ASSERT (within transaction):
+tc    | deactivated_count
+------|------------------
+TC10  | 2
+
+tc    | status          | employee_id | is_active
+------|-----------------|-------------|----------
+TC10  | BEFORE_ROLLBACK | 99924       | 0
+TC10  | BEFORE_ROLLBACK | 99925       | 0
+
+ASSERT (after rollback):
+tc    | status         | employee_id | is_active
+------|----------------|-------------|----------
+TC10  | AFTER_ROLLBACK | 99924       | 1
+TC10  | AFTER_ROLLBACK | 99925       | 1
+
+CLEANUP: Deleted test employees 99924-99925
+RESULT: PASS - Transaction rollback restored original is_active values
+
+============================================================
+SUMMARY
+============================================================
+Total Test Cases: 10
+Passed: 10
+Failed: 0
+
+All test cases executed successfully.
+The procedure correctly:
+- Deactivates single and multiple employees
+- Handles empty input and non-existent IDs gracefully
+- Updates already inactive employees (@@ROWCOUNT counts them)
+- Processes large batches efficiently
+- Only modifies is_active column, preserving other data
+- Participates correctly in transactions (rollback works)
+- Returns accurate count via OUTPUT parameter
+============================================================

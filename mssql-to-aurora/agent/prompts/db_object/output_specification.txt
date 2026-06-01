@@ -1,0 +1,98 @@
+<output_specification>
+## 結果ファイルは必ず以下のフォーマットで作成すること
+
+集計スクリプト (utils/summarize_results.py) が機械的に解析するため、
+**ヘッダ部分の文言と数値は厳密に揃える**こと。
+
+---
+
+### OK.txt のフォーマット
+
+最初の8行は固定形式:
+```
+=== Conversion Result: OK ===
+Object: <type> <schema>.<name>
+Target Engine: PostgreSQL native (PL/pgSQL)
+Stages Completed: 1, 2 (failed), 3, 4
+Test Cases: <pass>/<total> matched
+Match Levels: EXACT=<n>, SEMANTIC=<n>, STRUCTURAL=<n>
+
+================================================================================
+CONVERSION SUMMARY
+================================================================================
+```
+
+その後に詳細セクションを自由に記述してよい。
+
+---
+
+### BABELFISH_OK.txt のフォーマット
+
+最初の8行は固定形式:
+```
+=== Babelfish Compatible: OK ===
+Object: <type> <schema>.<name>
+Target Engine: Babelfish for Aurora PostgreSQL (TDS:1433)
+Stages Completed: 1, 2
+Test Cases: <pass>/<total> matched
+Match Levels: EXACT=<n>, SEMANTIC=<n>, STRUCTURAL=<n>
+
+================================================================================
+```
+
+その後に詳細セクションを自由に記述してよい。
+
+**重要**: テスト数とMatch Levelsは必ず数値で記述する (— や N/A は不可)。
+テストを実行していない場合は BABELFISH_OK.txt を作成してはならない。
+
+---
+
+### NG.txt のフォーマット
+
+```
+=== Conversion Result: NG ===
+Object: <type> <schema>.<name>
+Failed At: Stage <n>
+NG Reason: <category>
+
+--- Failed Test Case ---
+Name: <test_case_name>
+Expected (MSSQL):
+  <出力>
+Actual (PG):
+  <出力>
+Diff:
+  <差分要約>
+
+--- Hypothesis ---
+<原因推測>
+
+--- Recommended Action ---
+<次のアクション>
+```
+
+NG Reason カテゴリは以下から選ぶ:
+- `SYNTAX` (T-SQL → PL/pgSQL 構文変換失敗)
+- `RUNTIME` (構文OKだが実行時エラー)
+- `RESULT_MISMATCH` (実行結果が一致しない)
+- `UNSUPPORTED` (CLR / Linked Server / Service Broker 等の構造的非対応)
+- `TIMEOUT` (リトライ上限到達)
+- `PREREQUISITE_FAILED` (依存オブジェクト不在等)
+
+---
+
+### babelfish_attempt.txt の必須要素
+
+末尾に必ず以下のいずれかの形で結果コードを書くこと:
+```
+RESULT: <CODE>
+```
+
+CODE は以下から選ぶ:
+- `BABELFISH_OK` — Babelfish 互換性確認 (BABELFISH_OK.txt も作成済)
+- `SYNTAX_FAILED` — DDL 投入で構文エラー
+- `TEST_MISMATCH` — DDL は通ったがテスト結果が MSSQL と不一致
+- `CONNECTION_ERROR` — Babelfish エンドポイントに接続不可 (リトライしても解消しない場合)
+- `PREREQUISITE_FAILED` — 前提条件未達 (mssql.sql 等が存在しない)
+- `UNSUPPORTED_FEATURE` — 既知の Babelfish 非対応機能 (CLR, Service Broker 等)
+</output_specification>

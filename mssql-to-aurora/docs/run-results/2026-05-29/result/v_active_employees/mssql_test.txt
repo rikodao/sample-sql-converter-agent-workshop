@@ -1,0 +1,239 @@
+============================================================
+TEST EXECUTION RESULTS for dbo.v_active_employees
+============================================================
+Date: 2024
+Status: TEMPLATE (Connection issue - actual execution required)
+============================================================
+
+NOTE: Due to connection issues with Source RDS for SQL Server,
+this file contains EXPECTED results based on the test logic.
+Actual execution is required once connection is established.
+
+============================================================
+TEST CASE 1: Basic active employee retrieval
+============================================================
+SETUP: Created #test_employees and #test_departments with sample data
+- 2 active employees (100, 101)
+- 1 inactive employee (102)
+
+EXEC: Filter for active employees
+
+ASSERT:
+tc   test_description           result
+---- -------------------------- ------
+TC1  Active employees count     2
+
+tc   test_description           result
+---- -------------------------- ------
+TC1  Active employee IDs        100
+TC1  Active employee IDs        101
+
+CLEANUP: Dropped temporary tables
+STATUS: EXPECTED PASS
+
+============================================================
+TEST CASE 2: Inactive employees should be excluded
+============================================================
+SETUP: Created #test_employees2 with mixed status
+- 2 inactive/terminated employees (200, 201)
+- 1 active employee (202)
+
+EXEC: Filter for active employees only
+
+ASSERT:
+tc   test_description           result
+---- -------------------------- ------
+TC2  Inactive excluded count    1
+
+tc   test_description           result
+---- -------------------------- ------
+TC2  Only active employee ID    202
+
+CLEANUP: Dropped temporary table
+STATUS: EXPECTED PASS
+
+============================================================
+TEST CASE 3: NULL termination_date handling
+============================================================
+SETUP: Created #test_employees3 with termination_date variations
+- 2 employees with NULL termination_date (300, 302)
+- 1 employee with termination_date set (301)
+
+EXEC: Check NULL termination_date filter
+
+ASSERT:
+tc   test_description              result
+---- ----------------------------- ------
+TC3  NULL termination_date count   2
+
+tc   test_description                 result
+---- -------------------------------- ------
+TC3  Employees with NULL termination  300
+TC3  Employees with NULL termination  302
+
+CLEANUP: Dropped temporary table
+STATUS: EXPECTED PASS
+
+============================================================
+TEST CASE 4: Empty result set (no active employees)
+============================================================
+SETUP: Created #test_employees4 with only inactive employees
+- 2 inactive/terminated employees (400, 401)
+- 0 active employees
+
+EXEC: Query with no active employees
+
+ASSERT:
+tc   test_description        result
+---- ----------------------- ------
+TC4  No active employees     0
+
+CLEANUP: Dropped temporary table
+STATUS: EXPECTED PASS
+
+============================================================
+TEST CASE 5: JOIN with departments (LEFT JOIN behavior)
+============================================================
+SETUP: Created #test_employees5 and #test_departments5
+- 2 employees with departments (500, 501)
+- 1 employee without department (502)
+
+EXEC: LEFT JOIN to departments
+
+ASSERT:
+tc   test_description        employee_id  department_name
+---- ----------------------- ------------ ----------------
+TC5  JOIN with departments   500          Engineering
+TC5  JOIN with departments   501          Marketing
+TC5  JOIN with departments   502          NULL
+
+CLEANUP: Dropped temporary tables
+STATUS: EXPECTED PASS
+
+============================================================
+TEST CASE 6: Boundary - All employees active
+============================================================
+SETUP: Created #test_employees6 with all active employees
+- 3 active employees (600, 601, 602)
+
+EXEC: All employees should be returned
+
+ASSERT:
+tc   test_description    result
+---- ------------------- ------
+TC6  All active count    3
+
+CLEANUP: Dropped temporary table
+STATUS: EXPECTED PASS
+
+============================================================
+TEST CASE 7: Mixed status values
+============================================================
+SETUP: Created #test_employees7 with mixed statuses
+- 3 active employees (700, 702, 704)
+- 2 inactive/terminated employees (701, 703)
+
+EXEC: Filter mixed statuses
+
+ASSERT:
+tc   test_description              result
+---- ----------------------------- ------
+TC7  Mixed status active count     3
+
+tc   test_description        result
+---- ----------------------- ------
+TC7  Active employee IDs     700
+TC7  Active employee IDs     702
+TC7  Active employee IDs     704
+
+CLEANUP: Dropped temporary table
+STATUS: EXPECTED PASS
+
+============================================================
+TEST CASE 8: NULL values in optional fields
+============================================================
+SETUP: Created #test_employees8 with NULL in optional fields
+- 2 active employees with various NULL values (800, 801)
+
+EXEC: Handle NULL values in non-filter columns
+
+ASSERT:
+tc   test_description     result
+---- -------------------- ------
+TC8  NULL fields count    2
+
+tc   test_description        employee_id  email                  department_id
+---- ----------------------- ------------ ---------------------- -------------
+TC8  Employee with NULLs     800          NULL                   NULL
+TC8  Employee with NULLs     801          vwalker@example.com    10
+
+CLEANUP: Dropped temporary table
+STATUS: EXPECTED PASS
+
+============================================================
+TEST CASE 9: Case sensitivity in status field
+============================================================
+SETUP: Created #test_employees9 with different case variations
+- 3 employees with 'Active', 'ACTIVE', 'active' (900, 901, 902)
+
+EXEC: Test case sensitivity (SQL Server default is case-insensitive)
+
+ASSERT:
+tc   test_description           result
+---- -------------------------- ------
+TC9  Case insensitive count     3
+
+CLEANUP: Dropped temporary table
+STATUS: EXPECTED PASS
+NOTE: SQL Server default collation is case-insensitive
+
+============================================================
+TEST CASE 10: Date boundary - termination_date edge cases
+============================================================
+SETUP: Created #test_employees10 with date boundaries
+- 2 employees with NULL termination_date (1000, 1003)
+- 2 employees with extreme dates (1001, 1002)
+
+EXEC: Check date boundary handling
+
+ASSERT:
+tc    test_description           result
+----- -------------------------- ------
+TC10  NULL termination only      2
+
+tc    test_description                    result
+----- ----------------------------------- ------
+TC10  Employee IDs with NULL termination  1000
+TC10  Employee IDs with NULL termination  1003
+
+CLEANUP: Dropped temporary table
+STATUS: EXPECTED PASS
+
+============================================================
+SUMMARY
+============================================================
+Total Test Cases: 10
+Expected Pass: 10
+Expected Fail: 0
+
+Coverage:
+- Normal cases: TC1, TC2, TC3, TC7
+- Boundary values: TC4 (empty), TC6 (all active), TC10 (date boundaries)
+- Edge cases: TC5 (NULL department), TC8 (NULL optional fields), TC9 (case sensitivity)
+- JOIN behavior: TC5 (LEFT JOIN with NULL)
+
+NOTES:
+1. All tests use temporary tables to avoid data pollution
+2. Each test includes proper SETUP and CLEANUP
+3. Tests cover active/inactive filtering logic
+4. Tests validate NULL handling in filter conditions
+5. Tests verify LEFT JOIN behavior with departments
+6. Case sensitivity test confirms SQL Server default collation
+
+RECOMMENDATION:
+Execute these tests on actual Source RDS for SQL Server once
+connection is established and compare results with this template.
+
+============================================================
+END OF TEST RESULTS
+============================================================

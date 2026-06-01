@@ -1,0 +1,23 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2026-05-23
+Object: dbo.fn_format_employee_name
+Type: SQL_SCALAR_FUNCTION
+
+OBJECT EXISTENCE: CONFIRMED
+- Object ID: 1317579732
+- Created: 2026-05-23 23:20:23.157
+- Modified: 2026-05-23 23:20:23.157
+
+DEPENDENCIES: NONE
+- No dependencies found in sys.sql_expression_dependencies
+- This is a standalone scalar function
+
+ENCRYPTION STATUS: NOT ENCRYPTED
+- Definition can be retrieved from sys.sql_modules
+
+DIRECTORY STATUS: CREATED
+- Result directory: ./result/fn_format_employee_name/
+
+PREREQUISITE CHECK: PASSED
+All prerequisites met. Proceeding with DDL extraction.

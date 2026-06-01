@@ -1,0 +1,198 @@
+================================================================================
+BABELFISH T-SQL COMPATIBILITY VERIFICATION - STAGE 2
+================================================================================
+Object: TRIGGER dbo.trg_audit_employees
+Target: Babelfish for Aurora PostgreSQL (T-SQL endpoint)
+Execution Date: Stage 2 - Babelfish Compatibility Check
+================================================================================
+
+================================================================================
+STEP 1: BABELFISH CONNECTION VERIFICATION
+================================================================================
+
+Attempt: SELECT @@VERSION via run_babelfish_tsql
+
+Result: CONNECTION_ERROR
+
+Error Details:
+--------------
+Error executing tool run_babelfish_tsql: You must specify a region.
+
+Analysis:
+---------
+The Babelfish T-SQL endpoint is not accessible due to AWS region configuration issues.
+This is the same error encountered in Stage 1 when attempting to connect to Source RDS.
+
+The error indicates that the database connection tools require AWS region specification,
+but the region parameter is either:
+1. Not configured in the environment
+2. Not being passed correctly to the connection function
+3. The AWS credentials/configuration is incomplete
+
+Impact:
+-------
+- Cannot verify Babelfish connectivity
+- Cannot execute DDL (CREATE TRIGGER) on Babelfish
+- Cannot run test cases against Babelfish
+- Cannot compare behavior between SQL Server and Babelfish
+
+================================================================================
+STAGE 2 TERMINATION
+================================================================================
+
+Status: FAILED - CONNECTION_ERROR
+
+Reason: Unable to establish connection to Babelfish T-SQL endpoint (port 1433)
+
+The following steps were NOT executed:
+- DDL deployment to Babelfish
+- Test case execution on Babelfish
+- Result comparison between SQL Server and Babelfish
+- Compatibility assessment
+
+================================================================================
+REQUIRED ACTIONS TO PROCEED
+================================================================================
+
+1. Configure AWS Region:
+   - Set AWS_DEFAULT_REGION environment variable
+   - Or configure ~/.aws/config with default region
+   - Or pass region parameter to connection functions
+
+2. Verify Babelfish Endpoint:
+   - Confirm Babelfish cluster is running
+   - Verify TDS endpoint (port 1433) is accessible
+   - Check security group rules allow connection
+   - Verify network connectivity from execution environment
+
+3. Test Connection:
+   - Use SQL client to manually verify connection
+   - Example: sqlcmd -S <babelfish-endpoint>,1433 -U <user> -P <password>
+
+4. Retry Stage 2:
+   - Once connection is established, re-run Stage 2 verification
+   - DDL will be deployed and tested
+
+================================================================================
+OBJECT ANALYSIS (Pre-deployment Assessment)
+================================================================================
+
+Based on the DDL in mssql.sql, the trigger has the following characteristics:
+
+Trigger Type: AFTER INSERT, UPDATE, DELETE
+Target Table: dbo.employees
+Audit Table: dbo.employee_audit
+
+Key Features:
+-------------
+1. Uses INSERTED and DELETED pseudo-tables
+2. Uses SYSTEM_USER function
+3. Uses GETDATE() function
+4. Uses NEWID() for UNIQUEIDENTIFIER generation
+5. Conditional logic based on operation type
+6. Multi-row capable (set-based operations)
+
+Babelfish Compatibility Assessment (Theoretical):
+-------------------------------------------------
+
+HIGH COMPATIBILITY EXPECTED:
+✓ AFTER triggers are well-supported in Babelfish
+✓ INSERTED/DELETED pseudo-tables work in Babelfish
+✓ SYSTEM_USER is supported
+✓ GETDATE() is supported
+✓ NEWID() is supported
+✓ SET NOCOUNT ON is supported
+✓ Conditional logic (IF/ELSE) is supported
+✓ Set-based INSERT...SELECT is supported
+
+POTENTIAL ISSUES:
+⚠ UNIQUEIDENTIFIER (NEWID()) - Babelfish uses UUID, should be compatible
+⚠ DATETIME precision - Babelfish may have microsecond precision vs millisecond
+⚠ SYSTEM_USER return value - May differ between SQL Server and Babelfish
+⚠ Variable declaration syntax - Should work but may have edge cases
+
+LOW RISK AREAS:
+- No CLR usage
+- No Service Broker
+- No linked servers
+- No encryption
+- No complex data types
+- No XML/JSON operations
+- No dynamic SQL (sp_executesql)
+- No table-valued parameters
+- No PIVOT/UNPIVOT
+- No MERGE statements
+
+Expected Outcome (if connection were available):
+------------------------------------------------
+DDL Deployment: LIKELY SUCCESS (95% confidence)
+Test Execution: LIKELY SUCCESS (90% confidence)
+
+The trigger uses standard T-SQL features that are well-supported in Babelfish.
+The main differences would likely be in:
+- Timestamp precision in audit_date column
+- SYSTEM_USER value format
+- UNIQUEIDENTIFIER string representation
+
+These differences should be within SEMANTIC match tolerance.
+
+================================================================================
+HYPOTHESIS: BABELFISH COMPATIBILITY
+================================================================================
+
+If connection were available, expected results:
+
+Scenario 1: DDL Deployment
+---------------------------
+Expected: SUCCESS
+Confidence: 95%
+Reasoning: All T-SQL constructs used are in Babelfish's core support
+
+Scenario 2: Test Execution
+---------------------------
+Expected: SUCCESS with SEMANTIC matches
+Confidence: 90%
+Reasoning: 
+- Core trigger logic should work identically
+- Minor differences in timestamp format acceptable
+- SYSTEM_USER value may differ but still valid
+- NEWID() generates valid UUIDs in both systems
+
+Scenario 3: Result Comparison
+------------------------------
+Expected Match Level: SEMANTIC (not EXACT)
+Reasoning:
+- audit_id (UNIQUEIDENTIFIER) will have different values (non-deterministic)
+- operation_date (DATETIME) may have different precision
+- operation_user may have different format
+- Core business logic (old/new values, operation type) should match exactly
+
+================================================================================
+CONCLUSION
+================================================================================
+
+RESULT: CONNECTION_ERROR
+
+Stage 2 cannot proceed without Babelfish connectivity.
+
+The trigger appears to be highly compatible with Babelfish based on static analysis,
+but actual execution is required to confirm compatibility and identify any runtime
+differences.
+
+BABELFISH_OK.txt: NOT CREATED (connection required)
+babelfish_test.sql: NOT CREATED (connection required)
+babelfish_test.txt: NOT CREATED (connection required)
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Resolve AWS region configuration issue
+2. Establish connection to Babelfish T-SQL endpoint
+3. Re-run Stage 2 with actual execution
+4. If DDL succeeds, proceed with test execution and comparison
+5. If DDL fails, document specific syntax errors for Stage 3/4 conversion
+
+================================================================================
+END OF STAGE 2 REPORT
+================================================================================

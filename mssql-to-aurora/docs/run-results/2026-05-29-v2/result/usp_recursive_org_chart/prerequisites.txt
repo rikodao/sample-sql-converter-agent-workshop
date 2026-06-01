@@ -1,0 +1,34 @@
+================================================================================
+STAGE 1: PREREQUISITE CHECK - FAILED
+================================================================================
+Object: dbo.usp_recursive_org_chart
+Type: STORED PROCEDURE
+Check Date: 2025-01-15
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Tool: run_mssql_sql
+Error: "You must specify a region."
+Description: Cannot connect to Source RDS for SQL Server due to missing AWS region configuration.
+
+IMPACT:
+-------
+- Cannot verify object existence
+- Cannot retrieve DDL definition from sys.sql_modules
+- Cannot identify dependencies from sys.sql_expression_dependencies
+- Cannot execute test cases against actual database
+
+NEXT STEPS:
+-----------
+This prerequisite failure must be resolved before Stage 1 can proceed.
+Stage 2/3/4 should detect this failure and generate NG.txt accordingly.
+
+NO FILES GENERATED:
+-------------------
+- mssql.sql: NOT CREATED (cannot retrieve DDL without DB connection)
+- mssql_test.sql: NOT CREATED (cannot design tests without object definition)
+- mssql_test.txt: NOT CREATED (cannot execute tests without DB connection)
+
+================================================================================

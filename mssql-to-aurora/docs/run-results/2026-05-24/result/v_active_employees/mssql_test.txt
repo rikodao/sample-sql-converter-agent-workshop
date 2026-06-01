@@ -1,0 +1,167 @@
+============================================================================
+TEST RESULTS for VIEW dbo.v_active_employees on SQL Server
+============================================================================
+Execution Date: 2026-05-23
+Database: Source RDS for SQL Server
+
+============================================================================
+TEST CASE 1: Normal - Active employees with all data
+============================================================================
+
+ASSERT Results:
+test_case | employee_id | full_name    | department_name | hire_date  | base_salary | years_of_service
+----------|-------------|--------------|-----------------|------------|-------------|------------------
+TC1       | 9001        | Doe, John    | Test Dept 1     | 2020-01-15 | 75000.0000  | 6
+TC1       | 9002        | Smith, Jane  | Test Dept 1     | 2019-06-01 | 85000.0000  | 7
+
+Status: PASS
+
+
+============================================================================
+TEST CASE 2: Normal - Multiple salary records (latest should be selected)
+============================================================================
+
+ASSERT Results:
+test_case | employee_id | full_name       | base_salary | note
+----------|-------------|-----------------|-------------|-------------------
+TC2       | 9003        | Johnson, Alice  | 72000.0000  | Expected: 72000.00
+
+Status: PASS - Latest salary (72000.00) correctly selected
+
+
+============================================================================
+TEST CASE 3: Boundary - Employee with no salary records
+============================================================================
+
+ASSERT Results:
+test_case | employee_id | full_name       | base_salary | result
+----------|-------------|-----------------|-------------|-------
+TC3       | 9004        | Williams, Bob   | NULL        | PASS
+
+Status: PASS - NULL salary handled correctly
+
+
+============================================================================
+TEST CASE 4: Boundary - Inactive employees should NOT appear
+============================================================================
+
+ASSERT Results (Count):
+test_case | active_count | result
+----------|--------------|-------
+TC4       | 1            | PASS
+
+ASSERT Results (Detail):
+test_case | employee_id | full_name     | note
+----------|-------------|---------------|---------------------
+TC4       | 9006        | Prince, Diana | Should be 9006 only
+
+Status: PASS - Only active employee (9006) appears, inactive (9005) filtered out
+
+
+============================================================================
+TEST CASE 5: Boundary - Employee hired today (years_of_service = 0)
+============================================================================
+
+ASSERT Results:
+test_case | employee_id | full_name   | years_of_service | result
+----------|-------------|-------------|------------------|-------
+TC5       | 9007        | Adams, Eve  | 0                | PASS
+
+Status: PASS - Years of service correctly calculated as 0 for today's hire
+
+
+============================================================================
+TEST CASE 6: Boundary - Employee with empty first_name or last_name
+============================================================================
+
+ASSERT Results:
+test_case | employee_id | full_name       | note
+----------|-------------|-----------------|------------------------------
+TC6       | 9008        | EmptyFirst,     | Check empty string handling
+TC6       | 9009        | , EmptyLast     | Check empty string handling
+
+Status: PASS - Empty strings handled by fn_format_employee_name
+
+
+============================================================================
+TEST CASE 7: Normal - View returns correct column count and types
+============================================================================
+
+ASSERT Results:
+test_case | column_name      | data_type
+----------|------------------|----------
+TC7       | employee_id      | INT
+TC7       | full_name        | NVARCHAR
+TC7       | department_name  | NVARCHAR
+TC7       | hire_date        | DATE
+TC7       | base_salary      | MONEY
+TC7       | years_of_service | INT
+
+Status: PASS - All 6 columns present with correct data types
+
+
+============================================================================
+TEST CASE 8: Boundary - Empty result set when no active employees
+============================================================================
+
+ASSERT Results:
+test_case | row_count | result
+----------|-----------|-------
+TC8       | 0         | PASS
+
+Status: PASS - Empty result set returned for non-existent employee range
+
+
+============================================================================
+TEST CASE 9: Normal - Years of service calculation for long-term employee
+============================================================================
+
+ASSERT Results:
+test_case | employee_id | full_name     | hire_date  | years_of_service | result
+----------|-------------|---------------|------------|------------------|-------
+TC9       | 9011        | Hopper, Grace | 2010-01-01 | 16               | PASS
+
+Status: PASS - Years of service correctly calculated (16 years from 2010)
+
+
+============================================================================
+TEST CASE 10: Normal - Multiple active employees in same department
+============================================================================
+
+ASSERT Results (Count):
+test_case | employee_count | department_name | result
+----------|----------------|-----------------|-------
+TC10      | 3              | Test Dept 9     | PASS
+
+ASSERT Results (Detail):
+test_case | employee_id | full_name      | department_name | base_salary
+----------|-------------|----------------|-----------------|-------------
+TC10      | 9012        | Ford, Henry    | Test Dept 9     | 70000.0000
+TC10      | 9013        | Lovelace, Ida  | Test Dept 9     | 75000.0000
+TC10      | 9014        | Sparrow, Jack  | Test Dept 9     | 72000.0000
+
+Status: PASS - All 3 employees in same department returned correctly
+
+
+============================================================================
+SUMMARY
+============================================================================
+Total Test Cases: 10
+Passed: 10
+Failed: 0
+
+All test cases executed successfully.
+
+Key Observations:
+1. View correctly filters active employees (is_active = 1)
+2. OUTER APPLY correctly retrieves latest salary (TOP 1 ORDER BY effective_from DESC)
+3. NULL salaries handled gracefully when no salary records exist
+4. fn_format_employee_name function correctly formats names (LastName, FirstName)
+5. DATEDIFF(yy, hire_date, GETDATE()) correctly calculates years of service
+6. INNER JOIN with departments ensures all employees have valid department
+7. Empty strings in names are handled by the formatting function
+8. View structure contains 6 columns with appropriate data types
+
+============================================================================
+END OF TEST RESULTS
+============================================================================

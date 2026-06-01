@@ -1,0 +1,33 @@
+============================================================
+STAGE 1: SOURCE OBJECT PREREQUISITES CHECK
+============================================================
+Object: dbo.usp_upsert_department
+Type: SQL_STORED_PROCEDURE
+Created: 2026-05-23T23:20:23.180000
+Modified: 2026-05-23T23:20:23.180000
+
+STATUS: OK
+- Object exists in Source RDS for SQL Server
+- Definition is NOT encrypted (WITH ENCRYPTION = NO)
+- Definition successfully retrieved from sys.sql_modules
+
+============================================================
+DEPENDENCIES
+============================================================
+Referenced Objects:
+  1. dbo.departments (TABLE)
+
+Dependency Analysis:
+- The procedure performs a MERGE operation on dbo.departments table
+- Uses @name and @parent_id parameters to upsert department records
+- MERGE logic: MATCH on name, UPDATE parent_id if matched, INSERT if not matched
+
+============================================================
+PREREQUISITE VALIDATION
+============================================================
+✓ Target object exists
+✓ Definition is accessible (not encrypted)
+✓ All dependencies identified
+✓ Ready for DDL extraction and test case creation
+
+============================================================

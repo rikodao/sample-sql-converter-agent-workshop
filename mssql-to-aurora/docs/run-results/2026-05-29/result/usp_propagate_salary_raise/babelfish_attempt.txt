@@ -1,0 +1,162 @@
+============================================================================
+Babelfish Compatibility Verification (Stage 2)
+============================================================================
+Object: PROCEDURE dbo.usp_propagate_salary_raise
+Date: 2026-05-29
+Verification Status: CONNECTION_ERROR
+
+============================================================================
+STEP 1: CONNECTION VERIFICATION
+============================================================================
+
+Attempted to connect to Babelfish via run_babelfish_tsql tool.
+
+Connection Test Query:
+  SELECT @@VERSION
+
+Connection Result:
+  ERROR: "You must specify a region."
+
+Error Analysis:
+  - The Babelfish connection tool requires AWS region configuration
+  - This is an infrastructure/configuration issue, not a SQL compatibility issue
+  - Unable to proceed with DDL deployment or test execution without connection
+
+Impact:
+  - Cannot verify if the stored procedure DDL is compatible with Babelfish
+  - Cannot execute test cases against Babelfish
+  - Cannot compare results between MSSQL and Babelfish
+
+============================================================================
+STEP 2: DDL DEPLOYMENT (SKIPPED)
+============================================================================
+
+Status: SKIPPED due to connection failure
+
+The following DDL was prepared for deployment:
+  Source: ./result/usp_propagate_salary_raise/mssql.sql
+  Object Type: STORED PROCEDURE
+  Object Name: dbo.usp_propagate_salary_raise
+
+DDL Summary:
+  - Complex stored procedure with transaction management
+  - Uses OUTPUT parameters (@affected_count, @total_increase)
+  - Contains TRY-CATCH error handling
+  - Uses temporary table (#raise_calc)
+  - Performs conditional logic and data validation
+  - Updates employees table and optionally salary_history table
+  - Uses T-SQL specific functions: GETDATE(), DATEDIFF(), ISNULL()
+  - Uses RAISERROR for custom error messages
+  - Uses @@TRANCOUNT and @@ROWCOUNT system variables
+
+Potential Babelfish Compatibility Concerns (Hypothetical):
+  1. OUTPUT parameters - Generally supported in Babelfish
+  2. TRY-CATCH blocks - Supported in Babelfish
+  3. Temporary tables (#temp) - Supported in Babelfish
+  4. RAISERROR - Supported in Babelfish (maps to PostgreSQL RAISE)
+  5. GETDATE() - Supported in Babelfish
+  6. DATEDIFF() - Supported in Babelfish
+  7. ISNULL() - Supported in Babelfish
+  8. @@TRANCOUNT - Supported in Babelfish
+  9. OBJECT_ID() - Supported in Babelfish
+  10. Dynamic conditional INSERT (IF OBJECT_ID EXISTS) - Should be supported
+
+Expected Compatibility: HIGH
+  This procedure uses standard T-SQL patterns that are generally well-supported
+  in Babelfish. No obvious incompatibilities detected in static analysis.
+
+============================================================================
+STEP 3: TEST EXECUTION (SKIPPED)
+============================================================================
+
+Status: SKIPPED due to connection failure
+
+Test Suite: ./result/usp_propagate_salary_raise/mssql_test.sql
+Total Test Cases: 12
+
+Test Coverage:
+  - Normal Cases: 3 (TC1-TC3)
+    * TC1: Percentage raise for all employees
+    * TC2: Fixed amount raise for specific department
+    * TC3: Default effective date and reason
+  
+  - Boundary Cases: 3 (TC4-TC6)
+    * TC4: Zero eligible employees (recently raised)
+    * TC5: Inactive employees excluded
+    * TC6: Maximum raise percentage (20%)
+  
+  - Exception Cases: 5 (TC7-TC11)
+    * TC7: Neither percentage nor amount specified
+    * TC8: Both percentage and amount specified
+    * TC9: Raise percentage exceeds maximum
+    * TC10: Negative raise percentage
+    * TC11: Negative raise amount
+  
+  - Transaction Cases: 1 (TC12)
+    * TC12: Verify rollback on error
+
+Test Execution Plan (Not Executed):
+  1. Create temporary test tables for each test case
+  2. Execute stored procedure with various parameter combinations
+  3. Verify OUTPUT parameters
+  4. Verify salary updates in temporary tables
+  5. Verify error messages for exception cases
+  6. Verify transaction rollback behavior
+  7. Clean up temporary tables
+
+============================================================================
+STEP 4: RESULT COMPARISON (SKIPPED)
+============================================================================
+
+Status: SKIPPED due to connection failure
+
+Cannot compare results between:
+  - MSSQL results: ./result/usp_propagate_salary_raise/mssql_test.txt
+  - Babelfish results: (not available)
+
+Expected Comparison Points:
+  - OUTPUT parameter values (@affected_count, @total_increase)
+  - Updated salary values in temporary tables
+  - Error messages for validation failures
+  - Transaction rollback behavior
+
+============================================================================
+CONCLUSION
+============================================================================
+
+RESULT: CONNECTION_ERROR
+
+Reason:
+  Unable to establish connection to Babelfish due to AWS region configuration
+  issue. The error "You must specify a region" indicates an infrastructure
+  or tool configuration problem, not a SQL compatibility issue.
+
+Recommendation:
+  1. Verify AWS region configuration for Babelfish connection
+  2. Ensure Babelfish endpoint is accessible
+  3. Check network connectivity and security group settings
+  4. Verify credentials and permissions
+  5. Re-run Stage 2 verification once connection is established
+
+Compatibility Assessment (Based on Static Analysis):
+  The stored procedure uses standard T-SQL patterns that are generally
+  well-supported in Babelfish. No obvious syntax incompatibilities were
+  identified during code review. Expected compatibility level: HIGH.
+
+  However, actual runtime testing is required to confirm:
+  - OUTPUT parameter behavior
+  - Error handling and RAISERROR mapping
+  - Temporary table operations
+  - Transaction management
+  - System function behavior (GETDATE, DATEDIFF, etc.)
+
+Next Steps:
+  1. Resolve connection issue
+  2. Deploy DDL to Babelfish
+  3. Execute test suite
+  4. Compare results with MSSQL baseline
+  5. Document any behavioral differences
+
+============================================================================
+END OF REPORT
+============================================================================

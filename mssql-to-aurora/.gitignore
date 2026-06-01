@@ -1,0 +1,26 @@
+# Paths are relative to this .gitignore (i.e., to mssql-to-aurora/)
+
+# CDK generated artifacts
+cdk/cdk.out/
+cdk/node_modules/
+cdk/*.js
+!cdk/jest.config.js
+cdk/*.d.ts
+
+# Workbench / deploy outputs (DO NOT COMMIT secrets/keys)
+output.json
+mssql-workbench-key.pem
+ssh-config-mssql
+
+# Agent workspace
+agent/result/
+agent/.venv/
+agent/uv.lock
+agent/.env
+
+# Extraction outputs
+extraction/output/
+
+# Editor / OS
+.DS_Store
+*.swp

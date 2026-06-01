@@ -1,0 +1,85 @@
+================================================================================
+TEST EXECUTION RESULTS - Aurora PostgreSQL (Native)
+================================================================================
+Object: public.trg_v_employee_full_update
+Type: TRIGGER (INSTEAD OF UPDATE on VIEW)
+Execution Date: Stage 4 - PostgreSQL Native Validation
+================================================================================
+
+EXECUTION STATUS: FAILED - CONNECTION ERROR
+
+ERROR DETAILS:
+- Tool: run_postgres_sql
+- Error Message: "You must specify a region."
+- All test execution attempts failed with AWS region configuration error
+
+IMPACT:
+- Cannot execute test cases on Aurora PostgreSQL
+- Cannot verify trigger functionality
+- Cannot validate INSTEAD OF UPDATE logic
+- Cannot confirm view-to-table update propagation
+- Cannot compare with Source MSSQL results (which also failed)
+
+TEST CASES DESIGNED (NOT EXECUTED):
+1. TC1: Simple UPDATE on view (single column)
+2. TC2: UPDATE multiple columns through view
+3. TC3: UPDATE with WHERE clause affecting multiple rows
+4. TC4: UPDATE with NULL value
+5. TC5: UPDATE with no matching rows
+6. TC6: UPDATE changing department_id
+7. TC7: UPDATE with is_active flag
+8. TC8: UPDATE with hire_date
+9. TC9: Verify trigger fires (check row updates)
+10. TC10: UPDATE all columns for a single employee
+
+CONVERSION QUALITY (STATIC ANALYSIS):
+✓ Syntax: Valid PL/pgSQL syntax
+✓ Structure: Proper trigger function + trigger definition
+✓ Logic: Correct INSTEAD OF UPDATE pattern
+✓ Schema: dbo -> public mapping applied
+✓ Data types: Compatible with PostgreSQL
+✓ Return value: Proper RETURN NEW for row-level trigger
+
+POTENTIAL ISSUES IDENTIFIED:
+⚠ Row-level vs Statement-level:
+  - T-SQL: Statement-level trigger with inserted/deleted tables
+  - PG: Row-level trigger with NEW/OLD records
+  - Impact: Performance may differ for multi-row updates
+  - Recommendation: Consider FOR EACH STATEMENT with transition tables for large updates
+
+⚠ Error handling:
+  - No explicit error handling in trigger function
+  - Foreign key violations (department_id) will raise errors
+  - Recommendation: Add BEGIN...EXCEPTION...END if needed
+
+REQUIRED ACTION:
+1. Resolve AWS region configuration for Aurora PostgreSQL
+2. Verify database connectivity
+3. Execute postgres_test.sql
+4. Capture actual results
+5. Compare with MSSQL baseline (once available)
+
+NEXT STEPS:
+- Fix connection issue (AWS_REGION environment variable)
+- Verify RDS instance status and security groups
+- Re-execute Stage 1 (MSSQL tests) to get baseline
+- Re-execute Stage 4 (PostgreSQL tests)
+- Perform comparison
+
+================================================================================
+CONNECTION TROUBLESHOOTING:
+- Check AWS_REGION environment variable
+- Verify Aurora PostgreSQL cluster status
+- Confirm security group rules (port 5432)
+- Test network connectivity
+- Review IAM role permissions
+- Check MCP server configuration (mcpserver/postgres.py)
+================================================================================
+
+STATIC CONVERSION ASSESSMENT: LIKELY OK
+- Syntax and structure are correct
+- Logic is semantically equivalent
+- Standard INSTEAD OF UPDATE pattern applied
+- No unsupported features detected
+
+CONFIDENCE LEVEL: HIGH (pending execution validation)

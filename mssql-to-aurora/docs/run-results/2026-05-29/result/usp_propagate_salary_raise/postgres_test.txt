@@ -1,0 +1,40 @@
+============================================================================
+Test Execution Results for: public.usp_propagate_salary_raise
+============================================================================
+Date: 2026-05-29
+Status: FAILED - CONNECTION ERROR
+
+ERROR: Unable to execute tests on Aurora PostgreSQL due to region configuration.
+Error message: "You must specify a region."
+
+The PostgreSQL test script has been created at:
+  ./result/usp_propagate_salary_raise/postgres_test.sql
+
+However, the test execution could not proceed due to database connectivity issues.
+
+============================================================================
+PREREQUISITE CHECK
+============================================================================
+✓ MSSQL test script exists: ./result/usp_propagate_salary_raise/mssql_test.sql
+✓ MSSQL test results exist: ./result/usp_propagate_salary_raise/mssql_test.txt
+✓ PostgreSQL DDL exists: ./result/usp_propagate_salary_raise/postgres.sql
+✓ PostgreSQL test script created: ./result/usp_propagate_salary_raise/postgres_test.sql
+✗ PostgreSQL connection: FAILED (region not specified)
+
+============================================================================
+RECOMMENDED ACTION
+============================================================================
+1. Configure AWS region for Aurora PostgreSQL RDS Data API
+2. Verify RDS cluster endpoint and credentials
+3. Re-run the test suite once connectivity is restored
+
+The conversion appears syntactically correct based on code review:
+- T-SQL to PL/pgSQL syntax conversion completed
+- INOUT parameters properly defined
+- Exception handling implemented
+- Temporary table management adapted for PostgreSQL
+- All business logic preserved
+
+However, functional validation cannot be completed without database access.
+
+============================================================================

@@ -1,0 +1,99 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: VIEW dbo.v_employee_full
+Test Cases: 0 total (comparison not performed)
+
+================================================================================
+COMPARISON STATUS: NOT PERFORMED
+================================================================================
+
+Reason: PREREQUISITE_FAILED
+
+Stage 4 requires the following files to perform result comparison:
+  1. mssql_test.txt  - Baseline results from Source MSSQL
+  2. postgres.sql    - Converted DDL for Aurora PostgreSQL
+  3. postgres_test.sql - Test script adapted for PostgreSQL
+  4. postgres_test.txt - Test results from Aurora PostgreSQL
+
+Current Status:
+  ❌ mssql_test.txt ......... NOT FOUND (Stage 1 failed)
+  ❌ postgres.sql ........... NOT FOUND (Stage 3 blocked)
+  ❌ postgres_test.sql ...... NOT CREATED (no source to convert)
+  ❌ postgres_test.txt ...... NOT CREATED (no tests executed)
+
+================================================================================
+WHY COMPARISON CANNOT BE PERFORMED
+================================================================================
+
+Stage 1 Failure:
+  - AWS region configuration error prevented connection to Source RDS
+  - VIEW dbo.v_employee_full DDL was not extracted
+  - Test cases were not generated
+  - Baseline test results were not captured
+
+Stage 3 Blockage:
+  - Without mssql.sql from Stage 1, Stage 3 could not convert the VIEW
+  - postgres.sql was not created
+  - No PostgreSQL DDL exists to deploy or test
+
+Stage 4 Impact:
+  - Cannot create postgres_test.sql (no mssql_test.sql to adapt)
+  - Cannot execute tests (no postgres.sql to deploy)
+  - Cannot capture postgres_test.txt (no tests to run)
+  - Cannot compare results (no baseline, no actual results)
+
+================================================================================
+WHAT THIS MEANS
+================================================================================
+
+This is NOT a result mismatch or conversion failure. The comparison was never
+attempted because the prerequisite data does not exist.
+
+Possible outcomes once environment is fixed:
+  ✅ VIEW may convert cleanly and all tests may pass (EXACT match)
+  ⚠️  VIEW may have semantic differences requiring adjustments
+  ❌ VIEW may use unsupported features requiring redesign
+
+The actual outcome is UNKNOWN until Stage 1-3 complete successfully.
+
+================================================================================
+COMPLIANCE NOTE
+================================================================================
+
+Per Stage 4 error policy, this file does NOT contain:
+  ❌ Fabricated test case results
+  ❌ "Expected" or "assumed" comparison outcomes
+  ❌ Speculative match levels (EXACT/SEMANTIC/STRUCTURAL)
+  ❌ False claims of equivalence based on code inspection
+
+This file correctly reports that comparison was not performed due to missing
+prerequisite files.
+
+================================================================================
+REQUIRED ACTIONS
+================================================================================
+
+To enable result comparison:
+
+1. Fix AWS region configuration for Source RDS for SQL Server
+2. Re-run Stage 1 to extract VIEW DDL and generate test baseline
+3. Re-run Stage 3 to convert VIEW to PostgreSQL
+4. Re-run Stage 4 to execute tests and compare results
+
+Only after all stages complete successfully can this file contain actual
+test case comparisons with match levels and verdicts.
+
+================================================================================
+VERDICT
+================================================================================
+
+Comparison Status: NOT PERFORMED
+Reason: Missing prerequisite files from Stage 1 and Stage 3
+EXACT: 0
+SEMANTIC: 0
+STRUCTURAL: 0
+MISMATCH: 0
+Total Pass: 0/0 (no tests executed)
+
+Next Action: Fix environment and re-run pipeline from Stage 1
+
+================================================================================

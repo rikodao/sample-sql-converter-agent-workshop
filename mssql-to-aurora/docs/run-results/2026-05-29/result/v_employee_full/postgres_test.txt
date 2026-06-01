@@ -1,0 +1,102 @@
+============================================================================
+PostgreSQL Test Execution Attempt
+============================================================================
+Object: VIEW public.v_employee_full
+Timestamp: Stage 4 - Final Verification
+============================================================================
+
+ATTEMPT 1: Deploy VIEW DDL
+----------------------------
+SQL:
+CREATE OR REPLACE VIEW public.v_employee_full
+AS
+SELECT 
+    e.employee_id,
+    e.first_name,
+    e.last_name,
+    e.email,
+    e.phone_number,
+    e.hire_date,
+    e.job_id,
+    e.salary,
+    e.commission_pct,
+    e.manager_id,
+    e.department_id,
+    e.status,
+    e.termination_date,
+    e.is_active,
+    e.performance_rating,
+    e.bonus_amount,
+    e.last_bonus_date,
+    e.bonus_fiscal_year,
+    d.department_name,
+    d.location,
+    d.manager_id AS dept_manager_id
+FROM public.employees e
+LEFT JOIN public.departments d ON e.department_id = d.department_id;
+
+Result: CONNECTION_ERROR
+Error: You must specify a region.
+Tool: run_postgres_sql
+
+----------------------------
+
+ATTEMPT 2: Execute Test Case TC1
+----------------------------
+SQL:
+SELECT 'TC1' AS tc, 
+       COUNT(*) AS total_rows,
+       COUNT(DISTINCT employee_id) AS distinct_employees,
+       COUNT(DISTINCT department_id) AS distinct_departments
+FROM public.v_employee_full;
+
+Result: CONNECTION_ERROR
+Error: You must specify a region.
+Tool: run_postgres_sql
+
+----------------------------
+
+============================================================================
+DIAGNOSIS
+============================================================================
+Issue Category: CONNECTION_ERROR
+Root Cause: PostgreSQL RDS Data API connection failure
+Error Message: "You must specify a region."
+
+Impact:
+- Cannot deploy VIEW DDL to Aurora PostgreSQL
+- Cannot execute test cases
+- Cannot verify conversion correctness
+- Cannot compare results with MSSQL baseline
+
+Environment Issue:
+- AWS region configuration missing or incorrect
+- RDS Data API endpoint not accessible
+- Credentials or IAM permissions may be insufficient
+
+============================================================================
+CONCLUSION
+============================================================================
+Status: PREREQUISITE_FAILED
+Reason: Unable to establish connection to target Aurora PostgreSQL
+
+The conversion itself appears syntactically correct:
+✓ Standard SQL-92 VIEW syntax
+✓ LEFT JOIN fully supported in PostgreSQL
+✓ Column aliasing compatible
+✓ Schema mapping (dbo → public) applied correctly
+✓ Boolean conversion (1/0 → true/false) applied in test script
+
+However, without actual execution on the target database, we cannot:
+1. Verify runtime behavior
+2. Confirm data type compatibility
+3. Validate JOIN semantics
+4. Compare results with MSSQL baseline
+
+NEXT STEPS:
+1. Resolve AWS region configuration issue
+2. Verify RDS Data API endpoint accessibility
+3. Confirm IAM permissions for database access
+4. Re-run Stage 4 verification after connection is restored
+
+============================================================================

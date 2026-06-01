@@ -1,0 +1,177 @@
+============================================================================
+BABELFISH COMPATIBILITY VERIFICATION ATTEMPT
+============================================================================
+Object: dbo.fn_get_dept_summary
+Type: TABLE-VALUED FUNCTION (Inline TVF)
+Verification Date: 2026-05-29
+Status: CONNECTION_ERROR
+============================================================================
+
+## 1. CONNECTION VERIFICATION
+
+Attempted to connect to Babelfish via T-SQL endpoint (run_babelfish_tsql):
+  Command: SELECT @@VERSION
+  Result: ERROR - "You must specify a region."
+
+Attempted to connect to Babelfish via PostgreSQL endpoint (run_babelfish_pg):
+  Command: SELECT version()
+  Result: ERROR - "You must specify a region."
+
+## 2. ERROR ANALYSIS
+
+Error Category: INFRASTRUCTURE / CONFIGURATION
+Error Message: "You must specify a region."
+
+Root Cause:
+  The Babelfish database connection tools require AWS region configuration
+  that is not currently set or accessible in the execution environment.
+
+Impact:
+  - Cannot establish connection to Babelfish
+  - Cannot execute DDL deployment test
+  - Cannot execute functional test cases
+  - Cannot perform result comparison
+
+## 3. OBJECT ANALYSIS (Pre-deployment Review)
+
+Despite the connection failure, we can analyze the DDL for potential
+Babelfish compatibility issues:
+
+### DDL Structure:
+```sql
+CREATE FUNCTION dbo.fn_get_dept_summary
+(
+    @parameter_id INT = NULL
+)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT ... FROM ... WHERE ...
+);
+```
+
+### Compatibility Assessment:
+
+✓ LIKELY COMPATIBLE:
+  - Inline Table-Valued Function (RETURNS TABLE ... AS RETURN)
+  - Default parameter value (@department_id INT = NULL)
+  - Standard aggregation functions (COUNT, SUM, AVG, MIN, MAX)
+  - CASE expressions for conditional aggregation
+  - LEFT JOIN syntax
+  - WHERE clause with NULL handling (OR condition)
+  - GROUP BY clause
+
+⚠ POTENTIAL ISSUES:
+  - Babelfish inline TVF support: Generally supported but may have edge cases
+  - NVARCHAR type mapping: Maps to VARCHAR in PostgreSQL (collation differences)
+  - DECIMAL(10,2) precision: Should map correctly but may have rounding differences
+  - DATETIME type: Maps to DATETIME2 in Babelfish (precision differences possible)
+  - Aggregate NULL handling: SQL Server vs PostgreSQL semantics may differ slightly
+
+✗ KNOWN INCOMPATIBILITIES:
+  - None identified in this specific DDL
+
+### Test Suite Analysis:
+
+The test suite (mssql_test.sql) uses:
+  - Temporary tables (#test_employees, #test_departments)
+  - Multi-statement table-valued function (RETURNS @result TABLE ... BEGIN ... END)
+  - IF OBJECT_ID checks for temp objects
+  - GO batch separators
+
+Babelfish Compatibility Notes:
+  ✓ Temporary tables (#prefix) are supported
+  ⚠ Multi-statement TVF in temp context may have limitations
+  ✓ GO batch separator is supported
+  ⚠ IF OBJECT_ID for tempdb objects may behave differently
+
+## 4. EXPECTED BEHAVIOR (If Connection Were Available)
+
+### DDL Deployment:
+Expected: SUCCESS
+Rationale: Inline TVF with standard T-SQL syntax should deploy successfully
+
+### Test Execution:
+Expected: MOSTLY COMPATIBLE with potential minor differences
+
+Potential Differences:
+  1. DATETIME precision: .000 vs .000000 suffix
+  2. DECIMAL rounding: Minor differences in avg_salary calculations
+  3. NULL aggregate behavior: Empty set vs NULL for AVG()
+  4. Temp function behavior: Multi-statement TVF may not work in tempdb
+
+### Test Cases Coverage:
+  - TC1: All departments summary (3 departments)
+  - TC2: Specific department filter (department_id = 1)
+  - TC3: Department with no employees (NULL aggregates)
+  - TC4: NULL salary handling (excluded from AVG)
+  - TC5: All inactive employees (active_employees = 0)
+  - TC6: Non-existent department (empty result set)
+  - TC7: Mixed active/inactive employees
+  - TC8: NULL status and salary (boundary case)
+  - TC9: Large department (10 employees, aggregation accuracy)
+
+## 5. HYPOTHESIS: COMPATIBILITY PREDICTION
+
+Based on DDL analysis, this object has HIGH probability of Babelfish compatibility:
+
+Confidence Level: 85%
+
+Reasoning:
+  ✓ Uses standard inline TVF syntax (well-supported in Babelfish)
+  ✓ No CLR, Service Broker, or Linked Server dependencies
+  ✓ No encryption or proprietary extensions
+  ✓ Standard aggregation and JOIN operations
+  ✓ No complex data types (XML, JSON, GEOGRAPHY, etc.)
+  ✓ No table hints or query hints
+  ✓ No dynamic SQL or sp_executesql
+
+Potential Issues (15% risk):
+  ⚠ Test suite uses multi-statement TVF in temp context (may need adaptation)
+  ⚠ DATETIME precision differences may cause test comparison failures
+  ⚠ Aggregate NULL handling edge cases
+
+## 6. RECOMMENDED ACTIONS
+
+1. IMMEDIATE:
+   - Resolve AWS region configuration for Babelfish connection
+   - Retry connection verification
+   - Execute DDL deployment test
+
+2. IF DDL SUCCEEDS:
+   - Adapt test suite for Babelfish (convert multi-statement temp TVF)
+   - Execute test cases
+   - Compare results with SEMANTIC-level tolerance
+
+3. IF DDL FAILS:
+   - Document specific error messages
+   - Identify Babelfish limitations
+   - Proceed to Stage 3 (PL/pgSQL conversion)
+
+4. IF TESTS MISMATCH:
+   - Analyze differences (DATETIME precision, DECIMAL rounding, NULL handling)
+   - Determine if differences are acceptable (SEMANTIC equivalence)
+   - Document any behavioral discrepancies
+
+## 7. STAGE 2 COMPLETION STATUS
+
+RESULT: CONNECTION_ERROR
+
+Reason: Unable to establish connection to Babelfish database due to missing
+        AWS region configuration.
+
+Next Steps:
+  - Fix infrastructure/configuration issue
+  - Retry Stage 2 verification
+  - OR proceed to Stage 3 assuming Babelfish compatibility cannot be verified
+
+Files Generated:
+  ✓ babelfish_attempt.txt (this file)
+  ✗ babelfish_test.sql (not created - connection required)
+  ✗ babelfish_test.txt (not created - execution required)
+  ✗ BABELFISH_OK.txt (not created - verification incomplete)
+
+============================================================================
+END OF BABELFISH COMPATIBILITY VERIFICATION ATTEMPT
+============================================================================

@@ -1,0 +1,154 @@
+================================================================================
+Test Results for dbo.fn_format_employee_name
+Source: Babelfish for Aurora PostgreSQL
+================================================================================
+
+================================================================================
+Test Case 1: Normal names
+================================================================================
+test_case   : Test Case 1
+description : Normal names
+result      : Smith, John
+expected    : Smith, John
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 2: Japanese names
+================================================================================
+test_case   : Test Case 2
+description : Japanese names
+result      : 山田, 太郎
+expected    : 山田, 太郎
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 3: Long names
+================================================================================
+test_case   : Test Case 3
+description : Long names
+result      : Montgomery-Wellington, Christopher Alexander
+expected    : Montgomery-Wellington, Christopher Alexander
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 4: Empty string first name
+================================================================================
+test_case   : Test Case 4
+description : Empty string first name
+result      : Smith, 
+expected    : Smith, 
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 5: Empty string last name
+================================================================================
+test_case   : Test Case 5
+description : Empty string last name
+result      : , John
+expected    : , John
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 6: Both empty strings
+================================================================================
+test_case   : Test Case 6
+description : Both empty strings
+result      : , 
+expected    : , 
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 7: NULL first name
+================================================================================
+test_case   : Test Case 7
+description : NULL first name
+result      : (unknown)
+expected    : (unknown)
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 8: NULL last name
+================================================================================
+test_case   : Test Case 8
+description : NULL last name
+result      : (unknown)
+expected    : (unknown)
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 9: Both NULL
+================================================================================
+test_case   : Test Case 9
+description : Both NULL
+result      : (unknown)
+expected    : (unknown)
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 10: Single character names
+================================================================================
+test_case   : Test Case 10
+description : Single character names
+result      : B, A
+expected    : B, A
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 11: Maximum length names (50 chars each)
+================================================================================
+test_case      : Test Case 11
+description    : Maximum length names (50 chars each)
+result         : BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+result_length  : 102
+expected_length: 102
+STATUS         : ✓ PASS
+
+================================================================================
+Test Case 12: Names with special characters
+================================================================================
+test_case   : Test Case 12
+description : Names with special characters
+result      : O'Connor, Mary-Jane
+expected    : O'Connor, Mary-Jane
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 13: Names with spaces
+================================================================================
+test_case   : Test Case 13
+description : Names with spaces
+result      : De La Cruz, Jean Paul
+expected    : De La Cruz, Jean Paul
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 14: Names with leading/trailing spaces
+================================================================================
+test_case   : Test Case 14
+description : Names with leading/trailing spaces
+result      :  Smith ,  John 
+expected    :  Smith ,  John 
+STATUS      : ✓ PASS
+
+================================================================================
+Test Case 15: Names with numbers
+================================================================================
+test_case   : Test Case 15
+description : Names with numbers
+result      : Smith3, John2
+expected    : Smith3, John2
+STATUS      : ✓ PASS
+
+================================================================================
+Test Summary
+================================================================================
+Total Tests : 15
+Passed      : 15
+Failed      : 0
+Success Rate: 100%
+
+================================================================================
+Comparison with MSSQL Results
+================================================================================
+All test results match exactly with MSSQL baseline results.
+No semantic differences detected.

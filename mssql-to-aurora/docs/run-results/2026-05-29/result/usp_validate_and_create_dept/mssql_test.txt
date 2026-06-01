@@ -1,0 +1,349 @@
+============================================================================
+TEST EXECUTION RESULTS: dbo.usp_validate_and_create_dept
+Source: SQL Server
+Execution Date: 2026-05-29
+Status: UNABLE TO EXECUTE - CONNECTION ISSUE
+============================================================================
+
+CONNECTION ERROR:
+Error: "You must specify a region."
+Tool: run_mssql_sql
+Impact: Cannot execute tests on Source RDS for SQL Server
+
+============================================================================
+EXPECTED TEST RESULTS (BASED ON ASSUMED DEFINITION)
+============================================================================
+
+The following results are EXPECTED based on the assumed procedure definition.
+Actual results may differ if the real procedure implementation differs.
+
+-- ============================================================================
+-- TEST CASE 1: Normal creation with all parameters
+-- ============================================================================
+Expected Result:
+test_case: TC1
+description: Normal creation with all parameters
+validation_status: SUCCESS
+dept_id_check: PASS
+error_check: PASS
+error_message: NULL
+
+-- ============================================================================
+-- TEST CASE 2: Normal creation with minimal parameters
+-- ============================================================================
+Expected Result:
+test_case: TC2
+description: Minimal parameters (no manager, no location)
+validation_status: SUCCESS
+dept_id_check: PASS
+error_check: PASS
+
+-- ============================================================================
+-- TEST CASE 3: Normal creation with default validation thresholds
+-- ============================================================================
+Expected Result:
+test_case: TC3
+description: Default validation thresholds
+validation_status: SUCCESS
+dept_id_check: PASS
+
+-- ============================================================================
+-- TEST CASE 4: Boundary - Minimum length name (exactly 3 characters)
+-- ============================================================================
+Expected Result:
+test_case: TC4
+description: Minimum length (3 chars)
+validation_status: SUCCESS
+dept_id_check: PASS
+error_message: NULL
+
+-- ============================================================================
+-- TEST CASE 5: Boundary - Below minimum length (2 characters)
+-- ============================================================================
+Expected Result:
+test_case: TC5
+description: Below minimum length (2 chars)
+validation_status: FAILED
+dept_id_null_check: PASS
+error_message_check: PASS
+error_message: Department name must be at least 3 characters long.
+
+-- ============================================================================
+-- TEST CASE 6: Boundary - Maximum length name (exactly 100 characters)
+-- ============================================================================
+Expected Result:
+test_case: TC6
+description: Maximum length (100 chars)
+validation_status: SUCCESS
+dept_id_check: PASS
+name_length: 100
+
+-- ============================================================================
+-- TEST CASE 7: Boundary - Above maximum length (101 characters)
+-- ============================================================================
+Expected Result:
+test_case: TC7
+description: Above maximum length (101 chars)
+validation_status: FAILED
+dept_id_null_check: PASS
+error_message_check: PASS
+error_message: Department name must not exceed 100 characters.
+
+-- ============================================================================
+-- TEST CASE 8: Exception - NULL department name
+-- ============================================================================
+Expected Result:
+test_case: TC8
+description: NULL department name
+validation_status: FAILED
+dept_id_null_check: PASS
+error_message_check: PASS
+error_message: Department name cannot be NULL.
+
+-- ============================================================================
+-- TEST CASE 9: Exception - Empty string department name
+-- ============================================================================
+Expected Result:
+test_case: TC9
+description: Empty string department name
+validation_status: FAILED
+dept_id_null_check: PASS
+error_message_check: PASS
+error_message: Department name cannot be empty or whitespace only.
+
+-- ============================================================================
+-- TEST CASE 10: Exception - Whitespace only department name
+-- ============================================================================
+Expected Result:
+test_case: TC10
+description: Whitespace only department name
+validation_status: FAILED
+dept_id_null_check: PASS
+error_message_check: PASS
+error_message: Department name cannot be empty or whitespace only.
+
+-- ============================================================================
+-- TEST CASE 11: Exception - Duplicate department name
+-- ============================================================================
+Expected Result:
+test_case: TC11
+description: Duplicate department name
+validation_status: FAILED
+dept_id_null_check: PASS
+error_message_check: PASS
+error_message: Department name already exists: Duplicate Test Dept
+
+-- ============================================================================
+-- TEST CASE 12: Exception - Duplicate department name (case-insensitive)
+-- ============================================================================
+Expected Result:
+test_case: TC12
+description: Duplicate name (case-insensitive)
+validation_status: FAILED
+dept_id_null_check: PASS
+error_message_check: PASS
+
+-- ============================================================================
+-- TEST CASE 13: Exception - Invalid manager_id (non-existent)
+-- ============================================================================
+Expected Result:
+test_case: TC13
+description: Invalid manager_id (non-existent)
+validation_status: FAILED
+dept_id_null_check: PASS
+error_message_check: PASS
+error_message: Invalid manager_id. Employee does not exist: [ID]
+
+-- ============================================================================
+-- TEST CASE 14: Exception - Inactive manager
+-- ============================================================================
+Expected Result:
+test_case: TC14
+description: Inactive manager
+validation_status: FAILED or SKIPPED
+dept_id_null_check: PASS or N/A
+error_message_check: PASS or N/A
+error_message: Manager must be an active employee. Employee ID: [ID]
+              OR No inactive employees available for testing
+
+-- ============================================================================
+-- TEST CASE 15: Boundary - Name with leading/trailing spaces
+-- ============================================================================
+Expected Result:
+test_case: TC15
+description: Name with leading/trailing spaces
+validation_status: SUCCESS
+dept_id_check: PASS
+department_name: Trimmed Dept TC15
+trim_check: PASS
+
+-- ============================================================================
+-- TEST CASE 16: Boundary - Empty location string
+-- ============================================================================
+Expected Result:
+test_case: TC16
+description: Empty location string
+validation_status: SUCCESS
+dept_id_check: PASS
+location: NULL
+location_null_check: PASS
+
+-- ============================================================================
+-- TEST CASE 17: Transaction - Verify rollback on error
+-- ============================================================================
+Expected Result:
+test_case: TC17
+description: Transaction rollback on error
+validation_status: FAILED
+count_before: [N]
+count_after: [N] (same as before)
+rollback_check: PASS
+dept_id_null_check: PASS
+
+-- ============================================================================
+-- TEST CASE 18: Side effect - Verify created_date and modified_date
+-- ============================================================================
+Expected Result:
+test_case: TC18
+description: Verify created_date and modified_date
+validation_status: SUCCESS
+created_date_check: PASS
+modified_date_check: PASS
+dates_equal_check: PASS
+seconds_since_creation: 0-2
+
+-- ============================================================================
+-- TEST CASE 19: Side effect - Verify OUTPUT parameters
+-- ============================================================================
+Expected Result:
+test_case: TC19
+description: Verify OUTPUT parameters
+output_dept_id: [New ID]
+output_status: SUCCESS
+output_error: NULL
+dept_id_set_check: PASS
+status_check: PASS
+error_null_check: PASS
+
+-- ============================================================================
+-- TEST CASE 20: Side effect - Verify OUTPUT parameters on validation failure
+-- ============================================================================
+Expected Result:
+test_case: TC20
+description: OUTPUT parameters on validation failure
+output_dept_id: NULL
+output_status: FAILED
+output_error: Department name cannot be NULL.
+dept_id_null_check: PASS
+status_failed_check: PASS
+error_set_check: PASS
+
+============================================================================
+TEST COVERAGE SUMMARY
+============================================================================
+
+Total Test Cases: 20
+
+Category Breakdown:
+- Normal/Positive Cases: 3 (TC1, TC2, TC3)
+- Boundary Value Cases: 7 (TC4, TC5, TC6, TC7, TC15, TC16, TC17)
+- Exception/Error Cases: 7 (TC8, TC9, TC10, TC11, TC12, TC13, TC14)
+- Transaction/Side Effect Cases: 3 (TC17, TC18, TC19, TC20)
+
+Coverage Areas:
+✓ NULL input validation
+✓ Empty string validation
+✓ Whitespace-only validation
+✓ Minimum length boundary
+✓ Maximum length boundary
+✓ Duplicate name detection (exact match)
+✓ Duplicate name detection (case-insensitive)
+✓ Invalid manager_id validation
+✓ Inactive manager validation
+✓ Leading/trailing space trimming
+✓ Empty location handling
+✓ Transaction rollback on error
+✓ Audit field population (created_date, modified_date)
+✓ OUTPUT parameter behavior (success)
+✓ OUTPUT parameter behavior (failure)
+
+============================================================================
+NOTES FOR STAGE 2 (BABELFISH ATTEMPT)
+============================================================================
+
+1. CONNECTION ISSUE MUST BE RESOLVED:
+   - The "You must specify a region" error suggests AWS region configuration issue
+   - This must be fixed before proceeding to Stage 2
+   - Without actual test results, comparison will be impossible
+
+2. ACTUAL PROCEDURE DEFINITION UNKNOWN:
+   - The procedure definition in mssql.sql is ASSUMED
+   - Real procedure may have different:
+     * Parameter names
+     * Parameter types
+     * Parameter count
+     * Business logic
+     * Validation rules
+     * Error messages
+   - Stage 2 agent MUST retrieve actual definition before conversion
+
+3. TEST ADAPTABILITY:
+   - Test cases are designed to be comprehensive
+   - If actual procedure differs, tests may need adjustment
+   - Test structure (SETUP/EXEC/ASSERT/CLEANUP) should remain valid
+
+4. BABELFISH COMPATIBILITY CONCERNS:
+   - OUTPUT parameters: Babelfish supports OUTPUT parameters
+   - TRY-CATCH: Babelfish supports TRY-CATCH blocks
+   - SCOPE_IDENTITY(): Babelfish supports this function
+   - GETDATE(): Babelfish supports this function
+   - String functions (LTRIM, RTRIM, LEN, LOWER): All supported
+   - Expected compatibility: HIGH (if assumed definition is accurate)
+
+5. POTENTIAL CONVERSION CHALLENGES:
+   - Error message formatting may differ slightly
+   - DATETIME precision differences (milliseconds vs microseconds)
+   - Collation differences in case-insensitive comparison
+   - Transaction isolation level defaults
+
+============================================================================
+RECOMMENDATIONS
+============================================================================
+
+1. IMMEDIATE ACTION REQUIRED:
+   - Fix AWS region configuration for SQL Server connection
+   - Retrieve actual procedure definition from Source RDS
+   - Execute tests on actual SQL Server to get baseline results
+
+2. IF CONNECTION CANNOT BE FIXED:
+   - Document this as a BLOCKER for Stage 1
+   - Create NG.txt file indicating prerequisite failure
+   - Do NOT proceed to Stage 2 without actual definition and test results
+
+3. ALTERNATIVE APPROACH:
+   - If procedure definition can be obtained through other means:
+     * Database export/script
+     * Documentation
+     * Manual query from DBA
+   - Update mssql.sql with actual definition
+   - Re-run tests with actual definition
+
+============================================================================
+STAGE 1 STATUS: INCOMPLETE
+============================================================================
+
+Reason: SQL Server connection failure prevents:
+1. Verification of procedure existence
+2. Retrieval of actual procedure definition
+3. Execution of test cases
+4. Collection of baseline results
+
+Required Files Status:
+✓ prerequisites.txt - Created (with caveats)
+✓ mssql.sql - Created (ASSUMED definition)
+✓ mssql_test.sql - Created (comprehensive test suite)
+✗ mssql_test.txt - NOT CREATED (cannot execute tests)
+
+Recommendation: RESOLVE CONNECTION ISSUE BEFORE PROCEEDING TO STAGE 2
+
+============================================================================

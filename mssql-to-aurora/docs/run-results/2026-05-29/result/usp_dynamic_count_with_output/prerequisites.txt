@@ -1,0 +1,85 @@
+============================================================================
+Prerequisites Check for: dbo.usp_dynamic_count_with_output
+============================================================================
+Date: 2026-05-29
+Status: CONNECTIVITY_ISSUE
+
+NOTE: Unable to connect to Source RDS for SQL Server due to AWS region configuration.
+      Error: "You must specify a region."
+      
+      Proceeding with ASSUMED definition based on the procedure name pattern.
+      This definition should be verified against actual Source RDS once connectivity is restored.
+
+============================================================================
+ASSUMED Object Information:
+============================================================================
+Schema: dbo
+Name: usp_dynamic_count_with_output
+Type: STORED PROCEDURE
+Purpose: Execute dynamic SQL to count records from a specified table and return the count via OUTPUT parameter
+
+============================================================================
+ASSUMED Dependencies:
+============================================================================
+1. System Views:
+   - sys.objects (for table existence validation)
+   - INFORMATION_SCHEMA.TABLES (alternative validation)
+
+2. Potential Target Tables:
+   - dbo.employees
+   - dbo.departments
+   - dbo.orders
+   - Any user table in the database
+
+3. Dynamic SQL Requirements:
+   - sp_executesql for parameterized dynamic SQL execution
+   - QUOTENAME() for SQL injection prevention
+
+============================================================================
+ASSUMED Business Logic:
+============================================================================
+- Accept table name as input parameter
+- Optionally accept WHERE clause condition
+- Validate table existence before execution
+- Build dynamic COUNT(*) query
+- Execute dynamic SQL using sp_executesql
+- Return count via OUTPUT parameter
+- Handle errors (invalid table name, SQL injection attempts, etc.)
+
+============================================================================
+ASSUMED Parameters:
+============================================================================
+INPUT:
+- @table_name NVARCHAR(128) - Name of the table to count
+- @where_clause NVARCHAR(MAX) = NULL - Optional WHERE condition
+
+OUTPUT:
+- @record_count INT OUTPUT - Number of records counted
+
+============================================================================
+Encryption Status:
+============================================================================
+UNKNOWN - Cannot verify if WITH ENCRYPTION is used
+
+============================================================================
+Test Data Requirements:
+============================================================================
+- Valid table names (employees, departments)
+- Invalid table names (non-existent tables)
+- NULL table name
+- Empty string table name
+- SQL injection attempts ('; DROP TABLE --, etc.)
+- Valid WHERE clauses
+- Invalid WHERE clauses
+- NULL WHERE clause (count all records)
+
+============================================================================
+Security Considerations:
+============================================================================
+- Dynamic SQL poses SQL injection risk
+- Must use QUOTENAME() for table name
+- Must use sp_executesql with parameters for WHERE clause
+- Should validate table existence before execution
+- Should restrict to specific schema (dbo)
+
+============================================================================

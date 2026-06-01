@@ -1,0 +1,31 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2026-05-23
+Object: dbo.usp_recursive_org_chart
+Type: SQL_STORED_PROCEDURE
+
+OBJECT EXISTENCE: ✓ CONFIRMED
+- Object ID: 1397580017
+- Created: 2026-05-23T23:20:23.183000
+- Modified: 2026-05-23T23:20:23.183000
+
+ENCRYPTION STATUS: ✓ NOT ENCRYPTED
+- Definition successfully retrieved from sys.sql_modules
+
+DEPENDENCIES:
+- dbo.departments (table) - referenced in CTE query
+
+REQUIRED OBJECTS FOR TESTING:
+1. dbo.departments table with columns:
+   - department_id (INT, PK)
+   - name (NVARCHAR)
+   - parent_id (INT, FK to self)
+
+NOTES:
+- This procedure uses a recursive CTE to build an organizational hierarchy
+- Input parameter: @root_id (INT) - starting department
+- Returns: department_id, name, depth, path (hierarchical path string)
+- Uses ORDER BY path for consistent output ordering
+
+PREREQUISITE STATUS: ✓ PASSED
+All required objects are accessible and definition is retrievable.

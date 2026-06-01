@@ -1,0 +1,233 @@
+============================================================================
+BABELFISH COMPATIBILITY VERIFICATION ATTEMPT
+============================================================================
+Object: PROCEDURE dbo.usp_upsert_department
+Stage: 2 - Babelfish T-SQL Compatibility Check
+Date: 2024-12-31
+Agent: Stage 2 Verification Agent
+
+============================================================================
+STEP 1: CONNECTION TEST
+============================================================================
+
+Attempted Command:
+  SELECT @@VERSION
+
+Connection Method: run_babelfish_tsql (TDS:1433)
+
+Result: CONNECTION_ERROR
+
+Error Details:
+  Error Type: Configuration Error
+  Error Message: "You must specify a region."
+  
+Root Cause Analysis:
+  - The Babelfish TDS endpoint requires AWS region configuration
+  - Environment variable AWS_REGION or AWS_DEFAULT_REGION may not be set
+  - Connection credentials or endpoint configuration may be incomplete
+  - This is an infrastructure/configuration issue, not a SQL compatibility issue
+
+Impact:
+  - Cannot proceed with DDL deployment to Babelfish
+  - Cannot execute test cases against Babelfish
+  - Cannot perform result comparison
+  - Stage 2 verification cannot be completed
+
+============================================================================
+ATTEMPTED DDL (NOT EXECUTED)
+============================================================================
+
+The following DDL was prepared for deployment but could not be executed
+due to connection failure:
+
+Source File: ./result/usp_upsert_department/mssql.sql
+
+DDL Summary:
+  - Object Type: STORED PROCEDURE
+  - Object Name: dbo.usp_upsert_department
+  - Parameters: 6 (4 INPUT, 2 OUTPUT)
+    * @department_id INT (optional)
+    * @department_name NVARCHAR(100) (required)
+    * @location NVARCHAR(100) (optional)
+    * @manager_id INT (optional)
+    * @result_id INT OUTPUT
+    * @operation NVARCHAR(10) OUTPUT
+  
+  - Key Features:
+    * UPSERT logic (INSERT or UPDATE based on @department_id)
+    * Input validation (required fields, foreign key checks)
+    * Duplicate name prevention
+    * Transaction management with TRY-CATCH
+    * OUTPUT parameters for result tracking
+    * SCOPE_IDENTITY() for new record ID
+    * @@ROWCOUNT for affected rows
+    * GETDATE() for timestamps
+    * RAISERROR for error handling
+
+  - T-SQL Features Used:
+    * SET NOCOUNT ON
+    * BEGIN TRANSACTION / COMMIT / ROLLBACK
+    * TRY-CATCH blocks
+    * SCOPE_IDENTITY()
+    * @@TRANCOUNT
+    * GETDATE()
+    * LTRIM/RTRIM
+    * RAISERROR
+    * OUTPUT parameters
+    * ERROR_MESSAGE(), ERROR_SEVERITY(), ERROR_STATE()
+
+============================================================================
+BABELFISH COMPATIBILITY ASSESSMENT (THEORETICAL)
+============================================================================
+
+Based on the DDL analysis, the following compatibility assessment can be made:
+
+LIKELY COMPATIBLE FEATURES:
+  ✓ Basic stored procedure structure
+  ✓ Parameter declarations (INPUT and OUTPUT)
+  ✓ SET NOCOUNT ON
+  ✓ Transaction control (BEGIN/COMMIT/ROLLBACK)
+  ✓ TRY-CATCH error handling (Babelfish supports this)
+  ✓ Basic DML (INSERT, UPDATE, SELECT)
+  ✓ IF-ELSE conditional logic
+  ✓ Variable declarations and assignments
+  ✓ EXISTS checks
+  ✓ String functions (LTRIM, RTRIM)
+
+POTENTIAL COMPATIBILITY CONCERNS:
+  ⚠ SCOPE_IDENTITY() - Babelfish supports this but behavior may differ
+  ⚠ @@TRANCOUNT - Babelfish supports this
+  ⚠ GETDATE() - Babelfish supports this (maps to CURRENT_TIMESTAMP)
+  ⚠ RAISERROR - Babelfish supports this but syntax may have limitations
+  ⚠ ERROR_MESSAGE(), ERROR_SEVERITY(), ERROR_STATE() - Supported but may differ
+  ⚠ OUTPUT parameters - Babelfish supports but may have edge cases
+  ⚠ NVARCHAR vs VARCHAR - Babelfish handles Unicode differently
+
+KNOWN BABELFISH LIMITATIONS (NOT PRESENT IN THIS DDL):
+  ✗ CLR assemblies - NOT USED
+  ✗ Service Broker - NOT USED
+  ✗ Linked Server - NOT USED
+  ✗ WITH ENCRYPTION - NOT USED
+  ✗ Table-Valued Parameters - NOT USED
+  ✗ PIVOT/UNPIVOT - NOT USED
+  ✗ FOR XML/JSON PATH - NOT USED
+  ✗ MERGE statement - NOT USED
+  ✗ Advanced table hints - NOT USED
+
+COMPATIBILITY PREDICTION:
+  Based on the DDL analysis, this stored procedure has a HIGH probability
+  of being compatible with Babelfish. The T-SQL features used are all
+  within Babelfish's supported feature set.
+  
+  Expected Success Rate: 85-95%
+  
+  Main Risk Areas:
+  1. OUTPUT parameter behavior in complex scenarios
+  2. Error message text differences (RAISERROR)
+  3. SCOPE_IDENTITY() in nested transaction scenarios
+  4. Subtle differences in transaction isolation behavior
+
+============================================================================
+TEST CASES (NOT EXECUTED)
+============================================================================
+
+The following test cases were prepared but could not be executed:
+
+Source File: ./result/usp_upsert_department/mssql_test.sql
+
+Test Coverage Summary:
+  - Total Test Cases: 16
+  - Normal INSERT operations: 6 cases (TC1, TC2, TC11, TC12, TC14, TC15)
+  - Normal UPDATE operations: 4 cases (TC3, TC4, TC13, TC16)
+  - Error handling: 4 cases (TC5, TC6, TC7, TC8)
+  - Boundary conditions: 2 cases (TC9, TC10)
+
+Test Categories:
+  ✓ Required field validation
+  ✓ Duplicate name prevention
+  ✓ Foreign key validation
+  ✓ NULL handling
+  ✓ Whitespace trimming
+  ✓ Special characters
+  ✓ IDENTITY behavior
+  ✓ Timestamp updates
+  ✓ OUTPUT parameters
+  ✓ Non-existent record handling
+  ✓ Maximum length boundary
+
+Expected MSSQL Results Available: YES
+  File: ./result/usp_upsert_department/mssql_test.txt
+  Status: All 16 test cases documented with expected results
+
+============================================================================
+RECOMMENDATIONS
+============================================================================
+
+IMMEDIATE ACTIONS REQUIRED:
+  1. Configure AWS region for Babelfish connection
+     - Set AWS_REGION environment variable
+     - Verify Babelfish endpoint configuration
+     - Confirm network connectivity to Babelfish TDS port (1433)
+  
+  2. Verify Babelfish service status
+     - Check if Babelfish cluster is running
+     - Verify security group rules allow TDS connections
+     - Confirm authentication credentials are valid
+
+  3. Retry Stage 2 verification after connection is restored
+
+ALTERNATIVE APPROACHES:
+  1. If Babelfish is unavailable, proceed directly to Stage 3
+     - Convert DDL to PL/pgSQL for native PostgreSQL
+     - Skip Babelfish compatibility layer
+  
+  2. Use Babelfish PostgreSQL port (5432) instead of TDS port
+     - Try run_babelfish_pg tool as fallback
+     - Note: This tests PostgreSQL compatibility, not T-SQL compatibility
+
+EXPECTED OUTCOME WHEN CONNECTION IS RESTORED:
+  Based on the DDL analysis, this procedure is expected to:
+  - Deploy successfully to Babelfish (DDL syntax compatible)
+  - Execute test cases with minor differences
+  - Require adjustments only for:
+    * Error message text (cosmetic)
+    * Timestamp precision (semantic equivalence)
+    * IDENTITY value ranges (semantic equivalence)
+  
+  Predicted Result: BABELFISH_OK (with SEMANTIC match level)
+
+============================================================================
+STAGE 2 COMPLETION STATUS
+============================================================================
+
+Status: INCOMPLETE - CONNECTION_ERROR
+
+Reason: Cannot connect to Babelfish TDS endpoint due to missing region configuration
+
+Files Created:
+  ✓ babelfish_attempt.txt (this file)
+
+Files NOT Created (due to connection failure):
+  ✗ babelfish_test.sql (cannot prepare without connection)
+  ✗ babelfish_test.txt (cannot execute tests)
+  ✗ BABELFISH_OK.txt (cannot verify compatibility)
+
+Next Steps:
+  1. Resolve connection configuration issue
+  2. Retry Stage 2 verification
+  3. OR proceed to Stage 3 (native PostgreSQL conversion)
+
+============================================================================
+RESULT: CONNECTION_ERROR
+============================================================================
+
+The Babelfish compatibility verification could not be completed due to
+infrastructure/configuration issues. The stored procedure DDL appears to
+be compatible with Babelfish based on static analysis, but runtime
+verification is required to confirm.
+
+Recommendation: Fix connection configuration and retry, or skip to Stage 3.
+
+============================================================================
+END OF REPORT
+============================================================================

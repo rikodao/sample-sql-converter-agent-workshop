@@ -1,0 +1,170 @@
+============================================================================
+BABELFISH COMPATIBILITY VERIFICATION - STAGE 2
+============================================================================
+Object Type: VIEW
+Object Name: dbo.v_active_employees
+Verification Date: 2026-05-23
+Babelfish Version: Babelfish for Aurora PostgreSQL with SQL Server Compatibility - 12.0.2000.8
+                    PostgreSQL 16.4 (Babelfish 4.3.3)
+
+============================================================================
+STEP 1: CONNECTION VERIFICATION
+============================================================================
+
+Connection Test: SELECT @@VERSION
+Status: SUCCESS
+
+Babelfish is accessible via TDS protocol (port 1433).
+
+============================================================================
+STEP 2: DDL DEPLOYMENT ATTEMPT
+============================================================================
+
+Source DDL (from mssql.sql):
+-----------------------------------
+CREATE VIEW dbo.v_active_employees AS
+SELECT
+    e.employee_id,
+    dbo.fn_format_employee_name(e.first_name, e.last_name) AS full_name,
+    d.name AS department_name,
+    e.hire_date,
+    s.base_salary,
+    DATEDIFF(yy, e.hire_date, GETDATE()) AS years_of_service
+FROM dbo.employees e
+INNER JOIN dbo.departments d ON e.department_id = d.department_id
+OUTER APPLY (
+    SELECT TOP 1 base_salary
+    FROM dbo.salaries
+    WHERE employee_id = e.employee_id
+    ORDER BY effective_from DESC
+) s
+WHERE e.is_active = 1;
+-----------------------------------
+
+Execution Result: FAILED
+
+Error Code: 42000
+Error Message: [42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]column d.name does not exist (33557097)
+
+============================================================================
+STEP 3: ROOT CAUSE ANALYSIS
+============================================================================
+
+Error Category: SCHEMA_MISMATCH
+
+The DDL references column 'd.name' from the departments table, but the 
+Babelfish environment has a different schema structure.
+
+Investigation:
+--------------
+Query: SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'departments'
+
+Result:
+  - department_id (int)
+  - department_name (varchar)
+
+Finding:
+--------
+The departments table in Babelfish has column 'department_name' instead of 'name'.
+This is a schema structure difference between the source MSSQL environment and 
+the target Babelfish environment.
+
+MSSQL Schema:  departments.name
+Babelfish Schema: departments.department_name
+
+This is NOT a Babelfish T-SQL compatibility issue, but rather an environmental
+schema difference. The VIEW definition itself uses standard T-SQL syntax that
+Babelfish supports:
+  ✓ INNER JOIN
+  ✓ OUTER APPLY with TOP 1 and ORDER BY
+  ✓ DATEDIFF(yy, ..., GETDATE())
+  ✓ Scalar function call (dbo.fn_format_employee_name)
+  ✓ WHERE clause with BIT column (is_active = 1)
+
+All of these constructs are Babelfish-compatible.
+
+============================================================================
+STEP 4: BABELFISH COMPATIBILITY ASSESSMENT
+============================================================================
+
+Syntax Compatibility: HIGH
+--------------------------
+The VIEW uses the following T-SQL features, all of which are supported by Babelfish:
+
+1. ✓ OUTER APPLY - Supported in Babelfish (maps to PostgreSQL LATERAL LEFT JOIN)
+2. ✓ TOP N with ORDER BY - Supported
+3. ✓ DATEDIFF with 'yy' datepart - Supported
+4. ✓ GETDATE() function - Supported
+5. ✓ User-defined scalar function call - Supported (if function exists)
+6. ✓ INNER JOIN syntax - Fully supported
+7. ✓ BIT column comparison (is_active = 1) - Supported
+
+Known Babelfish Limitations NOT Present:
+-----------------------------------------
+✗ CLR assemblies - Not used
+✗ Service Broker - Not used
+✗ Linked Server (OPENQUERY, OPENROWSET) - Not used
+✗ WITH ENCRYPTION - Not used
+✗ PIVOT/UNPIVOT - Not used
+✗ FOR JSON PATH / FOR XML PATH - Not used
+✗ Table-Valued Parameters - Not used
+✗ INSTEAD OF triggers - Not applicable (this is a VIEW, not a trigger)
+
+Dependency Check:
+-----------------
+The VIEW depends on:
+  - dbo.employees table
+  - dbo.departments table (schema mismatch detected)
+  - dbo.salaries table
+  - dbo.fn_format_employee_name function
+
+The schema mismatch prevents deployment, but this is an environmental issue,
+not a Babelfish compatibility issue.
+
+============================================================================
+CONCLUSION
+============================================================================
+
+RESULT: SYNTAX_FAILED (due to SCHEMA_MISMATCH)
+
+The VIEW definition uses 100% Babelfish-compatible T-SQL syntax.
+The deployment failure is caused by a schema difference in the target environment:
+  - Source MSSQL: departments.name
+  - Target Babelfish: departments.department_name
+
+Recommendation:
+---------------
+1. This is NOT a Babelfish compatibility issue
+2. The VIEW definition should be modified to match the target schema
+3. Change 'd.name' to 'd.department_name' in the VIEW definition
+4. Alternatively, add a column alias in the departments table or use a migration
+   script to align schemas
+
+This failure should be categorized as "ENVIRONMENTAL_SCHEMA_MISMATCH" rather than
+"BABELFISH_INCOMPATIBILITY".
+
+For Stage 3 (PL/pgSQL conversion), the schema difference must be addressed.
+For Stage 4 (retry with fixes), the DDL should be adjusted to use 'department_name'.
+
+============================================================================
+HYPOTHESIS
+============================================================================
+
+If the schema were aligned (departments.name → departments.department_name),
+this VIEW would deploy successfully to Babelfish with 100% compatibility.
+
+The T-SQL constructs used (OUTER APPLY, DATEDIFF, GETDATE, TOP, scalar UDF)
+are all well-supported in Babelfish 4.3.3.
+
+Expected Test Results (if schema aligned):
+- All 10 test cases would execute
+- Results would match MSSQL at SEMANTIC level
+- Minor differences might occur in:
+  * MONEY type formatting (68000.0000 vs 68000.00)
+  * DATETIME precision display
+  * Years of service calculation (if DATEDIFF behavior differs slightly)
+
+============================================================================
+END OF BABELFISH ATTEMPT LOG
+============================================================================

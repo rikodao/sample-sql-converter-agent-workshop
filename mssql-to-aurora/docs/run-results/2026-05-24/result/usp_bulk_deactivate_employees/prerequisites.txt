@@ -1,0 +1,36 @@
+PREREQUISITE CHECK RESULTS
+==========================
+Date: 2026-05-23
+Object: dbo.usp_bulk_deactivate_employees
+Type: SQL_STORED_PROCEDURE
+
+OBJECT EXISTENCE: CONFIRMED
+- Object ID: 1493580359
+- Created: 2026-05-23T23:20:23.233000
+- Modified: 2026-05-23T23:20:23.233000
+- Encrypted: NO
+
+DEPENDENCIES:
+1. User-Defined Table Type: dbo.EmployeeIdList
+   - Column: employee_id INT NOT NULL
+   - Purpose: Input parameter for bulk employee IDs
+
+2. Table: dbo.employees
+   - Columns: employee_id (INT, IDENTITY), department_id (INT), first_name (NVARCHAR(100)), 
+              last_name (NVARCHAR(100)), hire_date (DATE), is_active (BIT), 
+              email (NVARCHAR(200)), created_at (DATETIME2(7))
+   - Purpose: Target table for bulk deactivation (UPDATE is_active = 0)
+
+PARAMETERS:
+- INPUT: @employee_ids (dbo.EmployeeIdList READONLY) - Table-valued parameter
+- OUTPUT: @deactivated_count (INT) - Number of rows updated
+
+FUNCTIONALITY:
+- Updates is_active column to 0 for employees whose IDs are in the input list
+- Returns the count of deactivated employees via OUTPUT parameter
+- Uses INNER JOIN to match employee_ids from table-valued parameter
+
+PREREQUISITE STATUS: PASSED
+- All dependencies exist and are accessible
+- Definition is not encrypted
+- Ready for DDL extraction and test case creation

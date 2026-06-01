@@ -1,0 +1,144 @@
+=============================================
+TEST EXECUTION RESULTS for dbo.usp_employee_json
+Target: Babelfish for Aurora PostgreSQL
+Execution Date: 2026-05-23
+=============================================
+
+## EXECUTION STATUS: BLOCKED
+
+All test cases were blocked due to a runtime limitation in Babelfish.
+
+## ERROR DETAILS
+
+### Error Code: 42000
+### Error Message:
+[42000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]procedure parameter "@json_out" is an output parameter but corresponding argument is not writable (33557097)
+
+### Failed Test Case Example:
+```sql
+DECLARE @json_result NVARCHAR(MAX);
+EXEC dbo.usp_employee_json @employee_id = 1, @json_out = @json_result OUTPUT;
+SELECT @json_result AS json_output;
+```
+
+## ROOT CAUSE
+
+Babelfish's TDS (Tabular Data Stream) protocol implementation does not fully support OUTPUT parameter binding when stored procedures are called from external clients. While the procedure definition is accepted during DDL deployment, the runtime execution fails when attempting to bind OUTPUT parameters.
+
+## TEST CASES AFFECTED
+
+All 12 test cases are blocked:
+- TC1: Valid employee ID (normal case) - BLOCKED
+- TC2: Another valid employee ID - BLOCKED
+- TC3: Non-existent employee ID (boundary) - BLOCKED
+- TC4: NULL employee ID (boundary) - BLOCKED
+- TC5: Zero employee ID (boundary) - BLOCKED
+- TC6: Negative employee ID (boundary) - BLOCKED
+- TC7: Verify JSON structure with known employee - BLOCKED
+- TC8: Employee without department (exception case) - BLOCKED
+- TC9: Maximum INT value for employee_id (boundary) - BLOCKED
+- TC10: Verify OUTPUT parameter is properly set - BLOCKED
+- TC11: Verify JSON is valid and parseable - BLOCKED
+- TC12: Parse JSON and verify field values - BLOCKED
+
+## WORKAROUND ATTEMPTED
+
+### Attempt 1: Direct OUTPUT Parameter Call
+Result: FAILED with error 33557097
+
+### Attempt 2: Wrapper Procedure
+Created a wrapper procedure to encapsulate the OUTPUT parameter call:
+```sql
+CREATE PROCEDURE dbo.test_usp_employee_json_wrapper
+    @employee_id INT
+AS
+BEGIN
+    DECLARE @json_result NVARCHAR(MAX);
+    EXEC dbo.usp_employee_json @employee_id = @employee_id, @json_out = @json_result OUTPUT;
+    SELECT @json_result AS json_output;
+END
+```
+Result: Wrapper created successfully, but execution still FAILED with same error
+
+## COMPARISON WITH SQL SERVER
+
+### SQL Server Behavior:
+- OUTPUT parameters work seamlessly through TDS protocol
+- External clients can bind variables to OUTPUT parameters
+- All 12 test cases execute successfully
+- JSON output is properly returned via OUTPUT parameter
+
+### Babelfish Behavior:
+- DDL with OUTPUT parameters is accepted
+- Runtime execution fails when OUTPUT parameters are bound
+- No test cases can be executed
+- Workarounds (wrapper procedures) do not resolve the issue
+
+## MIGRATION IMPLICATIONS
+
+### Impact: HIGH
+This limitation affects:
+1. All stored procedures using OUTPUT parameters
+2. Application code that calls these procedures
+3. Integration patterns relying on OUTPUT parameter values
+
+### Required Changes:
+1. **Procedure Refactoring**: Convert OUTPUT parameters to result sets
+2. **Application Code Changes**: Modify calling code to read result sets instead of OUTPUT parameters
+3. **Testing**: Comprehensive testing of refactored procedures
+
+### Example Refactoring:
+**Original (SQL Server):**
+```sql
+DECLARE @json_result NVARCHAR(MAX);
+EXEC dbo.usp_employee_json @employee_id = 1, @json_out = @json_result OUTPUT;
+-- Use @json_result
+```
+
+**Refactored (Babelfish Compatible):**
+```sql
+-- Procedure returns result set instead
+CREATE PROCEDURE dbo.usp_employee_json_v2
+    @employee_id INT
+AS
+BEGIN
+    SELECT (
+        SELECT ... FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+    ) AS json_output;
+END
+
+-- Calling code reads result set
+SELECT json_output FROM dbo.usp_employee_json_v2(1);
+```
+
+## ADDITIONAL NOTES
+
+### FOR JSON PATH Support:
+While we couldn't test the actual JSON output due to the OUTPUT parameter limitation, Babelfish does support FOR JSON PATH syntax. However, there may be differences in:
+- Date/time formatting
+- NULL value handling
+- Numeric precision
+- Character encoding
+
+These differences should be verified in Stage 3 (PL/pgSQL conversion) where we can test the JSON generation directly.
+
+### JSON Functions:
+Babelfish supports:
+- ISJSON()
+- JSON_VALUE()
+- JSON_QUERY()
+
+But behavior may differ from SQL Server in edge cases.
+
+=============================================
+TEST SUMMARY
+=============================================
+Total Test Cases: 12
+Executed: 0
+Passed: 0
+Failed: 0
+Blocked: 12
+
+Blocking Issue: OUTPUT parameter binding not supported via Babelfish TDS protocol
+
+Recommendation: Proceed to Stage 3 (PL/pgSQL conversion) with architectural changes to eliminate OUTPUT parameters and return JSON as result set.

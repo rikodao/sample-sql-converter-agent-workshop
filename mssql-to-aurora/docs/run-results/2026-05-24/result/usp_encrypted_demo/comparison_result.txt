@@ -1,0 +1,165 @@
+=== Comparison: MSSQL vs PostgreSQL ===
+Object: PROCEDURE dbo.usp_encrypted_demo
+Test Cases: 0 total (comparison not possible)
+
+================================================================================
+COMPARISON STATUS: NOT PERFORMED
+================================================================================
+
+Reason: SOURCE CODE NOT AVAILABLE (WITH ENCRYPTION)
+
+The stored procedure 'dbo.usp_encrypted_demo' was created with the WITH ENCRYPTION
+option in SQL Server, which prevents extraction of the DDL definition. Without
+the source code, it is impossible to:
+
+1. Create test cases for MSSQL (mssql_test.sql does not exist)
+2. Execute tests on MSSQL (mssql_test.txt does not exist)
+3. Convert the procedure to PostgreSQL (postgres.sql does not exist)
+4. Create test cases for PostgreSQL (postgres_test.sql does not exist)
+5. Execute tests on PostgreSQL (postgres_test.txt does not exist)
+6. Compare results between MSSQL and PostgreSQL
+
+================================================================================
+FILE AVAILABILITY CHECK
+================================================================================
+
+Required Files for Comparison:
+- mssql_test.txt:      NOT FOUND (Stage 1 failed - encrypted object)
+- postgres_test.txt:   NOT FOUND (Stage 3 blocked - no source to convert)
+
+Explanation:
+- Stage 1 (MSSQL Validation): FAILED
+  * sys.sql_modules.definition returns NULL for encrypted objects
+  * OBJECT_DEFINITION() returns NULL
+  * sp_helptext returns "The text for object is encrypted."
+  * Cannot create mssql.sql
+  * Cannot generate test cases
+
+- Stage 2 (Babelfish Compatibility): BLOCKED
+  * No DDL to test on Babelfish
+  * Result: DDL_NOT_AVAILABLE
+
+- Stage 3 (PL/pgSQL Conversion): BLOCKED
+  * No source DDL to convert
+  * Cannot generate postgres.sql
+  * Result: UNSUPPORTED - SOURCE CODE NOT AVAILABLE
+
+- Stage 4 (PostgreSQL Validation): BLOCKED
+  * No converted code to test
+  * Cannot create postgres_test.sql
+  * Cannot execute tests
+  * This comparison cannot be performed
+
+================================================================================
+TECHNICAL BACKGROUND
+================================================================================
+
+WITH ENCRYPTION in SQL Server:
+- Proprietary encryption algorithm that obfuscates object definitions
+- Encryption is one-way (no official decryption method)
+- Designed to protect intellectual property, not for security
+- Prevents all metadata-based extraction methods
+- Incompatible with migration to other database platforms
+
+Impact on Migration:
+- Cannot extract → Cannot test → Cannot convert → Cannot validate
+- Requires manual intervention to obtain original source code
+- Blocks entire migration workflow at Stage 1
+
+PostgreSQL Equivalent:
+- PostgreSQL does NOT have an equivalent to WITH ENCRYPTION
+- Source code protection is achieved through:
+  * File system permissions on PostgreSQL data directory
+  * Schema-level access control
+  * SECURITY DEFINER attribute for privilege elevation
+  * Row-Level Security (RLS) policies
+
+================================================================================
+TEST CASE SUMMARY
+================================================================================
+
+Expected Test Cases: UNKNOWN (cannot determine without source code)
+Actual Test Cases Executed: 0
+Test Cases Matched: 0
+Test Cases Mismatched: 0
+
+Match Level Breakdown:
+- EXACT: 0
+- SEMANTIC: 0
+- STRUCTURAL: 0
+- MISMATCH: 0
+
+Total Pass: 0/0 (N/A - no tests available)
+
+================================================================================
+VERDICT
+================================================================================
+
+Comparison Result: NOT PERFORMED
+
+Reason: PREREQUISITE_FAILED (WITH ENCRYPTION)
+
+The comparison between MSSQL and PostgreSQL results cannot be performed because
+the source code for 'dbo.usp_encrypted_demo' is encrypted and unavailable.
+
+To proceed with migration:
+1. Obtain the original unencrypted source code from:
+   - Source control repository (Git, SVN, TFS, Azure DevOps, etc.)
+   - Original deployment scripts
+   - Database documentation
+   - Development team archives
+   - Pre-encryption database backups
+
+2. Once source code is obtained:
+   - Remove WITH ENCRYPTION clause
+   - Place unencrypted DDL in ./result/usp_encrypted_demo/mssql.sql
+   - Create test cases in ./result/usp_encrypted_demo/mssql_test.sql
+   - Re-run Stage 1 validation
+   - Proceed with normal migration workflow (Stage 2 → 3 → 4)
+
+3. If source code cannot be found:
+   - Reverse engineer through black-box testing
+   - Analyze calling applications for usage patterns
+   - Review business requirements documentation
+   - Recreate procedure from scratch
+   - Validate with stakeholders
+
+================================================================================
+MIGRATION STATUS
+================================================================================
+
+Status: BLOCKED at Stage 1
+
+Blocking Issue: WITH ENCRYPTION (SQL Server proprietary feature)
+
+Action Required: OBTAIN ORIGINAL SOURCE CODE
+
+Files Generated:
+- comparison_result.txt (this file)
+- NG.txt (detailed failure report)
+
+Files NOT Generated:
+- postgres_test.sql (no source to convert)
+- postgres_test.txt (no tests to execute)
+- OK.txt (no successful conversion)
+
+Next Steps:
+- Escalate to migration team for source code retrieval
+- Contact database owner/development team
+- Check source control and deployment repositories
+- Once source code is available, restart from Stage 1
+
+================================================================================
+CONCLUSION
+================================================================================
+
+The comparison between MSSQL and PostgreSQL test results cannot be performed
+for 'dbo.usp_encrypted_demo' because the object is encrypted with WITH ENCRYPTION
+in SQL Server. This is a known migration blocker that requires human intervention
+to resolve.
+
+The migration workflow is blocked at Stage 1 (DDL extraction) and cannot proceed
+to Stage 4 (result comparison) until the original unencrypted source code is
+obtained and provided.
+
+================================================================================

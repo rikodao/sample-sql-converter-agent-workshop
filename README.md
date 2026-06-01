@@ -8,6 +8,17 @@ AWS CDK を使用して Oracle XE on EC2 と Aurora PostgreSQL のデータベ�
 > このコンテンツは Oracle DB と PostgreSQL を立て、この環境に閉じて AI エージェントが SQL を読み書きし、実行し、修正し、結果を残していくものです。
 > AI エージェントが Database を操作する都合上、本番環境でのご利用はおやめください。あくまで、ここでコードを生成・テストするだけにとどめてください。
 
+## 🆕 派生バリアント
+
+| バリアント | ソース | ターゲット | フォルダ | 状態 |
+|---|---|---|---|---|
+| 本ワークショップ | Oracle Database (XE) | Aurora PostgreSQL | リポジトリルート | 安定 |
+| **MSSQL → Aurora 移行** | RDS for SQL Server | Aurora PostgreSQL **+ Babelfish** | [`mssql-to-aurora/`](mssql-to-aurora/) | 検証済 (9/9, Babelfish互換89%) |
+
+`mssql-to-aurora/` は本ワークショップの設計を踏襲した RDS for SQL Server → Aurora PostgreSQL / Babelfish 並行検証バリアントです。
+4 段階パイプライン (MSSQL検証 → Babelfish試行 → PG変換 → PG検証) で T-SQL のストアド・関数・トリガー・ビューを実テスト付きで自動移行します。
+詳細は [mssql-to-aurora/README.md](mssql-to-aurora/README.md) を参照してください。
+
 ## 🏗️ アーキテクチャ概要
 
 - **Oracle Database**: EC2 インスタンス上の Oracle XE 21c

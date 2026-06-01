@@ -1,0 +1,317 @@
+============================================================================
+Babelfish Compatibility Verification (Stage 2)
+============================================================================
+Object: PROCEDURE dbo.usp_search_employees_paged
+Date: 2026-05-29
+Agent: Stage 2 - Babelfish T-SQL Compatibility Validator
+
+============================================================================
+SECTION 1: CONNECTION TEST
+============================================================================
+
+Attempting to connect to Babelfish via run_babelfish_tsql...
+
+SQL: SELECT @@VERSION
+
+Result: CONNECTION_ERROR
+
+Error Details:
+--------------
+Error Message: "You must specify a region."
+Error Type: AWS Region Configuration Error
+Tool: run_babelfish_tsql
+
+Root Cause Analysis:
+--------------------
+The Babelfish connection tool requires AWS region configuration to be set.
+This is an infrastructure/configuration issue, not a SQL compatibility issue.
+
+The error indicates that the AWS SDK or connection parameters are missing
+the required region specification for connecting to the Babelfish endpoint.
+
+Impact:
+-------
+- Cannot proceed with DDL deployment to Babelfish
+- Cannot execute test cases against Babelfish
+- Cannot perform result comparison between MSSQL and Babelfish
+- Stage 2 verification cannot be completed
+
+============================================================================
+SECTION 2: DDL DEPLOYMENT ATTEMPT
+============================================================================
+
+Status: NOT_ATTEMPTED
+
+Reason: Connection to Babelfish failed in prerequisite check.
+
+DDL File: ./result/usp_search_employees_paged/mssql.sql
+
+DDL Summary:
+------------
+- Object Type: STORED PROCEDURE
+- Name: dbo.usp_search_employees_paged
+- Parameters: 8 (7 INPUT + 1 OUTPUT)
+  * @search_term NVARCHAR(100) = NULL
+  * @department_id INT = NULL
+  * @is_active BIT = NULL
+  * @page_number INT = 1
+  * @page_size INT = 10
+  * @sort_column NVARCHAR(50) = 'employee_id'
+  * @sort_direction NVARCHAR(4) = 'ASC'
+  * @total_count INT OUTPUT
+
+Key Features:
+-------------
+1. Dynamic SQL with sp_executesql
+2. OUTPUT parameter with sp_executesql
+3. OFFSET-FETCH pagination (SQL Server 2012+)
+4. Dynamic WHERE clause construction
+5. Dynamic ORDER BY with QUOTENAME
+6. TRY-CATCH error handling
+7. Parameter validation with RAISERROR
+8. LEFT JOIN with departments table
+9. CEILING function for total_pages calculation
+10. ISNULL function for NULL handling
+
+Potential Babelfish Compatibility Concerns:
+-------------------------------------------
+Based on the DDL analysis, the following features may have compatibility issues:
+
+HIGH RISK:
+----------
+1. **sp_executesql with OUTPUT parameter**
+   - Line: EXEC sp_executesql @sql, @params, ..., @total_out = @total_count OUTPUT;
+   - Concern: Babelfish has partial support for sp_executesql with OUTPUT parameters.
+              Some versions may not correctly return OUTPUT values from dynamic SQL.
+   - Known Issue: OUTPUT parameter values may not be captured correctly in all scenarios.
+
+2. **Dynamic SQL with complex parameter passing**
+   - Multiple parameters passed to sp_executesql including OUTPUT
+   - Parameter names in @params string must match exactly
+   - Babelfish may have issues with parameter name resolution in dynamic SQL
+
+MEDIUM RISK:
+------------
+3. **QUOTENAME function**
+   - Used for SQL injection prevention in ORDER BY clause
+   - Babelfish supports QUOTENAME but behavior may differ slightly
+
+4. **RAISERROR with severity and state**
+   - Babelfish supports RAISERROR but error handling behavior may differ
+   - Error messages may have different formatting
+
+5. **OFFSET-FETCH clause**
+   - Standard SQL Server 2012+ pagination
+   - Babelfish should support this, but edge cases may differ
+
+LOW RISK:
+---------
+6. **CEILING, ISNULL, LTRIM, RTRIM functions**
+   - Standard functions, should work in Babelfish
+
+7. **LEFT JOIN**
+   - Standard SQL, should work correctly
+
+8. **TRY-CATCH blocks**
+   - Babelfish supports T-SQL error handling
+
+============================================================================
+SECTION 3: TEST EXECUTION ATTEMPT
+============================================================================
+
+Status: NOT_ATTEMPTED
+
+Reason: Connection to Babelfish failed in prerequisite check.
+
+Test File: ./result/usp_search_employees_paged/mssql_test.sql
+
+Test Summary:
+-------------
+Total Test Cases: 20
+- Normal Cases: 10 (TC1-TC10)
+- Boundary Cases: 5 (TC16-TC20)
+- Exception Cases: 5 (TC11-TC15)
+
+Test Coverage:
+--------------
+✓ Basic pagination (first page, second page, beyond total)
+✓ Search filtering (by name pattern, empty term, no matches)
+✓ Department filtering (valid, non-existent)
+✓ Active status filtering (active, inactive)
+✓ Sorting (multiple columns, ASC/DESC)
+✓ Combined filters
+✓ Large page size
+✓ Parameter validation (page_number, page_size, sort_column, sort_direction)
+✓ OUTPUT parameter verification
+
+Expected Test Execution Plan:
+------------------------------
+1. Execute each test case sequentially
+2. Capture OUTPUT parameter values
+3. Capture result sets
+4. Capture error messages for exception cases
+5. Compare with MSSQL results
+
+Cannot Execute: Connection unavailable
+
+============================================================================
+SECTION 4: RESULT COMPARISON
+============================================================================
+
+Status: NOT_PERFORMED
+
+Reason: Cannot execute tests without Babelfish connection.
+
+Comparison Strategy (if connection were available):
+----------------------------------------------------
+1. EXACT match: Byte-level comparison of result sets
+2. SEMANTIC match: Value equivalence with tolerance for:
+   - DATETIME precision differences (.000 vs .000000)
+   - Trailing spaces in CHAR columns
+   - Float rounding (6 decimal places)
+   - Error message wording differences
+   - IDENTITY value differences (sequence only)
+3. STRUCTURAL match: Row count, column count, data types
+
+Expected Challenges:
+--------------------
+- OUTPUT parameter values from sp_executesql may not match
+- Error messages may have different wording
+- DATETIME formatting may differ
+- Dynamic SQL execution may have subtle differences
+
+============================================================================
+SECTION 5: HYPOTHESIS - EXPECTED COMPATIBILITY ISSUES
+============================================================================
+
+Based on the DDL analysis and known Babelfish limitations, the following
+issues are EXPECTED if/when connection is restored:
+
+CRITICAL (Likely to cause failure):
+------------------------------------
+1. **sp_executesql OUTPUT Parameter Issue**
+   - Symptom: @total_count OUTPUT may return NULL or 0 instead of actual count
+   - Affected Test Cases: ALL (TC1-TC20) - all rely on @total_count OUTPUT
+   - Root Cause: Babelfish's sp_executesql implementation may not properly
+                 handle OUTPUT parameters in dynamic SQL context
+   - Workaround: Rewrite to use temp table or table variable to capture count
+
+2. **Dynamic SQL Parameter Binding**
+   - Symptom: Parameters may not bind correctly in dynamic WHERE clause
+   - Affected Test Cases: TC3, TC4, TC5, TC8 (filtered queries)
+   - Root Cause: Parameter name resolution in dynamic SQL may differ
+
+MODERATE (May cause test mismatches):
+--------------------------------------
+3. **Error Message Differences**
+   - Symptom: Error text differs between MSSQL and Babelfish
+   - Affected Test Cases: TC11-TC15 (exception cases)
+   - Example: "Page number must be greater than or equal to 1" may become
+              "invalid page number" or similar
+   - Impact: SEMANTIC comparison should handle this
+
+4. **DATETIME Precision**
+   - Symptom: hire_date may show different precision
+   - Affected Test Cases: TC7 (sort by hire_date)
+   - Impact: SEMANTIC comparison should handle this
+
+MINOR (Unlikely to cause issues):
+----------------------------------
+5. **QUOTENAME behavior**
+   - Should work correctly in Babelfish
+   - May have edge cases with special characters
+
+6. **OFFSET-FETCH pagination**
+   - Standard SQL, should work correctly
+   - Edge case: page beyond total (TC9) should return 0 rows
+
+============================================================================
+SECTION 6: RECOMMENDED ACTIONS
+============================================================================
+
+Immediate Actions Required:
+----------------------------
+1. **Fix AWS Region Configuration**
+   - Configure AWS_REGION environment variable
+   - Or specify region in connection parameters
+   - Verify Babelfish endpoint is accessible
+
+2. **Retry Connection Test**
+   - Once region is configured, retry: SELECT @@VERSION
+   - Verify Babelfish version and compatibility level
+
+3. **Re-run Stage 2 Verification**
+   - Deploy DDL to Babelfish
+   - Execute test suite
+   - Compare results with MSSQL baseline
+
+Alternative Approaches (if connection cannot be established):
+--------------------------------------------------------------
+1. **Manual Verification**
+   - Manually connect to Babelfish using SQL client
+   - Execute DDL and tests manually
+   - Document results
+
+2. **Skip to Stage 3**
+   - Proceed with PL/pgSQL conversion (Stage 3)
+   - Address known sp_executesql OUTPUT issue in conversion
+   - Test directly on PostgreSQL
+
+3. **Mock Testing**
+   - Create mock Babelfish environment locally
+   - Test compatibility in isolated environment
+
+Expected Outcome (when connection is restored):
+------------------------------------------------
+Based on the analysis, this procedure is LIKELY TO FAIL Babelfish
+compatibility testing due to:
+
+Primary Issue: sp_executesql with OUTPUT parameter
+Secondary Issues: Dynamic SQL parameter binding, error message differences
+
+Recommendation: Proceed to Stage 3 (PL/pgSQL conversion) and address
+                the sp_executesql OUTPUT issue during conversion.
+
+============================================================================
+SECTION 7: STAGE 2 CONCLUSION
+============================================================================
+
+RESULT: CONNECTION_ERROR
+
+Summary:
+--------
+- Connection Test: FAILED (AWS region not specified)
+- DDL Deployment: NOT_ATTEMPTED
+- Test Execution: NOT_ATTEMPTED
+- Result Comparison: NOT_PERFORMED
+- Compatibility Assessment: CANNOT_DETERMINE (insufficient data)
+
+Files Generated:
+----------------
+- babelfish_attempt.txt (this file)
+
+Files NOT Generated:
+--------------------
+- babelfish_test.sql (cannot create without connection)
+- babelfish_test.txt (cannot execute without connection)
+- BABELFISH_OK.txt (cannot verify compatibility without connection)
+
+Next Steps:
+-----------
+1. Resolve AWS region configuration issue
+2. Re-run Stage 2 verification
+3. If connection issues persist, proceed to Stage 3 with known risks
+
+Technical Details:
+------------------
+- Tool: run_babelfish_tsql
+- Error: "You must specify a region."
+- Error Type: AWS SDK Configuration Error
+- Timestamp: 2026-05-29
+- Stage: 2 (Babelfish T-SQL Compatibility Verification)
+
+============================================================================
+END OF REPORT
+============================================================================
+
+RESULT: CONNECTION_ERROR

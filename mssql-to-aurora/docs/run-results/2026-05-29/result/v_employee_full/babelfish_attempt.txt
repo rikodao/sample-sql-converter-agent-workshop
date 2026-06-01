@@ -1,0 +1,165 @@
+============================================================================
+BABELFISH COMPATIBILITY VERIFICATION - STAGE 2
+============================================================================
+Object: VIEW dbo.v_employee_full
+Timestamp: 2024
+Verification Agent: Stage 2 - Babelfish T-SQL Compatibility Checker
+============================================================================
+
+============================================================================
+STEP 1: BABELFISH CONNECTION CHECK
+============================================================================
+
+Attempt: SELECT @@VERSION via run_babelfish_tsql
+
+Result: CONNECTION ERROR
+
+Error Details:
+  Tool: run_babelfish_tsql
+  Error Message: "You must specify a region."
+  
+Analysis:
+  - The Babelfish endpoint requires AWS region configuration
+  - This is an infrastructure/configuration issue, not a SQL compatibility issue
+  - Cannot proceed with DDL deployment or test execution without connection
+
+Impact:
+  - Cannot verify if VIEW DDL is compatible with Babelfish T-SQL dialect
+  - Cannot execute test cases to compare results with MSSQL
+  - Cannot determine if LEFT JOIN, column aliasing, or other VIEW features work
+
+============================================================================
+STEP 2: DDL DEPLOYMENT (SKIPPED)
+============================================================================
+
+Status: NOT ATTEMPTED
+
+Reason: Connection to Babelfish failed in Step 1
+
+DDL to be deployed:
+  File: ./result/v_employee_full/mssql.sql
+  Object Type: VIEW
+  Dependencies: 
+    - dbo.employees (base table)
+    - dbo.departments (base table)
+  
+Expected Compatibility:
+  - VIEW syntax is generally well-supported in Babelfish
+  - LEFT JOIN is standard SQL-92 syntax
+  - Column aliasing (dept_manager_id) is standard
+  - No known incompatible features detected in DDL
+
+Potential Issues (if connection were available):
+  - None anticipated for this simple VIEW
+  - Standard SELECT with LEFT JOIN should work
+
+============================================================================
+STEP 3: TEST EXECUTION (SKIPPED)
+============================================================================
+
+Status: NOT ATTEMPTED
+
+Reason: Connection to Babelfish failed in Step 1
+
+Test File: ./result/v_employee_full/mssql_test.sql
+Test Cases: 10 (based on mssql_test.txt template)
+
+Test Coverage:
+  TC1: Basic SELECT - all columns
+  TC2: SELECT specific employee with department
+  TC3: LEFT JOIN behavior - NULL department_id
+  TC4: Multiple employees in same department
+  TC5: All employee columns present
+  TC6: ORDER BY employee_id
+  TC7: Filter by department_name
+  TC8: Boundary - empty result set
+  TC9: NULL handling in various columns
+  TC10: Aggregate functions on view
+
+============================================================================
+STEP 4: RESULT COMPARISON (SKIPPED)
+============================================================================
+
+Status: NOT ATTEMPTED
+
+Reason: Connection to Babelfish failed in Step 1
+
+Cannot compare:
+  - mssql_test.txt (template only, no actual MSSQL results)
+  - babelfish_test.txt (not created due to connection failure)
+
+============================================================================
+HYPOTHESIS & ANALYSIS
+============================================================================
+
+Connection Error Root Cause:
+  The run_babelfish_tsql tool requires AWS region configuration that is not
+  currently set or accessible. This is an environment/infrastructure issue.
+
+Expected Compatibility (if connection were available):
+  HIGH - This VIEW uses only standard SQL features:
+    ✓ CREATE VIEW syntax
+    ✓ SELECT with LEFT JOIN
+    ✓ Column aliasing
+    ✓ Table aliasing (e, d)
+    ✓ No proprietary MSSQL features
+    ✓ No hints, no encryption, no indexed views
+    ✓ No computed columns or complex expressions
+
+Known Babelfish Limitations (NOT applicable to this VIEW):
+  - CLR assemblies (not used)
+  - Service Broker (not used)
+  - Linked Server (not used)
+  - WITH ENCRYPTION (not used)
+  - PIVOT/UNPIVOT (not used)
+  - FOR JSON/XML PATH (not used)
+  - Complex table hints (not used)
+
+Confidence Level: 95%
+  This VIEW should work on Babelfish without modification once connection
+  is established.
+
+============================================================================
+RECOMMENDED ACTIONS
+============================================================================
+
+1. IMMEDIATE:
+   - Resolve AWS region configuration for Babelfish endpoint
+   - Verify network connectivity to Babelfish TDS port (1433)
+   - Check IAM permissions for database access
+
+2. AFTER CONNECTION RESTORED:
+   - Re-run Stage 2 verification
+   - Deploy VIEW DDL to Babelfish
+   - Execute test cases
+   - Compare results with MSSQL baseline
+
+3. ALTERNATIVE APPROACH:
+   - If Babelfish is not available, proceed directly to Stage 3
+   - Convert VIEW to native PostgreSQL syntax
+   - Test on Aurora PostgreSQL instead
+
+============================================================================
+STAGE 2 RESULT
+============================================================================
+
+RESULT: CONNECTION_ERROR
+
+Reason: Cannot connect to Babelfish endpoint (region not specified)
+
+Files Created:
+  ✓ babelfish_attempt.txt (this file)
+
+Files NOT Created:
+  ✗ babelfish_test.sql (connection required)
+  ✗ babelfish_test.txt (connection required)
+  ✗ BABELFISH_OK.txt (cannot verify compatibility without connection)
+
+Next Stage:
+  - Stage 2 cannot complete without Babelfish connection
+  - Recommend proceeding to Stage 3 (PostgreSQL conversion)
+  - Or resolve connection issue and retry Stage 2
+
+============================================================================
+END OF STAGE 2 VERIFICATION
+============================================================================

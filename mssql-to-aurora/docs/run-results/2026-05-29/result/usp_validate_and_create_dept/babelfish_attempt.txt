@@ -1,0 +1,496 @@
+============================================================================
+STAGE 2: BABELFISH T-SQL COMPATIBILITY VERIFICATION
+============================================================================
+Object: PROCEDURE dbo.usp_validate_and_create_dept
+Execution Date: 2026-05-29
+Agent: Stage 2 - Babelfish T-SQL Compatibility Validator
+============================================================================
+
+============================================================================
+SECTION 1: BABELFISH CONNECTION TEST
+============================================================================
+
+Attempt: SELECT @@VERSION
+Tool: run_babelfish_tsql
+Status: FAILED
+
+Error Details:
+--------------
+Error Message: "You must specify a region."
+Error Type: Connection/Configuration Error
+Tool Used: run_babelfish_tsql
+
+Root Cause Analysis:
+--------------------
+The error "You must specify a region" indicates an AWS configuration issue.
+This is likely due to:
+1. Missing AWS_REGION environment variable
+2. Missing AWS credentials configuration
+3. Missing region parameter in the tool configuration
+4. AWS SDK configuration issue
+
+Impact:
+-------
+- Cannot establish connection to Babelfish for Aurora PostgreSQL
+- Cannot execute DDL statements via T-SQL endpoint (port 1433)
+- Cannot perform compatibility verification
+- Cannot execute test cases
+- Cannot compare results with SQL Server baseline
+
+Prerequisites Check:
+--------------------
+✗ Babelfish T-SQL endpoint (port 1433) - NOT ACCESSIBLE
+✗ AWS region configuration - NOT CONFIGURED
+✗ Network connectivity - CANNOT VERIFY
+✗ Authentication credentials - CANNOT VERIFY
+
+============================================================================
+SECTION 2: PREREQUISITE ANALYSIS
+============================================================================
+
+Stage 1 Status Review:
+----------------------
+From mssql_test.txt analysis:
+- Stage 1 Status: INCOMPLETE
+- SQL Server Connection: FAILED (same region error)
+- Procedure Definition: ASSUMED (not verified against actual source)
+- Test Execution: NOT PERFORMED
+- Baseline Results: NOT AVAILABLE
+
+Critical Issues:
+----------------
+1. NO ACTUAL PROCEDURE DEFINITION
+   - The mssql.sql file contains an ASSUMED definition
+   - Real procedure may differ significantly
+   - Cannot verify compatibility without actual source
+
+2. NO BASELINE TEST RESULTS
+   - mssql_test.txt contains EXPECTED results, not ACTUAL results
+   - Cannot perform result comparison without baseline
+   - Test assertions cannot be validated
+
+3. CONNECTION INFRASTRUCTURE FAILURE
+   - Both SQL Server and Babelfish connections fail with same error
+   - Indicates systemic configuration issue
+   - Not specific to either database system
+
+============================================================================
+SECTION 3: ASSUMED DEFINITION ANALYSIS
+============================================================================
+
+Based on the ASSUMED definition in mssql.sql, the procedure includes:
+
+Key Features:
+-------------
+1. Multiple INPUT parameters:
+   - @department_name NVARCHAR(100) - Required
+   - @location NVARCHAR(100) - Optional (default NULL)
+   - @manager_id INT - Optional (default NULL)
+   - @min_name_length INT - Optional (default 3)
+   - @max_name_length INT - Optional (default 100)
+
+2. Multiple OUTPUT parameters:
+   - @new_department_id INT OUTPUT
+   - @validation_status NVARCHAR(50) OUTPUT
+   - @error_message NVARCHAR(500) OUTPUT
+
+3. Complex Business Logic:
+   - Multi-phase validation (6 validation checks)
+   - String trimming and length validation
+   - Duplicate name detection (case-insensitive)
+   - Manager existence and active status validation
+   - Location normalization
+
+4. Transaction Management:
+   - Explicit BEGIN TRANSACTION / COMMIT
+   - TRY-CATCH error handling
+   - Automatic ROLLBACK on error
+
+5. T-SQL Features Used:
+   - SET NOCOUNT ON
+   - DECLARE variables
+   - LTRIM, RTRIM, LEN, LOWER string functions
+   - SCOPE_IDENTITY() for identity retrieval
+   - GETDATE() for timestamps
+   - @@TRANCOUNT for transaction state
+   - ERROR_MESSAGE(), ERROR_NUMBER(), ERROR_SEVERITY(), ERROR_STATE()
+   - Result set return (SELECT statement)
+
+============================================================================
+SECTION 4: BABELFISH COMPATIBILITY ASSESSMENT (THEORETICAL)
+============================================================================
+
+Based on known Babelfish capabilities, theoretical compatibility analysis:
+
+EXPECTED TO WORK:
+-----------------
+✓ OUTPUT parameters - Babelfish supports OUTPUT parameters
+✓ TRY-CATCH blocks - Babelfish supports T-SQL exception handling
+✓ SCOPE_IDENTITY() - Babelfish supports this function
+✓ GETDATE() - Babelfish supports this function
+✓ String functions (LTRIM, RTRIM, LEN, LOWER) - All supported
+✓ Transaction management (BEGIN TRAN, COMMIT, ROLLBACK) - Supported
+✓ @@TRANCOUNT - Supported
+✓ SET NOCOUNT ON - Supported
+✓ DECLARE variables - Supported
+✓ Conditional logic (IF/ELSE) - Supported
+✓ INSERT with IDENTITY column - Supported
+✓ Result set return - Supported
+
+POTENTIAL COMPATIBILITY CONCERNS:
+----------------------------------
+⚠ NVARCHAR collation behavior:
+  - Case-insensitive comparison using LOWER() should work
+  - But underlying collation may differ between SQL Server and PostgreSQL
+  - May affect duplicate detection logic
+
+⚠ DATETIME precision:
+  - SQL Server GETDATE() returns DATETIME (millisecond precision)
+  - Babelfish may return higher precision (microsecond)
+  - May cause minor differences in timestamp comparison
+
+⚠ Error message formatting:
+  - ERROR_MESSAGE() content may differ slightly
+  - Error numbers (ERROR_NUMBER()) may not match SQL Server exactly
+  - ERROR_SEVERITY() and ERROR_STATE() may have different values
+
+⚠ SCOPE_IDENTITY() behavior:
+  - Should work but may have subtle differences in edge cases
+  - Particularly in multi-statement batches or nested procedures
+
+⚠ String concatenation with NULL:
+  - T-SQL: 'text' + NULL = NULL
+  - Babelfish should match this behavior but worth testing
+
+EXPECTED COMPATIBILITY LEVEL: HIGH (85-95%)
+--------------------------------------------
+Reasoning:
+- No CLR, Service Broker, or Linked Server usage
+- No advanced features (PIVOT, MERGE, TVP, etc.)
+- Straightforward procedural logic
+- Standard T-SQL constructs throughout
+- No table hints or query hints
+- No dynamic SQL (sp_executesql)
+- No XML or JSON operations
+- No temporal tables or system-versioned tables
+
+============================================================================
+SECTION 5: CANNOT PROCEED - BLOCKING ISSUES
+============================================================================
+
+Blocking Issue #1: CONNECTION FAILURE
+--------------------------------------
+Cannot establish connection to Babelfish T-SQL endpoint.
+Required Action: Fix AWS region configuration
+Responsible Party: Infrastructure/DevOps team or user
+Impact: Complete blocker for Stage 2 execution
+
+Blocking Issue #2: NO ACTUAL SOURCE DEFINITION
+-----------------------------------------------
+The procedure definition in mssql.sql is ASSUMED, not actual.
+Required Action: Retrieve actual procedure definition from Source RDS
+Responsible Party: Stage 1 agent (prerequisite not met)
+Impact: Cannot verify compatibility of actual procedure
+
+Blocking Issue #3: NO BASELINE TEST RESULTS
+--------------------------------------------
+The mssql_test.txt contains EXPECTED results, not ACTUAL execution results.
+Required Action: Execute tests on actual SQL Server and capture results
+Responsible Party: Stage 1 agent (prerequisite not met)
+Impact: Cannot perform result comparison
+
+============================================================================
+SECTION 6: ATTEMPTED WORKAROUND - DDL SYNTAX VALIDATION
+============================================================================
+
+Even without connection, we can perform static analysis of the DDL:
+
+DDL Syntax Review:
+------------------
+The ASSUMED procedure definition uses standard T-SQL syntax:
+- CREATE PROCEDURE statement: ✓ Valid
+- Parameter declarations: ✓ Valid
+- OUTPUT keyword usage: ✓ Valid
+- BEGIN/END blocks: ✓ Valid
+- Variable declarations: ✓ Valid
+- Control flow (IF/ELSE): ✓ Valid
+- TRY-CATCH blocks: ✓ Valid
+- Transaction statements: ✓ Valid
+- Built-in functions: ✓ All standard
+- DML statements: ✓ Valid
+- GO batch separator: ✓ Valid
+
+Static Analysis Result:
+------------------------
+The DDL syntax is valid T-SQL and should be parseable by Babelfish.
+No obvious syntax errors or unsupported constructs detected.
+
+However, this does NOT guarantee:
+- Runtime behavior will match SQL Server
+- Results will be identical
+- Edge cases will behave the same
+- Error messages will match
+- Performance will be comparable
+
+============================================================================
+SECTION 7: TEST CASE ANALYSIS
+============================================================================
+
+From mssql_test.txt, the test suite includes 20 test cases:
+
+Coverage Analysis:
+------------------
+✓ Normal cases: 3 (TC1, TC2, TC3)
+✓ Boundary cases: 7 (TC4, TC5, TC6, TC7, TC15, TC16, TC17)
+✓ Exception cases: 7 (TC8, TC9, TC10, TC11, TC12, TC13, TC14)
+✓ Side effect cases: 3 (TC18, TC19, TC20)
+
+Test Quality Assessment:
+------------------------
+The test suite appears comprehensive and well-structured:
+- Covers all validation paths
+- Tests OUTPUT parameter behavior
+- Verifies transaction rollback
+- Checks audit field population
+- Tests boundary conditions
+- Validates error handling
+
+Test Adaptability for Babelfish:
+---------------------------------
+The test structure should be compatible with Babelfish:
+- Uses standard T-SQL syntax
+- No SQL Server-specific test features
+- Clear SETUP/EXEC/ASSERT/CLEANUP structure
+- Test case identifiers (TC1, TC2, etc.) for result matching
+
+Expected Modifications Needed:
+-------------------------------
+Minimal - likely only:
+- Comment out any USE database statements
+- Adjust for any DATETIME precision differences in assertions
+- Possibly adjust error message exact match assertions to pattern match
+
+============================================================================
+SECTION 8: RISK ASSESSMENT
+============================================================================
+
+If connection were available, predicted risks:
+
+LOW RISK (likely to work):
+--------------------------
+- Basic procedure creation
+- Parameter passing
+- Variable declarations
+- String manipulation
+- Conditional logic
+- Transaction management
+- INSERT operations
+- IDENTITY column handling
+
+MEDIUM RISK (may have differences):
+-----------------------------------
+- Case-insensitive string comparison (collation differences)
+- DATETIME precision in created_date/modified_date
+- Error message exact text matching
+- ERROR_NUMBER() values
+- OUTPUT parameter values in edge cases
+
+HIGH RISK (likely to differ):
+------------------------------
+- None identified in this procedure
+
+CRITICAL RISK (will fail):
+--------------------------
+- None identified in this procedure
+
+Overall Risk Level: LOW
+-----------------------
+This procedure should have high compatibility with Babelfish.
+
+============================================================================
+SECTION 9: RECOMMENDATIONS
+============================================================================
+
+Immediate Actions Required:
+----------------------------
+
+1. FIX AWS REGION CONFIGURATION
+   Priority: CRITICAL
+   Action: Configure AWS_REGION environment variable or tool parameter
+   Owner: Infrastructure/DevOps or user
+   Estimated Effort: 5-15 minutes
+   
+   Possible solutions:
+   - Set AWS_REGION environment variable
+   - Update tool configuration with region parameter
+   - Check AWS credentials file (~/.aws/config)
+   - Verify AWS CLI configuration (aws configure)
+
+2. COMPLETE STAGE 1 PREREQUISITES
+   Priority: CRITICAL
+   Action: Retrieve actual procedure definition and execute baseline tests
+   Owner: Stage 1 agent
+   Estimated Effort: 10-20 minutes (once connection fixed)
+   
+   Required outputs:
+   - mssql.sql with ACTUAL definition (not assumed)
+   - mssql_test.txt with ACTUAL results (not expected)
+   - Verification that procedure exists in source database
+
+3. RETRY STAGE 2 AFTER FIXES
+   Priority: HIGH
+   Action: Re-run Stage 2 agent with proper prerequisites
+   Owner: Orchestrator
+   Estimated Effort: 15-30 minutes
+   
+   Expected outcome:
+   - Successful Babelfish connection
+   - DDL execution attempt
+   - Test execution
+   - Result comparison
+   - BABELFISH_OK.txt or detailed failure analysis
+
+Alternative Approach (if connection cannot be fixed):
+------------------------------------------------------
+
+If AWS region configuration cannot be resolved:
+1. Document as infrastructure blocker
+2. Create NG.txt indicating prerequisite failure
+3. Escalate to infrastructure team
+4. Do NOT proceed with conversion stages (Stage 3, 4)
+5. Mark entire migration workflow as BLOCKED
+
+============================================================================
+SECTION 10: HYPOTHESIS - IF CONNECTION WERE AVAILABLE
+============================================================================
+
+Predicted Outcome:
+------------------
+Based on theoretical analysis, if connection were available:
+
+DDL Execution: LIKELY SUCCESS (90% confidence)
+- Syntax is standard T-SQL
+- No unsupported features detected
+- Procedure should create successfully
+
+Test Execution: LIKELY SUCCESS (85% confidence)
+- Test syntax is compatible
+- May need minor adjustments for DATETIME precision
+- Error message assertions may need relaxation
+
+Result Comparison: LIKELY SEMANTIC MATCH (80% confidence)
+- Core functionality should match
+- Minor differences expected in:
+  * DATETIME precision (milliseconds vs microseconds)
+  * Error message exact text
+  * Possibly ERROR_NUMBER() values
+- Business logic results should be identical
+
+Expected BABELFISH_OK.txt: YES (75% confidence)
+- Procedure is straightforward
+- No advanced features
+- High compatibility expected
+
+Predicted Match Levels:
+-----------------------
+- EXACT matches: 12-15 test cases (60-75%)
+- SEMANTIC matches: 18-20 test cases (90-100%)
+- STRUCTURAL matches: 20 test cases (100%)
+- Failures: 0-2 test cases (0-10%)
+
+Most Likely Differences:
+-------------------------
+1. TC18 (created_date/modified_date): DATETIME precision difference
+2. TC13, TC14 (error messages): Exact text may differ
+3. TC20 (OUTPUT error message): May have slight wording difference
+
+============================================================================
+SECTION 11: KNOWN BABELFISH LIMITATIONS - APPLICABILITY CHECK
+============================================================================
+
+Checking against known Babelfish limitations:
+
+CLR Assemblies: ✓ NOT USED - No impact
+Service Broker: ✓ NOT USED - No impact
+Linked Server: ✓ NOT USED - No impact
+WITH ENCRYPTION: ✓ NOT USED - No impact
+sp_executesql + OUTPUT: ✓ NOT USED - No impact
+Table-Valued Parameters: ✓ NOT USED - No impact
+PIVOT/UNPIVOT: ✓ NOT USED - No impact
+MERGE statement: ✓ NOT USED - No impact
+INSTEAD OF Trigger: ✓ NOT USED - No impact
+FOR JSON/XML PATH: ✓ NOT USED - No impact
+DATETIMEOFFSET: ✓ NOT USED - No impact
+DMVs (sys.dm_exec_*): ✓ NOT USED - No impact
+Table hints (NOLOCK, etc.): ✓ NOT USED - No impact
+MONEY type: ✓ NOT USED - No impact
+Collation edge cases: ⚠ POTENTIALLY RELEVANT
+  - Uses LOWER() for case-insensitive comparison
+  - Should work but may have subtle differences
+
+Conclusion: NO KNOWN BLOCKERS IDENTIFIED
+
+============================================================================
+SECTION 12: FINAL STATUS
+============================================================================
+
+Stage 2 Execution Status: FAILED - CONNECTION ERROR
+----------------------------------------------------
+
+Reason: Cannot establish connection to Babelfish T-SQL endpoint
+Error: "You must specify a region."
+Impact: Complete blocker for Stage 2 execution
+
+Files Created:
+--------------
+✓ babelfish_attempt.txt - This file (detailed analysis and error documentation)
+✗ babelfish_test.sql - NOT CREATED (cannot proceed without connection)
+✗ babelfish_test.txt - NOT CREATED (cannot execute tests)
+✗ BABELFISH_OK.txt - NOT CREATED (prerequisites not met)
+
+Stage 2 Prerequisites Status:
+------------------------------
+✗ Babelfish connection - FAILED
+✗ Actual procedure definition - NOT AVAILABLE (assumed definition only)
+✗ Baseline test results - NOT AVAILABLE (expected results only)
+
+Can Proceed to Stage 3: NO
+---------------------------
+Reason: Cannot verify T-SQL compatibility without connection
+Recommendation: Fix connection issue and retry Stage 2
+
+Can Proceed to Stage 4: NO
+---------------------------
+Reason: Stage 3 depends on Stage 2 results
+Recommendation: Complete Stage 2 first
+
+============================================================================
+RESULT: CONNECTION_ERROR
+============================================================================
+
+Summary:
+--------
+Stage 2 cannot proceed due to AWS region configuration issue preventing
+connection to Babelfish T-SQL endpoint. The same issue affected Stage 1,
+resulting in assumed procedure definition and expected (not actual) test
+results.
+
+Required Actions:
+-----------------
+1. Fix AWS region configuration
+2. Complete Stage 1 with actual procedure definition and test results
+3. Retry Stage 2 with proper prerequisites
+
+Theoretical Compatibility: HIGH (85-95%)
+Actual Compatibility: UNKNOWN (cannot test)
+
+Next Steps:
+-----------
+1. Resolve infrastructure/configuration issue
+2. Re-run Stage 1 to get actual baseline
+3. Re-run Stage 2 to verify Babelfish compatibility
+4. Only then proceed to Stage 3 (PL/pgSQL conversion) if needed
+
+============================================================================
+END OF STAGE 2 REPORT
+============================================================================

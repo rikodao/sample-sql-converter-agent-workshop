@@ -1,0 +1,38 @@
+---
+# =============================================================================
+# playbook.yml — Ubuntu 22.04 LTS に SQL Server 2022 Developer Edition を
+#                 セットアップし、必要なら .bak を S3 から取得して復元する。
+#
+# Usage:
+#   ansible-playbook -i inventory.ini playbook.yml
+#   # restore も同時実施:
+#   ansible-playbook -i inventory.ini playbook.yml -e mssql_restore_enabled=true \
+#     -e mssql_restore_bak_s3_uri=s3://bucket/prod.bak \
+#     -e mssql_restore_database_name=YourAppDb
+# =============================================================================
+- name: Setup SQL Server 2022 Developer Edition on Ubuntu (SCT host)
+  hosts: sct_hosts
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: OS が Ubuntu 22.04 / 24.04 であること確認
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version in ["22.04", "24.04"]
+        fail_msg: >-
+          このプレイブックは Ubuntu 22.04 / 24.04 のみサポートしています
+          (現在: {{ ansible_distribution }} {{ ansible_distribution_version }})
+
+    - name: SA パスワードが既定値のままになっていないこと確認
+      ansible.builtin.assert:
+        that:
+          - mssql_sa_password is defined
+          - mssql_sa_password != "ChangeMe!Strong#Pass2026"
+        fail_msg: |
+          group_vars/all.yml の mssql_sa_password を変更するか、
+          -e mssql_sa_password=... で指定してください。
+
+  roles:
+    - role: sql_server

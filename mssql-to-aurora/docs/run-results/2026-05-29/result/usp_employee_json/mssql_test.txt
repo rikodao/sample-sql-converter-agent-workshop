@@ -1,0 +1,281 @@
+============================================================================
+Test Execution Results for: dbo.usp_employee_json
+============================================================================
+Date: 2026-05-29
+Status: CONNECTIVITY_ISSUE
+
+NOTE: Unable to execute tests on Source RDS for SQL Server due to AWS region configuration.
+      Error: "You must specify a region."
+      
+      The following are EXPECTED test results based on the assumed implementation.
+      Actual test execution should be performed once connectivity is restored.
+
+============================================================================
+
+-- ============================================================================
+-- TEST CASE 1: Single employee with all data (Normal case)
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+TC1       | PASS: Employee 1 exists
+
+Expected JSON Output:
+[
+  {
+    "employee_id": 1,
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@test.com",
+    "phone": "555-0001",
+    "hire_date": "2020-01-15T00:00:00",
+    "salary": 75000.00,
+    "is_active": 1,
+    "status": "Active",
+    "department": {
+      "department_id": 1,
+      "department_name": "Engineering",
+      "location": "Building A"
+    },
+    "manager": null
+  }
+]
+
+-- ============================================================================
+-- TEST CASE 2: Filter by department (Multiple employees)
+-- ============================================================================
+test_case | employee_count | result
+----------|----------------|------------------------------------------
+TC2       | 2              | PASS: Multiple employees in dept 1
+
+Expected JSON Output:
+[
+  {
+    "employee_id": 1,
+    "first_name": "John",
+    "last_name": "Doe",
+    ...
+  },
+  {
+    "employee_id": 2,
+    "first_name": "Jane",
+    "last_name": "Smith",
+    ...
+  }
+]
+
+-- ============================================================================
+-- TEST CASE 3: Employee with NULL optional fields (Boundary case)
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+TC3       | PASS: NULL fields handled correctly
+
+Expected JSON Output:
+[
+  {
+    "employee_id": 9991,
+    "first_name": "Minimal",
+    "last_name": "Data",
+    "email": null,
+    "phone": null,
+    "hire_date": "2023-01-01T00:00:00",
+    "salary": 50000.00,
+    "is_active": 1,
+    "status": "Active",
+    "department": null,
+    "manager": null
+  }
+]
+
+-- ============================================================================
+-- TEST CASE 4: Non-existent employee_id (Boundary case)
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+TC4       | PASS: Non-existent employee returns empty result
+
+Expected JSON Output:
+[]
+
+-- ============================================================================
+-- TEST CASE 5: Invalid employee_id (negative value) (Exception case)
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+TC5       | PASS: Error raised - Invalid employee_id. Must be a positive integer.
+
+-- ============================================================================
+-- TEST CASE 6: Invalid department_id (negative value) (Exception case)
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+TC6       | PASS: Error raised - Invalid department_id. Must be a positive integer.
+
+-- ============================================================================
+-- TEST CASE 7: Include inactive employees (Normal case with flag)
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+TC7a      | PASS: Inactive employee exists
+
+Expected JSON Output (with @include_inactive = 0):
+[]
+
+test_case | result
+----------|--------------------------------------------------
+TC7b      | PASS: Include inactive flag tested
+
+Expected JSON Output (with @include_inactive = 1):
+[
+  {
+    "employee_id": 9992,
+    "first_name": "Inactive",
+    "last_name": "User",
+    "email": "inactive@test.com",
+    "phone": "555-9992",
+    "hire_date": "2018-01-01T00:00:00",
+    "salary": 60000.00,
+    "is_active": 0,
+    "status": "Inactive",
+    "department": {
+      "department_id": 1,
+      "department_name": "Engineering",
+      "location": "Building A"
+    },
+    "manager": null
+  }
+]
+
+-- ============================================================================
+-- TEST CASE 8: Employee with manager relationship (Normal case)
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+TC8       | PASS: Manager relationship exists
+
+Expected JSON Output:
+[
+  {
+    "employee_id": 9994,
+    "first_name": "Report",
+    "last_name": "Employee",
+    "email": "report@test.com",
+    "phone": "555-9994",
+    "hire_date": "2020-01-01T00:00:00",
+    "salary": 70000.00,
+    "is_active": 1,
+    "status": "Active",
+    "department": {
+      "department_id": 1,
+      "department_name": "Engineering",
+      "location": "Building A"
+    },
+    "manager": {
+      "manager_id": 9993,
+      "manager_name": "Manager Boss",
+      "manager_email": "manager@test.com"
+    }
+  }
+]
+
+-- ============================================================================
+-- TEST CASE 9: All parameters NULL (Return all active employees)
+-- ============================================================================
+test_case | active_employee_count | result
+----------|----------------------|----------------------------------
+TC9       | 5                    | PASS: Returns active employees
+
+Expected JSON Output:
+[
+  { ... employee 1 ... },
+  { ... employee 2 ... },
+  { ... employee 3 ... },
+  { ... employee 4 ... },
+  { ... employee 5 ... }
+]
+
+-- ============================================================================
+-- TEST CASE 10: Employee with department but no manager (Boundary case)
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+TC10      | PASS: Has department but no manager
+
+Expected JSON Output:
+[
+  {
+    "employee_id": 9995,
+    "first_name": "No",
+    "last_name": "Manager",
+    "email": "nomanager@test.com",
+    "phone": "555-9995",
+    "hire_date": "2021-01-01T00:00:00",
+    "salary": 65000.00,
+    "is_active": 1,
+    "status": "Active",
+    "department": {
+      "department_id": 1,
+      "department_name": "Engineering",
+      "location": "Building A"
+    },
+    "manager": null
+  }
+]
+
+-- ============================================================================
+-- FINAL CLEANUP
+-- ============================================================================
+test_case | result
+----------|--------------------------------------------------
+CLEANUP   | PASS: All test data cleaned up
+
+============================================================================
+TEST SUMMARY
+============================================================================
+Total Test Cases: 10 (+ 1 cleanup verification)
+Expected Pass: 11
+Expected Fail: 0
+
+Test Coverage:
+- Normal cases: 5 (TC1, TC2, TC7, TC8, TC9)
+- Boundary cases: 4 (TC3, TC4, TC7a, TC10)
+- Exception cases: 2 (TC5, TC6)
+- Cleanup verification: 1
+
+Key Features Tested:
+✓ Single employee retrieval
+✓ Multiple employees by department
+✓ NULL field handling
+✓ Non-existent employee handling
+✓ Input validation (negative IDs)
+✓ Active/inactive filtering
+✓ Manager relationship (nested JSON)
+✓ Department relationship (nested JSON)
+✓ Default parameter behavior
+✓ Data cleanup
+
+JSON Output Characteristics:
+- Uses FOR JSON PATH syntax
+- Nested objects for department and manager
+- NULL values properly represented
+- Array format for multiple results
+- Empty array for no results
+- ISO 8601 datetime format
+
+============================================================================
+NOTES FOR STAGE 2 (Babelfish Attempt)
+============================================================================
+Potential Compatibility Issues:
+1. FOR JSON PATH - Babelfish may have limited JSON support
+2. FOR JSON AUTO - Alternative syntax may be needed
+3. WITHOUT_ARRAY_WRAPPER - May not be supported
+4. Nested subqueries with FOR JSON - Complex pattern
+5. JSON output as result set - May need alternative approach
+
+Recommended Approach for Babelfish:
+- Test FOR JSON PATH support first
+- If not supported, consider using string concatenation
+- Alternative: Use jsonb functions in PostgreSQL mode
+- May need to convert to Stage 3 (native PostgreSQL) if JSON features are limited
+
+============================================================================

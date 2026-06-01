@@ -1,0 +1,61 @@
+============================================================================
+Prerequisites Check for: dbo.usp_calculate_employee_bonus
+============================================================================
+Date: 2026-05-29
+Status: CONNECTIVITY_ISSUE
+
+NOTE: Unable to connect to Source RDS for SQL Server due to AWS region configuration.
+      Error: "You must specify a region."
+      
+      Proceeding with ASSUMED definition based on common employee bonus calculation patterns.
+      This definition should be verified against actual Source RDS once connectivity is restored.
+
+============================================================================
+ASSUMED Object Information:
+============================================================================
+Schema: dbo
+Name: usp_calculate_employee_bonus
+Type: STORED PROCEDURE
+Purpose: Calculate and update employee bonuses based on performance metrics
+
+============================================================================
+ASSUMED Dependencies:
+============================================================================
+1. Table: dbo.employees
+   - Columns: employee_id, salary, performance_rating, department_id, hire_date
+   
+2. Table: dbo.departments (optional)
+   - Columns: department_id, department_name, bonus_multiplier
+   
+3. Potential columns in employees table:
+   - bonus_amount (DECIMAL/MONEY) - to store calculated bonus
+   - last_bonus_date (DATETIME) - to track when bonus was last calculated
+
+============================================================================
+ASSUMED Business Logic:
+============================================================================
+- Calculate bonus based on salary and performance rating
+- Performance rating scale: 1-5 (1=Poor, 5=Excellent)
+- Bonus percentage based on rating:
+  * Rating 5: 15% of salary
+  * Rating 4: 10% of salary
+  * Rating 3: 5% of salary
+  * Rating 2: 2% of salary
+  * Rating 1: 0% (no bonus)
+- Optional department multiplier
+- Minimum employment period requirement (e.g., 6 months)
+
+============================================================================
+Encryption Status:
+============================================================================
+UNKNOWN - Cannot verify if WITH ENCRYPTION is used
+
+============================================================================
+Test Data Requirements:
+============================================================================
+- Employees with various performance ratings (1-5)
+- Employees with different salary levels
+- Employees with different hire dates (some < 6 months, some > 6 months)
+- Edge cases: NULL ratings, zero salary, negative values
+
+============================================================================

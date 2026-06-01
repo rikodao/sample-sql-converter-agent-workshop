@@ -1,0 +1,151 @@
+================================================================
+TEST EXECUTION RESULTS: dbo.fn_get_fiscal_year
+Database: Source RDS for SQL Server
+Execution Date: 2026-05-23
+================================================================
+
+-- ============= TEST CASE 1: Normal - Mid fiscal year (July) =============
+Result:
+{
+  "tc": "TC1",
+  "result": 2023
+}
+Status: ✓ PASSED
+Expected: 2023 (July is in FY2023)
+
+
+-- ============= TEST CASE 2: Normal - Start of fiscal year (April 1st) =============
+Result:
+{
+  "tc": "TC2",
+  "result": 2023
+}
+Status: ✓ PASSED
+Expected: 2023 (April 1st starts FY2023)
+
+
+-- ============= TEST CASE 3: Normal - End of fiscal year (March 31st) =============
+Result:
+{
+  "tc": "TC3",
+  "result": 2022
+}
+Status: ✓ PASSED
+Expected: 2022 (March 31st is last day of FY2022)
+
+
+-- ============= TEST CASE 4: Boundary - January (Q4 of previous fiscal year) =============
+Result:
+{
+  "tc": "TC4",
+  "result": 2022
+}
+Status: ✓ PASSED
+Expected: 2022 (January 2023 is in FY2022)
+
+
+-- ============= TEST CASE 5: Boundary - February (Q4 of previous fiscal year) =============
+Result:
+{
+  "tc": "TC5",
+  "result": 2022
+}
+Status: ✓ PASSED
+Expected: 2022 (February 2023 is in FY2022)
+
+
+-- ============= TEST CASE 6: Boundary - March (last month of fiscal year) =============
+Result:
+{
+  "tc": "TC6",
+  "result": 2022
+}
+Status: ✓ PASSED
+Expected: 2022 (March 2023 is in FY2022)
+
+
+-- ============= TEST CASE 7: Boundary - December (Q3 of fiscal year) =============
+Result:
+{
+  "tc": "TC7",
+  "result": 2023
+}
+Status: ✓ PASSED
+Expected: 2023 (December 2023 is in FY2023)
+
+
+-- ============= TEST CASE 8: Boundary - NULL input =============
+Result:
+{
+  "tc": "TC8",
+  "result": null
+}
+Status: ✓ PASSED
+Expected: NULL (NULL input returns NULL)
+
+
+-- ============= TEST CASE 9: Boundary - Leap year February 29th =============
+Result:
+{
+  "tc": "TC9",
+  "result": 2023
+}
+Status: ✓ PASSED
+Expected: 2023 (Feb 29, 2024 is in FY2023)
+
+
+-- ============= TEST CASE 10: Edge - Very old date (year 1900) =============
+Result:
+{
+  "tc": "TC10",
+  "result": 1899
+}
+Status: ✓ PASSED
+Expected: 1899 (January 1900 is in FY1899)
+
+
+-- ============= TEST CASE 11: Edge - Future date (year 2100) =============
+Result:
+{
+  "tc": "TC11",
+  "result": 2100
+}
+Status: ✓ PASSED
+Expected: 2100 (December 2100 is in FY2100)
+
+
+-- ============= TEST CASE 12: Boundary - April 30th (end of first month) =============
+Result:
+{
+  "tc": "TC12",
+  "result": 2023
+}
+Status: ✓ PASSED
+Expected: 2023 (April 30th is in FY2023)
+
+
+-- ============= TEST CASE 13: Boundary - May 1st (second month of fiscal year) =============
+Result:
+{
+  "tc": "TC13",
+  "result": 2023
+}
+Status: ✓ PASSED
+Expected: 2023 (May 1st is in FY2023)
+
+
+================================================================
+SUMMARY
+================================================================
+Total Test Cases: 13
+Passed: 13
+Failed: 0
+Success Rate: 100%
+
+Test Coverage:
+✓ Normal cases (mid-year, start, end): 3 tests
+✓ Boundary values (month boundaries, NULL): 7 tests
+✓ Edge cases (historical/future dates, leap year): 3 tests
+
+All tests executed successfully. Function behavior validated.
+================================================================

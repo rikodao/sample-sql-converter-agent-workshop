@@ -1,0 +1,62 @@
+================================================================================
+TEST EXECUTION RESULTS - Source SQL Server
+================================================================================
+Object: dbo.trg_v_employee_full_update
+Type: TRIGGER (INSTEAD OF UPDATE on VIEW)
+Execution Date: Stage 1 - Source SQL Server Validation
+================================================================================
+
+EXECUTION STATUS: FAILED - CONNECTION ERROR
+
+ERROR DETAILS:
+- Tool: run_mssql_sql
+- Error Message: "You must specify a region."
+- All test execution attempts failed with region configuration error
+
+IMPACT:
+- Cannot execute test cases on Source RDS for SQL Server
+- Cannot capture baseline behavior for comparison
+- Cannot verify trigger functionality
+- Cannot validate INSTEAD OF UPDATE logic
+- Cannot confirm view-to-table update propagation
+
+TEST CASES DESIGNED (NOT EXECUTED):
+1. TC1: Simple UPDATE on view (single column)
+2. TC2: UPDATE multiple columns through view
+3. TC3: UPDATE with WHERE clause affecting multiple rows
+4. TC4: UPDATE with NULL value
+5. TC5: UPDATE with no matching rows
+6. TC6: UPDATE changing department_id
+7. TC7: UPDATE with is_active flag
+8. TC8: UPDATE with hire_date
+9. TC9: Verify trigger fires (check @@ROWCOUNT)
+10. TC10: UPDATE all columns for a single employee
+
+EXPECTED TEST COVERAGE:
+- Normal operations: UPDATE single/multiple columns
+- Boundary conditions: NULL values, no matching rows
+- Side effects: @@ROWCOUNT, underlying table updates
+- Data integrity: Foreign key constraints (department_id)
+- View behavior: Trigger interception of UPDATE statements
+
+REQUIRED ACTION:
+1. Resolve AWS region configuration for Source RDS
+2. Verify database connectivity
+3. Re-execute test cases
+4. Capture baseline results for Stage 2/4 comparison
+
+NEXT STEPS:
+- Fix connection issue
+- Execute mssql_test.sql on Source RDS
+- Capture actual results
+- Proceed to Stage 2 (Babelfish attempt)
+
+================================================================================
+CONNECTION TROUBLESHOOTING:
+- Check AWS_REGION environment variable
+- Verify RDS instance status
+- Confirm security group rules
+- Test network connectivity
+- Review IAM role permissions
+- Check MCP server configuration (mcpserver/mssql.py)
+================================================================================

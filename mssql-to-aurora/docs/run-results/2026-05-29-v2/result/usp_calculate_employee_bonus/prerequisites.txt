@@ -1,0 +1,36 @@
+================================================================================
+STAGE 1: SOURCE MSSQL VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: dbo.usp_calculate_employee_bonus
+Type: STORED PROCEDURE
+Timestamp: Stage 1 execution
+
+STATUS: PREREQUISITE_FAILED
+
+ERROR DETAILS:
+--------------
+Connection to Source RDS for SQL Server failed with error:
+"You must specify a region."
+
+This is an AWS configuration/authentication error. Cannot proceed with:
+- Object existence verification
+- DDL extraction from sys.sql_modules
+- Dependency analysis
+- Test execution on source MSSQL
+
+IMPACT:
+-------
+- mssql.sql: NOT CREATED (cannot retrieve DDL)
+- mssql_test.sql: NOT CREATED (cannot design tests without DDL)
+- mssql_test.txt: NOT CREATED (cannot execute tests without connection)
+
+REQUIRED ACTION:
+----------------
+Fix AWS region configuration for Source RDS for SQL Server connection,
+then re-run Stage 1.
+
+Stage 2/3/4 will detect this failure and generate NG.txt accordingly.
+
+================================================================================
+END OF PREREQUISITES CHECK
+================================================================================

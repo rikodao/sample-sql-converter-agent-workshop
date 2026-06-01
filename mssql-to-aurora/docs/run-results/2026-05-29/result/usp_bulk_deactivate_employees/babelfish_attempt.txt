@@ -1,0 +1,226 @@
+============================================================================
+Babelfish Compatibility Verification - Stage 2
+Object: PROCEDURE dbo.usp_bulk_deactivate_employees
+Execution Date: 2026-05-29
+============================================================================
+
+PHASE 1: CONNECTION VERIFICATION
+============================================================================
+
+Attempt: SELECT @@VERSION via run_babelfish_tsql
+Status: FAILED
+Error: "You must specify a region."
+
+Details:
+- The Babelfish T-SQL endpoint (TDS:1433) requires AWS region configuration
+- Connection could not be established to verify Babelfish availability
+- This is an infrastructure/configuration issue, not a SQL compatibility issue
+
+Root Cause Analysis:
+- AWS SDK or connection configuration is missing the required region parameter
+- This prevents any T-SQL execution against Babelfish
+- Cannot proceed with DDL deployment or test execution without connectivity
+
+Impact:
+- Unable to verify if the stored procedure DDL is compatible with Babelfish
+- Unable to execute test cases against Babelfish
+- Cannot perform result comparison between MSSQL and Babelfish
+
+============================================================================
+OBJECT ANALYSIS (Static Review)
+============================================================================
+
+Source DDL Summary:
+- Object Type: STORED PROCEDURE
+- Name: dbo.usp_bulk_deactivate_employees
+- Parameters: 
+  * @employee_ids NVARCHAR(MAX) - Input (comma-separated list)
+  * @deactivation_reason NVARCHAR(500) - Input (optional, not used in logic)
+  * @deactivated_count INT OUTPUT - Output parameter
+- Key Features:
+  * Transaction management (BEGIN TRANSACTION / COMMIT / ROLLBACK)
+  * TRY-CATCH error handling
+  * Temp table creation (#emp_ids)
+  * STRING_SPLIT function (SQL Server 2016+)
+  * @@ROWCOUNT usage
+  * GETDATE() function
+  * Dynamic employee ID parsing
+  * Validation logic (NULL check, existence check)
+
+============================================================================
+BABELFISH COMPATIBILITY ASSESSMENT (Static Analysis)
+============================================================================
+
+Expected Compatibility Level: HIGH
+
+Supported Features (Expected to work):
+✓ STORED PROCEDURE with OUTPUT parameters - Babelfish supports this
+✓ TRY-CATCH blocks - Supported in Babelfish T-SQL mode
+✓ Temp tables (#table_name) - Supported in Babelfish
+✓ BEGIN TRANSACTION / COMMIT / ROLLBACK - Supported
+✓ @@ROWCOUNT - Supported (maps to PostgreSQL ROW_COUNT)
+✓ GETDATE() - Supported (maps to CURRENT_TIMESTAMP)
+✓ NVARCHAR data type - Supported
+✓ RAISERROR - Supported in Babelfish
+✓ OBJECT_ID for temp table check - Supported
+✓ ERROR_MESSAGE(), ERROR_SEVERITY(), ERROR_STATE() - Supported
+
+Potential Issues:
+⚠ STRING_SPLIT function:
+  - Available in Babelfish 3.x+ (requires compatibility level 160+)
+  - If Babelfish version < 3.x, this will fail with syntax error
+  - Alternative: Custom parsing with CHARINDEX/SUBSTRING loop
+  - Mitigation: Check Babelfish version and compatibility level
+
+⚠ LTRIM/RTRIM combination:
+  - Supported individually, but nested usage should be verified
+  - PostgreSQL equivalent: TRIM(BOTH FROM string)
+
+⚠ CAST to INT from STRING_SPLIT:
+  - Error handling behavior may differ between MSSQL and Babelfish
+  - MSSQL: "Conversion failed when converting the nvarchar value 'ABC' to data type int."
+  - Babelfish: May have slightly different error message wording
+
+⚠ Temp table scope in TRY-CATCH:
+  - MSSQL: Temp tables persist across TRY-CATCH blocks
+  - Babelfish: Should behave the same, but needs verification
+
+Known Limitations (Not applicable to this procedure):
+✗ CLR assemblies - Not used
+✗ Service Broker - Not used
+✗ Linked Server - Not used
+✗ WITH ENCRYPTION - Not used
+✗ Table-Valued Parameters (TVP) - Not used (using NVARCHAR(MAX) instead)
+✗ PIVOT/UNPIVOT - Not used
+✗ FOR JSON/XML - Not used
+
+============================================================================
+TEST SUITE ANALYSIS
+============================================================================
+
+Test Coverage: 12 test cases
+- Normal operations: 3 cases (TC1-TC3)
+- Boundary conditions: 5 cases (TC4-TC6, TC11-TC12)
+- Exception handling: 2 cases (TC7-TC8)
+- Side effects: 2 cases (TC9-TC10)
+
+Test Approach:
+- Tests simulate the procedure logic inline (not calling actual procedure)
+- This is because the test file was created for validation purposes
+- Each test case is self-contained with SETUP/EXEC/ASSERT/CLEANUP
+
+Expected Babelfish Behavior:
+- TC1-TC3: Should produce identical results (row counts match)
+- TC4-TC6: Error messages should be semantically equivalent
+- TC7: Error message wording may differ slightly
+- TC8: Conversion error message may differ in wording
+- TC9-TC10: Row counts should match exactly
+- TC11-TC12: String handling should produce same results
+
+Semantic Equivalence Criteria:
+- Row counts must match exactly
+- Error categories must match (validation error, conversion error, etc.)
+- Error message wording differences are acceptable if meaning is preserved
+- DATETIME precision differences (milliseconds) are acceptable
+- is_active flag values (0/1 or false/true) are semantically equivalent
+
+============================================================================
+HYPOTHESIS: LIKELY OUTCOME IF CONNECTION WERE AVAILABLE
+============================================================================
+
+DDL Deployment: LIKELY SUCCESS (95% confidence)
+Reasoning:
+- All major features used in the procedure are supported by Babelfish
+- No CLR, Service Broker, or other known incompatible features
+- STRING_SPLIT is the only potential blocker (version-dependent)
+
+Test Execution: LIKELY SUCCESS with SEMANTIC MATCH (90% confidence)
+Reasoning:
+- Logic is straightforward (UPDATE with WHERE clause)
+- No complex data type conversions
+- Error handling is standard T-SQL pattern
+- Main differences would be in error message wording
+
+Expected Differences:
+1. Error message text (TC4-TC8):
+   - MSSQL: "Parameter @employee_ids cannot be NULL or empty"
+   - Babelfish: Likely identical (RAISERROR with custom message)
+   - MSSQL: "Conversion failed when converting the nvarchar value 'ABC' to data type int."
+   - Babelfish: May say "invalid input syntax for type integer: 'ABC'"
+
+2. DATETIME precision:
+   - MSSQL GETDATE(): Returns DATETIME (precision to 3.33ms)
+   - Babelfish GETDATE(): May return TIMESTAMP (precision to microseconds)
+   - Impact: deactivated_date values may have different precision
+   - Mitigation: Compare only date/time components, ignore sub-second precision
+
+3. Temp table behavior:
+   - Both should work identically
+   - Cleanup in CATCH block should work the same
+
+============================================================================
+REQUIRED ACTIONS
+============================================================================
+
+Immediate:
+1. Fix AWS region configuration for Babelfish connection
+   - Set AWS_DEFAULT_REGION environment variable
+   - Or configure region in connection string/config file
+
+2. Verify Babelfish version and compatibility level:
+   - Execute: SELECT @@VERSION
+   - Execute: SELECT SERVERPROPERTY('ProductVersion')
+   - Execute: SELECT DATABASEPROPERTYEX(DB_NAME(), 'Compatibility')
+
+3. Check STRING_SPLIT availability:
+   - Execute: SELECT * FROM STRING_SPLIT('a,b,c', ',')
+   - If fails, need to implement alternative parsing logic
+
+Once Connection is Restored:
+1. Deploy DDL to Babelfish (run mssql.sql via run_babelfish_tsql)
+2. Execute test suite (run mssql_test.sql via run_babelfish_tsql)
+3. Compare results with mssql_test.txt
+4. Document any differences in error messages or precision
+
+============================================================================
+STAGE 2 DECISION
+============================================================================
+
+RESULT: CONNECTION_ERROR
+
+Reason: Cannot establish connection to Babelfish TDS endpoint due to missing AWS region configuration
+
+Next Steps:
+- Stage 2 cannot proceed without database connectivity
+- Infrastructure team must resolve region configuration
+- Once resolved, re-run Stage 2 verification
+- If DDL deployment fails, proceed to Stage 3 (PL/pgSQL conversion)
+- If DDL succeeds but tests mismatch, document differences and proceed to Stage 4
+
+Files Created:
+- babelfish_attempt.txt (this file)
+
+Files NOT Created (due to connection failure):
+- babelfish_test.sql (cannot create without testing DDL first)
+- babelfish_test.txt (cannot execute tests)
+- BABELFISH_OK.txt (cannot verify compatibility)
+
+============================================================================
+CONCLUSION
+============================================================================
+
+The stored procedure dbo.usp_bulk_deactivate_employees appears to be highly compatible
+with Babelfish based on static analysis. All major features used are supported.
+The only potential issue is STRING_SPLIT availability in older Babelfish versions.
+
+However, actual compatibility cannot be confirmed without live testing.
+Connection to Babelfish must be established before proceeding.
+
+Recommendation: 
+- Resolve infrastructure issue (AWS region configuration)
+- Re-run Stage 2 with connectivity
+- Expected outcome: DDL SUCCESS + TEST SEMANTIC_MATCH → BABELFISH_OK.txt
+
+============================================================================
+END OF REPORT
+============================================================================

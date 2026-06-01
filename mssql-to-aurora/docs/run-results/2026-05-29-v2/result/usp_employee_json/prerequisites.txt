@@ -1,0 +1,26 @@
+STATUS: PREREQUISITE_FAILED
+
+Object: dbo.usp_employee_json
+Type: STORED PROCEDURE
+Timestamp: Stage 1 execution
+
+ERROR DETAILS:
+=============
+Tool: run_mssql_sql
+Error: "You must specify a region."
+
+DESCRIPTION:
+AWS region configuration is missing or invalid. Cannot connect to Source RDS for SQL Server.
+Unable to verify object existence, retrieve DDL, or execute test cases.
+
+IMPACT:
+- Cannot retrieve object definition from sys.sql_modules
+- Cannot check dependencies from sys.sql_expression_dependencies
+- Cannot execute test cases against actual database
+- Stage 1 must be aborted
+
+RESOLUTION REQUIRED:
+Configure AWS region environment variable or connection parameters before retrying.
+
+This is a connectivity/infrastructure failure, NOT an object-level issue.
+No further files (mssql.sql, mssql_test.sql, mssql_test.txt) will be generated.

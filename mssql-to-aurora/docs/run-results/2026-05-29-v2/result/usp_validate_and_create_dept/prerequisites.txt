@@ -1,0 +1,41 @@
+================================================================================
+STAGE 1: SOURCE MSSQL VERIFICATION - PREREQUISITES CHECK
+================================================================================
+Object: PROCEDURE dbo.usp_validate_and_create_dept
+Timestamp: Stage 1 execution
+Status: PREREQUISITE_FAILED
+
+================================================================================
+ERROR DETAILS
+================================================================================
+Tool: run_mssql_sql
+Error: You must specify a region.
+
+Description:
+Cannot connect to Source RDS for SQL Server due to missing AWS region configuration.
+Without database connectivity, it is impossible to:
+  - Verify object existence
+  - Retrieve DDL definition
+  - Identify dependencies
+  - Execute test cases
+  - Capture actual results
+
+================================================================================
+IMPACT
+================================================================================
+Stage 1 cannot proceed. The following files will NOT be created:
+  - mssql.sql (DDL definition)
+  - mssql_test.sql (test cases)
+  - mssql_test.txt (actual test results)
+
+Subsequent stages (Stage 2, 3, 4) should detect this failure and generate
+appropriate NG.txt files indicating that migration validation cannot proceed
+without source database access.
+
+================================================================================
+REQUIRED ACTION
+================================================================================
+Configure AWS region for Source RDS for SQL Server connection and retry Stage 1.
+
+RESULT: PREREQUISITE_FAILED
+================================================================================

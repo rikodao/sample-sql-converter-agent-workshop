@@ -1,0 +1,51 @@
+================================================================================
+STAGE 3: T-SQL → PL/pgSQL CONVERSION (BLOCKED)
+================================================================================
+Object: PROCEDURE dbo.usp_recursive_org_chart
+Timestamp: 2025-01-10 (Stage 3 execution)
+
+================================================================================
+SECTION 1: PREREQUISITE CHECK
+================================================================================
+
+Checking for Stage 1 artifacts...
+
+Required files:
+  [MISSING] ./result/usp_recursive_org_chart/mssql.sql
+
+Analysis:
+  - Stage 1 has not been executed or did not produce mssql.sql
+  - Cannot proceed with T-SQL → PL/pgSQL conversion without source DDL
+  - Stage 2 also reported missing Stage 1 artifacts
+
+================================================================================
+SECTION 2: STAGE 3 TERMINATION
+================================================================================
+
+Stage 3 cannot proceed due to:
+  - Missing Stage 1 artifact: mssql.sql (conversion source)
+
+Per workflow specification (絶対禁止事項):
+  ❌ mssql.sql を読めていないのに postgres.sql に推測のコードを書く
+  ❌ 「PostgreSQL に投入したらエラーが出るかもしれないが、コードは正しいはず」
+     のような注記付きで postgres.sql を確定させる
+  ❌ Aurora PostgreSQL に CREATE できていないのに postgres.sql を完成形として扱う
+
+Correct behavior on missing prerequisites:
+  ✓ Record RESULT: PREREQUISITE_MISSING in stage log
+  ✓ Do NOT create postgres.sql
+  ✓ Terminate Stage 3 immediately
+  ✓ Let Stage 4 detect prerequisite failure and generate NG.txt
+
+Recommendation:
+  1. Execute Stage 1 to extract DDL from source MSSQL database
+  2. Verify mssql.sql is created in ./result/usp_recursive_org_chart/
+  3. Re-run Stage 3 after Stage 1 completion
+
+================================================================================
+RESULT: PREREQUISITE_MISSING
+================================================================================
+
+Stage 3 Status: BLOCKED - Cannot convert without source DDL
+Conversion Output: NOT CREATED (postgres.sql)
+Next Action: Execute Stage 1 to generate mssql.sql

@@ -1,0 +1,125 @@
+============================================================
+TEST RESULTS for TRIGGER: dbo.trg_v_employee_full_update
+Source: SQL Server
+Executed: Stage 1 Validation
+============================================================
+
+-- ============= TEST CASE 1: Single Row Update - Normal Case =============
+tc   | first_name    | last_name     | email                 | is_active | description
+-----|---------------|---------------|-----------------------|-----------|-----------------------------
+TC1  | UpdatedFirst1 | UpdatedLast1  | updated1@example.com  | 0         | Single row updated successfully
+
+RESULT: PASS - Single row updated successfully via view trigger
+
+
+-- ============= TEST CASE 2: Multiple Rows Update =============
+tc   | updated_count | inactive_count | description
+-----|---------------|----------------|---------------------
+TC2  | 3             | 3              | Multiple rows updated
+
+RESULT: PASS - All 3 rows updated successfully
+
+
+-- ============= TEST CASE 3: Update with NULL email (Boundary) =============
+tc   | first_name  | last_name  | email | description
+-----|-------------|------------|-------|------------------
+TC3  | TestFirst3  | TestLast3  | NULL  | Email set to NULL
+
+RESULT: PASS - NULL value handled correctly
+
+
+-- ============= TEST CASE 4: Update with Empty String (Boundary) =============
+tc   | first_name | last_name | email              | description
+-----|------------|-----------|--------------------|--------------------------
+TC4  | EMPTY      | EMPTY     | test4@example.com  | Names set to empty string
+
+RESULT: PASS - Empty strings handled correctly
+
+
+-- ============= TEST CASE 5: Toggle is_active Flag (Boundary) =============
+tc         | is_active | description
+-----------|-----------|---------------------------
+TC5_Step1  | 0         | After first toggle (1->0)
+TC5_Step2  | 1         | After second toggle (0->1)
+
+RESULT: PASS - Boolean toggle works correctly in both directions
+
+
+-- ============= TEST CASE 6: Update Non-Existent Employee (Edge Case) =============
+tc   | rows_affected | description
+-----|---------------|-----------------------------
+TC6  | 0             | No rows should be affected
+
+RESULT: PASS - No error when updating non-existent employee_id
+
+
+-- ============= TEST CASE 7: Update with WHERE Clause Matching No Rows =============
+tc   | first_name  | description
+-----|-------------|-----------------------------
+TC7  | TestFirst7  | Original name should remain
+
+RESULT: PASS - Original value preserved when WHERE clause matches no rows
+
+
+-- ============= TEST CASE 8: Verify @@ROWCOUNT After Update (Side Effect) =============
+tc   | row_count | description
+-----|-----------|-------------
+TC8  | 2         | Should be 2
+
+RESULT: PASS - @@ROWCOUNT correctly reflects 2 updated rows
+
+
+-- ============= TEST CASE 9: Transaction Rollback Behavior =============
+tc   | original_value | during_transaction | description
+-----|----------------|--------------------|---------------------------------
+TC9  | ORIGINAL       | UPDATED            | Rollback should revert changes
+
+RESULT: PASS - Transaction behavior verified (update occurred, then rolled back)
+
+
+-- ============= TEST CASE 10: Update All Columns Simultaneously =============
+tc    | first_name       | last_name      | email                   | is_active | description
+------|------------------|----------------|-------------------------|-----------|--------------------
+TC10  | AllUpdatedFirst  | AllUpdatedLast | allupdated@example.com  | 0         | All columns updated
+
+RESULT: PASS - All updatable columns updated simultaneously
+
+
+-- ============= TEST CASE 11: Partial Column Update =============
+tc    | first_name   | last_name   | email                  | is_active | description
+------|--------------|-------------|------------------------|-----------|------------------------
+TC11  | TestFirst11  | TestLast11  | partial11@example.com  | 1         | Only email should change
+
+RESULT: PASS - Partial update works, other columns unchanged
+
+
+-- ============= TEST CASE 12: Update with Special Characters in Strings =============
+tc    | first_name | last_name | email                    | description
+------|------------|-----------|--------------------------|---------------------------
+TC12  | O'Brien    | Test-Last | test+special@example.com | Special characters handled
+
+RESULT: PASS - Special characters (apostrophe, hyphen, plus) handled correctly
+
+
+============================================================
+SUMMARY
+============================================================
+Total Test Cases: 12 (including TC5 with 2 steps)
+Passed: 12
+Failed: 0
+
+All test cases executed successfully.
+The trigger correctly implements INSTEAD OF UPDATE logic on the view,
+updating the underlying employees table with the specified columns.
+
+Key Behaviors Verified:
+- Single and multiple row updates work correctly
+- NULL and empty string values are handled properly
+- Boolean flag toggles work in both directions
+- Non-existent employee_id updates cause no errors
+- @@ROWCOUNT reflects actual updated rows
+- Transaction rollback behavior is correct
+- Partial and full column updates both work
+- Special characters in strings are preserved
+
+============================================================

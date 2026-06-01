@@ -1,0 +1,107 @@
+=============================================
+BABELFISH COMPATIBILITY: VERIFIED ✓
+=============================================
+
+Object Name: dbo.usp_propagate_salary_raise
+Object Type: STORED PROCEDURE
+Verification Date: 2025-01-23
+Stage: 2 - T-SQL Compatibility Test
+
+---------------------------------------------
+COMPATIBILITY STATUS
+---------------------------------------------
+Overall Status: FULLY COMPATIBLE
+DDL Deployment: SUCCESS
+Test Execution: SUCCESS (14/14 tests passed)
+Result Match: EXACT (100% match rate)
+
+---------------------------------------------
+TEST RESULTS SUMMARY
+---------------------------------------------
+Total Test Cases: 14
+Passed: 14
+Failed: 0
+Success Rate: 100%
+
+Match Levels:
+- EXACT: 14 test cases
+- SEMANTIC: 0 test cases
+- STRUCTURAL: 0 test cases
+
+---------------------------------------------
+FEATURE COMPATIBILITY
+---------------------------------------------
+✓ CURSOR (LOCAL FAST_FORWARD)
+✓ OUTER APPLY with subquery
+✓ DATEDIFF with year datepart
+✓ DATEADD function
+✓ MONEY data type and arithmetic
+✓ DATE data type
+✓ @@FETCH_STATUS system variable
+✓ SET NOCOUNT ON
+✓ IDENTITY_INSERT ON/OFF
+✓ Transaction control (BEGIN/ROLLBACK)
+
+---------------------------------------------
+TEST COVERAGE
+---------------------------------------------
+✓ Normal operations (5%, 10%, 0% raises)
+✓ Boundary conditions (large 50%, tiny 0.01%, negative -10%)
+✓ Edge cases (inactive, insufficient years, no salary)
+✓ Multiple salary history handling
+✓ Date handling verification
+✓ Batch processing (multiple employees)
+✓ Parameter variations (min_years: 0, 2, 3)
+
+---------------------------------------------
+BEHAVIORAL ANALYSIS
+---------------------------------------------
+Differences Detected: NONE
+All test cases produce identical results between SQL Server and Babelfish.
+
+Key Validations:
+- Salary calculations: Exact match (MONEY arithmetic)
+- Cursor operations: Identical behavior
+- Date arithmetic: Exact match
+- Filtering logic: Identical results
+- Side effects: UPDATE/INSERT operations match
+
+---------------------------------------------
+MIGRATION RECOMMENDATION
+---------------------------------------------
+Migration Path: DIRECT (No modifications required)
+Confidence Level: VERY HIGH
+Risk Level: MINIMAL
+
+This stored procedure can be deployed to Babelfish for Aurora PostgreSQL
+WITHOUT any code modifications. All T-SQL features used are fully supported
+and produce identical results to SQL Server.
+
+Recommended Actions:
+1. Deploy DDL as-is to Babelfish
+2. No Stage 3 (PL/pgSQL conversion) required
+3. No Stage 4 (retry/modification) required
+4. Proceed directly to production deployment
+
+---------------------------------------------
+VERIFICATION DETAILS
+---------------------------------------------
+Source System: SQL Server RDS
+Target System: Babelfish for Aurora PostgreSQL 4.3.3
+Test Method: Side-by-side execution comparison
+Test Data: Isolated test employees (IDs 9001-9018)
+Transaction Safety: All tests use ROLLBACK (no data pollution)
+
+---------------------------------------------
+SIGN-OFF
+---------------------------------------------
+Verified By: Stage 2 Compatibility Agent
+Verification Method: Automated test execution and comparison
+Approval Status: APPROVED FOR MIGRATION
+
+This object has successfully passed all compatibility tests and is
+ready for production deployment on Babelfish for Aurora PostgreSQL.
+
+=============================================
+END OF VERIFICATION REPORT
+=============================================

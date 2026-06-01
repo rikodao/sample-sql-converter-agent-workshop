@@ -1,0 +1,183 @@
+============================================================================
+TEST EXECUTION RESULTS: dbo.usp_validate_and_create_dept
+Executed on: Babelfish for Aurora PostgreSQL
+============================================================================
+
+============= TEST CASE 1: Normal insert with valid name and no parent =============
+SETUP: Created temporary tables and baseline count
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = N'Test Department TC1', @parent_id = NULL
+ASSERT:
+tc   | result | inserted_count
+-----|--------|---------------
+TC1  | PASS   | 1
+
+CLEANUP: Deleted test data and dropped temporary tables
+STATUS: PASSED
+------------------------------------------------------------------------
+
+============= TEST CASE 2: Normal insert with valid parent_id =============
+SETUP: Created temporary table and retrieved valid parent_id
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = N'Test Sub-Department TC2', @parent_id = @valid_parent_id
+ASSERT:
+tc   | result | parent_id_value
+-----|--------|----------------
+TC2  | PASS   | 1
+
+CLEANUP: Deleted test data and dropped temporary table
+STATUS: PASSED
+------------------------------------------------------------------------
+
+============= TEST CASE 3: Normal insert with long valid name =============
+SETUP: Created temporary table with 90-character name
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = @long_name, @parent_id = NULL
+ASSERT:
+tc   | result | name_length
+-----|--------|------------
+TC3  | PASS   | 94
+
+CLEANUP: Deleted test data and dropped temporary table
+STATUS: PASSED
+------------------------------------------------------------------------
+
+============= TEST CASE 4: Boundary - NULL name (should fail with error 51001) =============
+SETUP: Created audit table and baseline count
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = NULL, @parent_id = NULL
+ASSERT:
+tc   | result        | error_number | error_message
+-----|---------------|--------------|-------------------------------
+TC4  | ERROR_CAUGHT  | 51001        | Department name cannot be empty.
+
+VERIFY NO INSERT:
+tc   | check_type        | result
+-----|-------------------|-------
+TC4  | VERIFY_NO_INSERT  | PASS
+
+CLEANUP: Dropped temporary table
+STATUS: PASSED (Error correctly caught)
+------------------------------------------------------------------------
+
+============= TEST CASE 5: Boundary - Empty string name (should fail with error 51001) =============
+SETUP: Baseline count established
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = N'', @parent_id = NULL
+ASSERT:
+tc   | result        | error_number | error_message
+-----|---------------|--------------|-------------------------------
+TC5  | ERROR_CAUGHT  | 51001        | Department name cannot be empty.
+
+VERIFY NO INSERT:
+tc   | check_type        | result
+-----|-------------------|-------
+TC5  | VERIFY_NO_INSERT  | PASS
+
+CLEANUP: None needed
+STATUS: PASSED (Error correctly caught)
+------------------------------------------------------------------------
+
+============= TEST CASE 6: Boundary - Whitespace-only name (should fail with error 51001) =============
+SETUP: Baseline count established
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = N'   ', @parent_id = NULL
+ASSERT:
+tc   | result        | error_number | error_message
+-----|---------------|--------------|-------------------------------
+TC6  | ERROR_CAUGHT  | 51001        | Department name cannot be empty.
+
+VERIFY NO INSERT:
+tc   | check_type        | result
+-----|-------------------|-------
+TC6  | VERIFY_NO_INSERT  | PASS
+
+CLEANUP: None needed
+STATUS: PASSED (Error correctly caught)
+------------------------------------------------------------------------
+
+============= TEST CASE 7: Exception - Duplicate name (should fail with error 51002) =============
+SETUP: Inserted test department 'Duplicate Test TC7'
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = N'Duplicate Test TC7', @parent_id = NULL
+ASSERT:
+tc   | result        | error_number | error_message
+-----|---------------|--------------|----------------------------------------
+TC7  | ERROR_CAUGHT  | 51002        | Department with same name already exists.
+
+VERIFY NO DUPLICATE:
+tc   | check_type          | result
+-----|---------------------|-------
+TC7  | VERIFY_NO_DUPLICATE | PASS
+
+CLEANUP: Deleted test department
+STATUS: PASSED (Error correctly caught)
+------------------------------------------------------------------------
+
+============= TEST CASE 8: Exception - Invalid parent_id (should fail with error 51003) =============
+SETUP: Baseline count established, invalid parent_id = -99999
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = N'Test Invalid Parent TC8', @parent_id = @invalid_parent_id
+ASSERT:
+tc   | result        | error_number | error_message
+-----|---------------|--------------|-------------------------------
+TC8  | ERROR_CAUGHT  | 51003        | Parent department does not exist.
+
+VERIFY NO INSERT:
+tc   | check_type        | result
+-----|-------------------|-------
+TC8  | VERIFY_NO_INSERT  | PASS
+
+CLEANUP: None needed
+STATUS: PASSED (Error correctly caught)
+------------------------------------------------------------------------
+
+============= TEST CASE 9: Side effect - Verify audit_log entry on error =============
+SETUP: Baseline audit log count established
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = NULL, @parent_id = NULL (error suppressed)
+ASSERT:
+tc   | check_type        | result | new_audit_entries
+-----|-------------------|--------|------------------
+TC9  | AUDIT_LOG_WRITTEN | PASS   | 1
+
+CLEANUP: Audit log entries kept for audit purposes
+STATUS: PASSED (Audit log correctly written on error)
+------------------------------------------------------------------------
+
+============= TEST CASE 10: Side effect - Verify @@ROWCOUNT after successful insert =============
+SETUP: Created temporary table
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = N'Test Rowcount TC10', @parent_id = NULL
+ASSERT:
+tc    | check_type     | result | actual_count
+------|----------------|--------|-------------
+TC10  | ROWCOUNT_CHECK | PASS   | 1
+
+CLEANUP: Deleted test data and dropped temporary table
+STATUS: PASSED
+------------------------------------------------------------------------
+
+============= TEST CASE 11: Transaction - Verify rollback on error (no partial insert) =============
+SETUP: Inserted test department 'Rollback Test TC11'
+EXEC: EXEC dbo.usp_validate_and_create_dept @name = N'Rollback Test TC11', @parent_id = NULL (duplicate)
+ASSERT:
+tc    | result         | error_number
+------|----------------|-------------
+TC11  | ERROR_EXPECTED | 51002
+
+ROLLBACK VERIFICATION:
+tc    | check_type      | result | actual_count
+------|-----------------|--------|-------------
+TC11  | ROLLBACK_VERIFY | PASS   | 1
+
+CLEANUP: Deleted test department
+STATUS: PASSED (No partial insert, rollback successful)
+------------------------------------------------------------------------
+
+============================================================================
+SUMMARY
+============================================================================
+Total Test Cases: 11
+Passed: 11
+Failed: 0
+
+Test Coverage:
+- Normal operations: 3 test cases (TC1, TC2, TC3)
+- Boundary conditions: 3 test cases (TC4, TC5, TC6)
+- Exception handling: 2 test cases (TC7, TC8)
+- Side effects: 2 test cases (TC9, TC10)
+- Transaction behavior: 1 test case (TC11)
+
+All test cases executed successfully on Babelfish for Aurora PostgreSQL.
+============================================================================
