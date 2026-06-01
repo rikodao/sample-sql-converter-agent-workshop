@@ -1,0 +1,39 @@
+# =============================================================================
+# inventory.ini  (テンプレート — inventory.ini にコピーして編集してください)
+# =============================================================================
+#
+# 構成パターン:
+#   1. SSH 直接接続 (Public IP / VPN 経由)
+#   2. SSM Session Manager (推奨。Public IP 不要、SG で 22 開放不要)
+#   3. localhost (EC2 自身で playbook を回す self-bootstrap モード)
+#
+# 環境変数で SA パスワードを上書きする場合は run-ansible.sh の例を参照。
+
+# -----------------------------------------------------------------------------
+# パターン 1: SSH 直接接続
+# -----------------------------------------------------------------------------
+# [sct_hosts]
+# sct1 ansible_host=10.0.1.123 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/sct-host.pem
+
+# -----------------------------------------------------------------------------
+# パターン 2: SSM Session Manager 経由 (推奨)
+# -----------------------------------------------------------------------------
+# 事前準備: ansible-collection community.aws と aws-cli session-manager-plugin が必要
+#   pip install ansible boto3
+#   ansible-galaxy collection install community.aws
+#
+# [sct_hosts]
+# sct1 ansible_host=i-0123456789abcdef0 ansible_user=ubuntu ansible_aws_ssm_bucket_name=<your-bucket> ansible_connection=community.aws.aws_ssm
+
+# -----------------------------------------------------------------------------
+# パターン 3: localhost (EC2 で self-bootstrap)
+# -----------------------------------------------------------------------------
+[sct_hosts]
+localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3
+
+[sct_hosts:vars]
+# 必要に応じてオーバーライド (group_vars/all.yml でも可)
+# mssql_sa_password=ChangeMe!Strong#Pass2026
+# mssql_edition=Developer
+# mssql_restore_bak_s3_uri=s3://your-bucket/path/YourAppDb.bak
+# mssql_restore_database_name=YourAppDb

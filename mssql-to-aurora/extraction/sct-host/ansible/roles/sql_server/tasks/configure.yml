@@ -1,0 +1,89 @@
+---
+# =============================================================================
+# SQL Server 初期セットアップ (mssql-conf setup)
+# =============================================================================
+# - Edition と SA パスワードを非対話モードで設定
+# - 既にセットアップ済みなら skip (冪等性)
+
+- name: SQL Server セットアップ済みフラグを確認
+  ansible.builtin.stat:
+    path: "/var/opt/mssql/.system/SETUP_COMPLETE"
+  register: mssql_setup_marker
+
+- name: Edition 名 → MSSQL_PID にマッピング
+  ansible.builtin.set_fact:
+    mssql_pid: >-
+      {{
+        {
+          "Developer":  "Developer",
+          "Express":    "Express",
+          "Standard":   "Standard",
+          "Enterprise": "Enterprise",
+          "Web":        "Web",
+        }[mssql_edition]
+      }}
+
+- name: mssql-conf を非対話で実行 (初回のみ)
+  ansible.builtin.command:
+    cmd: "/opt/mssql/bin/mssql-conf -n setup"
+  environment:
+    MSSQL_PID: "{{ mssql_pid }}"
+    MSSQL_SA_PASSWORD: "{{ mssql_sa_password }}"
+    ACCEPT_EULA: "Y"
+  when: not mssql_setup_marker.stat.exists
+  no_log: true
+  changed_when: true
+
+- name: セットアップ完了マーカーを作成 (冪等性のため)
+  ansible.builtin.file:
+    path: "/var/opt/mssql/.system"
+    state: directory
+    mode: "0700"
+    owner: mssql
+    group: mssql
+  when: not mssql_setup_marker.stat.exists
+
+- name: セットアップマーカーファイルを生成
+  ansible.builtin.copy:
+    dest: "/var/opt/mssql/.system/SETUP_COMPLETE"
+    content: |
+      Edition: {{ mssql_edition }}
+      Version: {{ mssql_version }}
+      Setup at: {{ ansible_date_time.iso8601 }}
+    owner: mssql
+    group: mssql
+    mode: "0600"
+  when: not mssql_setup_marker.stat.exists
+
+- name: ポート設定 (デフォルト 1433 以外を使う場合)
+  ansible.builtin.command:
+    cmd: "/opt/mssql/bin/mssql-conf set network.tcpport {{ mssql_listen_port }}"
+  when: mssql_listen_port | int != 1433
+  notify: restart mssql
+
+- name: mssql-server サービス有効化 + 起動
+  ansible.builtin.systemd:
+    name: mssql-server
+    enabled: true
+    state: started
+
+- name: mssql-server が listen しているか確認
+  ansible.builtin.wait_for:
+    port: "{{ mssql_listen_port }}"
+    host: "127.0.0.1"
+    delay: 2
+    timeout: 60
+
+- name: SA で接続できるかテスト (SELECT @@VERSION)
+  ansible.builtin.command:
+    cmd: >-
+      /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,{{ mssql_listen_port }}
+      -U SA -P "{{ mssql_sa_password }}" -C -N
+      -Q "SELECT @@VERSION"
+  register: mssql_version_check
+  changed_when: false
+  no_log: true
+
+- name: バージョン情報を表示
+  ansible.builtin.debug:
+    msg: "{{ mssql_version_check.stdout_lines | select('match', '.*Microsoft SQL Server.*') | list }}"

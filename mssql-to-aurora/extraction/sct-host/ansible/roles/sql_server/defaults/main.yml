@@ -1,0 +1,36 @@
+---
+# =============================================================================
+# sql_server role - default variables
+# group_vars/all.yml で上書きしてください
+# =============================================================================
+
+# SQL Server バージョン
+mssql_version: "2022"             # 2022 / 2019
+mssql_edition: "Developer"        # Developer / Express / Standard / Enterprise / Web
+
+# SA パスワード (本番値は ansible-vault または -e で渡すこと)
+mssql_sa_password: "ChangeMe!Strong#Pass2026"
+
+# ネットワーク
+mssql_listen_port: 1433
+mssql_open_firewall: true
+mssql_firewall_allowed_cidrs: []
+
+# Microsoft repo / GPG
+mssql_microsoft_gpg_url: "https://packages.microsoft.com/keys/microsoft.asc"
+mssql_microsoft_gpg_path: "/etc/apt/keyrings/microsoft-prod.gpg"
+
+# パッケージ名 (バージョン別 repo 解決のため、内部変数 mssql_apt_* を tasks で組み立てる)
+
+# Restore (任意)
+mssql_restore_enabled: false
+mssql_restore_bak_s3_uri: ""
+mssql_restore_database_name: ""
+mssql_restore_local_path: "/var/opt/mssql/backup"
+mssql_restore_file_moves: []
+
+# AWS CLI (S3 から bak を取得する場合)
+aws_region: "us-east-1"
+
+# データボリューム (情報提示用、playbook はマウント自体は行わない)
+mssql_data_volume_mount: "/var/opt/mssql"

@@ -1,0 +1,13 @@
+---
+# =============================================================================
+# Handlers
+# =============================================================================
+
+- name: restart mssql
+  ansible.builtin.systemd:
+    name: mssql-server
+    state: restarted
+
+- name: reload ufw
+  community.general.ufw:
+    state: reloaded

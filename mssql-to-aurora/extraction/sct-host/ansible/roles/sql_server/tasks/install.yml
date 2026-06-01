@@ -1,0 +1,67 @@
+---
+# =============================================================================
+# SQL Server エンジン + CLI ツールのインストール (Microsoft 公式 apt repo)
+# =============================================================================
+
+- name: keyring ディレクトリを作成
+  ansible.builtin.file:
+    path: "{{ mssql_microsoft_gpg_path | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Microsoft 公式 GPG 鍵をダウンロード
+  ansible.builtin.get_url:
+    url: "{{ mssql_microsoft_gpg_url }}"
+    dest: "/tmp/microsoft.asc"
+    mode: "0644"
+
+- name: GPG 鍵を keyring 形式に変換
+  ansible.builtin.command:
+    cmd: "gpg --dearmor -o {{ mssql_microsoft_gpg_path }} /tmp/microsoft.asc"
+    creates: "{{ mssql_microsoft_gpg_path }}"
+
+- name: "Ubuntu バージョン文字列を抽出 (例 22.04)"
+  ansible.builtin.set_fact:
+    ubuntu_release: "{{ ansible_distribution_version }}"
+
+- name: SQL Server エンジン用 apt repo を登録
+  ansible.builtin.copy:
+    dest: "/etc/apt/sources.list.d/mssql-server-{{ mssql_version }}.list"
+    mode: "0644"
+    content: |
+      deb [arch=amd64,arm64,armhf signed-by={{ mssql_microsoft_gpg_path }}] https://packages.microsoft.com/ubuntu/{{ ubuntu_release }}/mssql-server-{{ mssql_version }} jammy main
+
+- name: mssql-tools / unixodbc 用 apt repo を登録
+  ansible.builtin.copy:
+    dest: "/etc/apt/sources.list.d/mssql-tools.list"
+    mode: "0644"
+    content: |
+      deb [arch=amd64,arm64,armhf signed-by={{ mssql_microsoft_gpg_path }}] https://packages.microsoft.com/ubuntu/{{ ubuntu_release }}/prod jammy main
+
+- name: apt キャッシュ更新
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: SQL Server エンジン本体のインストール
+  ansible.builtin.apt:
+    name: "mssql-server"
+    state: present
+
+- name: mssql-tools18 / unixodbc-dev のインストール
+  ansible.builtin.apt:
+    name:
+      - mssql-tools18
+      - unixodbc-dev
+    state: present
+  environment:
+    ACCEPT_EULA: "Y"
+
+- name: mssql-tools のパスを ec2-user / ubuntu の bashrc に追加
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user_id }}/.bashrc"
+    line: 'export PATH="$PATH:/opt/mssql-tools18/bin"'
+    state: present
+    create: true
+    mode: "0644"
+  become_user: "{{ ansible_user_id }}"
+  when: ansible_user_id != "root"

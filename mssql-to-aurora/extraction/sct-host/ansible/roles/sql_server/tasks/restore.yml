@@ -1,0 +1,124 @@
+---
+# =============================================================================
+# .bak から DB を復元 (任意)
+# =============================================================================
+# 前提:
+# - prereq.yml で AWS CLI を導入済み
+# - EC2 IAM Role に s3:GetObject 権限あり (または ~/.aws/credentials)
+# - mssql_restore_bak_s3_uri と mssql_restore_database_name が設定済み
+
+- name: 復元設定の必須変数チェック
+  ansible.builtin.assert:
+    that:
+      - mssql_restore_bak_s3_uri | length > 0
+      - mssql_restore_bak_s3_uri is match("^s3://.+\\.bak$")
+      - mssql_restore_database_name | length > 0
+    fail_msg: |
+      restore モードを使うには以下が必要:
+        mssql_restore_bak_s3_uri (s3://bucket/path/file.bak)
+        mssql_restore_database_name
+
+- name: 復元用ディレクトリを作成
+  ansible.builtin.file:
+    path: "{{ mssql_restore_local_path }}"
+    state: directory
+    owner: mssql
+    group: mssql
+    mode: "0700"
+
+- name: S3 から bak ファイルをダウンロード
+  ansible.builtin.command:
+    cmd: >-
+      /usr/local/bin/aws s3 cp
+      {{ mssql_restore_bak_s3_uri }}
+      {{ mssql_restore_local_path }}/{{ mssql_restore_database_name }}.bak
+      --region {{ aws_region }}
+  args:
+    creates: "{{ mssql_restore_local_path }}/{{ mssql_restore_database_name }}.bak"
+
+- name: bak ファイルの所有権を mssql に変更
+  ansible.builtin.file:
+    path: "{{ mssql_restore_local_path }}/{{ mssql_restore_database_name }}.bak"
+    owner: mssql
+    group: mssql
+    mode: "0600"
+
+- name: 既存 DB の存在確認
+  ansible.builtin.command:
+    cmd: >-
+      /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,{{ mssql_listen_port }}
+      -U SA -P "{{ mssql_sa_password }}" -C -N -h-1
+      -Q "SET NOCOUNT ON;
+          IF DB_ID('{{ mssql_restore_database_name }}') IS NULL
+              SELECT 'NOT_EXISTS'
+          ELSE
+              SELECT 'EXISTS';"
+  register: db_exists_check
+  changed_when: false
+  no_log: true
+
+- name: bak の論理ファイル名と物理ファイル名を取得 (FILELISTONLY)
+  ansible.builtin.command:
+    cmd: >-
+      /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,{{ mssql_listen_port }}
+      -U SA -P "{{ mssql_sa_password }}" -C -N -s "|" -W
+      -Q "RESTORE FILELISTONLY FROM DISK = N'{{ mssql_restore_local_path }}/{{ mssql_restore_database_name }}.bak'"
+  register: file_list_raw
+  when: "'NOT_EXISTS' in db_exists_check.stdout"
+  changed_when: false
+  no_log: true
+
+- name: FILELISTONLY 結果から MOVE 句を組み立て
+  ansible.builtin.set_fact:
+    move_clauses: >-
+      {{
+        (
+          mssql_restore_file_moves
+          if (mssql_restore_file_moves | length > 0)
+          else (
+            file_list_raw.stdout_lines
+            | reject('match', '^LogicalName.*')
+            | reject('match', '^-+\\|.*')
+            | reject('match', '^$')
+            | map('split', '|')
+            | selectattr(1, 'defined')
+            | map('list')
+            | list
+            | map('community.general.json_query', '[0]')
+            | list
+          )
+        )
+      }}
+  when: "'NOT_EXISTS' in db_exists_check.stdout"
+
+- name: "復元 SQL を生成 (シンプル版 — 既存物理パスをそのまま使う前提)"
+  ansible.builtin.copy:
+    dest: "{{ mssql_restore_local_path }}/restore.sql"
+    owner: mssql
+    group: mssql
+    mode: "0600"
+    content: |
+      RESTORE DATABASE [{{ mssql_restore_database_name }}]
+      FROM DISK = N'{{ mssql_restore_local_path }}/{{ mssql_restore_database_name }}.bak'
+      WITH FILE = 1, REPLACE,
+           STATS = 5;
+      GO
+  when: "'NOT_EXISTS' in db_exists_check.stdout"
+
+- name: 復元実行
+  ansible.builtin.command:
+    cmd: >-
+      /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,{{ mssql_listen_port }}
+      -U SA -P "{{ mssql_sa_password }}" -C -N
+      -i {{ mssql_restore_local_path }}/restore.sql
+  register: restore_result
+  when: "'NOT_EXISTS' in db_exists_check.stdout"
+  changed_when: true
+  no_log: true
+
+- name: 復元結果のサマリ表示
+  ansible.builtin.debug:
+    msg: |
+      DB 復元結果:
+        DB Name:  {{ mssql_restore_database_name }}
+        既存検出: {{ 'EXISTS (skip)' if 'EXISTS' in db_exists_check.stdout else 'NOT_EXISTS (restored)' }}
