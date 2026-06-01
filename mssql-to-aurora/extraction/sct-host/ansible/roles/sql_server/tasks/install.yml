@@ -38,6 +38,10 @@
     content: |
       deb [arch=amd64,arm64,armhf signed-by={{ mssql_microsoft_gpg_path }}] https://packages.microsoft.com/ubuntu/{{ ubuntu_release }}/prod jammy main
 
+- name: apt の lists を強制クリア (古いキャッシュが Microsoft repo の package list を見えなくする問題への対処)
+  ansible.builtin.shell: "rm -rf /var/lib/apt/lists/*"
+  changed_when: true
+
 - name: apt キャッシュ更新
   ansible.builtin.apt:
     update_cache: true

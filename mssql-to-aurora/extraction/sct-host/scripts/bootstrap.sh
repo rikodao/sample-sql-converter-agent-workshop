@@ -46,8 +46,16 @@ echo "[bootstrap] apt update + Ansible install"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq software-properties-common python3-pip
-pip3 install --quiet --break-system-packages ansible boto3 botocore || pip3 install --quiet ansible boto3 botocore
-ansible-galaxy collection install -q community.general
+
+# pip3 install — Python 3.11+ では --break-system-packages が必要、3.10 までは不要
+if pip3 install --help 2>/dev/null | grep -q -- '--break-system-packages'; then
+    pip3 install --quiet --break-system-packages ansible boto3 botocore
+else
+    pip3 install --quiet ansible boto3 botocore
+fi
+
+# ansible-galaxy: 古い版は -q フラグ不可。verbose 出るが許容
+ansible-galaxy collection install community.general 2>&1 | tail -5
 
 # 作業ディレクトリ (このスクリプトが置かれている前提) を決定
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
